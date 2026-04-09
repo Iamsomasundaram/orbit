@@ -3,29 +3,33 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from orbit_worker.runner import run_review_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[3]
-INPUT_PATH = ROOT / "tests" / "fixtures" / "source-documents" / "procurepilot-thin-slice.md"
-BASELINE_DIR = ROOT / "tests" / "fixtures" / "baselines" / "procurepilot-js"
+CASES = json.loads((ROOT / "tests" / "fixtures" / "parity-cases.json").read_text(encoding="utf-8"))
 
 
 def read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_python_thin_slice_matches_js_baseline(tmp_path: Path) -> None:
-    result = run_review_pipeline(str(INPUT_PATH), str(tmp_path))
+@pytest.mark.parametrize("case", CASES, ids=[case["case_id"] for case in CASES])
+def test_python_thin_slice_matches_js_baseline(case: dict[str, str], tmp_path: Path) -> None:
+    input_path = ROOT / case["input_path"]
+    baseline_dir = ROOT / case["baseline_dir"]
+    output_dir = tmp_path / case["case_id"]
+
+    result = run_review_pipeline(str(input_path), str(output_dir))
 
     assert len(result["agent_reviews"]) == 15
     assert len(result["conflicts"]) >= 1
-    assert result["scorecard"].final_recommendation == "Proceed with Conditions"
-    assert result["scorecard"].weighted_composite_score == 3.61
 
-    assert read_json(tmp_path / "canonical-portfolio.json") == read_json(BASELINE_DIR / "canonical-portfolio.json")
-    assert read_json(tmp_path / "agent-reviews.json") == read_json(BASELINE_DIR / "agent-reviews.json")
-    assert read_json(tmp_path / "conflicts.json") == read_json(BASELINE_DIR / "conflicts.json")
-    assert read_json(tmp_path / "scorecard.json") == read_json(BASELINE_DIR / "scorecard.json")
-    assert read_json(tmp_path / "committee-report.json") == read_json(BASELINE_DIR / "committee-report.json")
-    assert (tmp_path / "committee-report.md").read_text(encoding="utf-8") == (BASELINE_DIR / "committee-report.md").read_text(encoding="utf-8")
+    assert read_json(output_dir / "canonical-portfolio.json") == read_json(baseline_dir / "canonical-portfolio.json")
+    assert read_json(output_dir / "agent-reviews.json") == read_json(baseline_dir / "agent-reviews.json")
+    assert read_json(output_dir / "conflicts.json") == read_json(baseline_dir / "conflicts.json")
+    assert read_json(output_dir / "scorecard.json") == read_json(baseline_dir / "scorecard.json")
+    assert read_json(output_dir / "committee-report.json") == read_json(baseline_dir / "committee-report.json")
+    assert (output_dir / "committee-report.md").read_text(encoding="utf-8") == (baseline_dir / "committee-report.md").read_text(encoding="utf-8")

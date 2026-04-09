@@ -1,0 +1,949 @@
+[
+  {
+    "agent_id": "business_owner",
+    "agent_name": "Business Owner",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Business Owner recommends Proceed with Conditions with strongest support in Problem Validity and primary concern in integration_risk.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Problem Validity",
+        "score": 3.45,
+        "confidence": 0.6,
+        "evidence_completeness": 0.7,
+        "severity_flags": [],
+        "rationale": "Business Owner adjusts Problem Validity using deterministic thin-slice heuristics for problem_strength and integration_risk.",
+        "evidence_refs": [
+          "portfolio.problem_discovery",
+          "portfolio.business_requirements",
+          "portfolio.success_metrics",
+          "portfolio.architecture_system_design",
+          "portfolio.post_launch_strategy"
+        ]
+      },
+      {
+        "dimension": "Economic Viability",
+        "score": 3.35,
+        "confidence": 0.55,
+        "evidence_completeness": 0.6,
+        "severity_flags": [],
+        "rationale": "Business Owner adjusts Economic Viability using deterministic thin-slice heuristics for problem_strength and integration_risk.",
+        "evidence_refs": [
+          "portfolio.problem_discovery",
+          "portfolio.business_requirements",
+          "portfolio.success_metrics",
+          "portfolio.architecture_system_design",
+          "portfolio.post_launch_strategy"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "Which integration path is required for the first three pilots to realize measurable ROI?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "value_realization=integration_sequence_is_managed"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "finance_lead",
+    "agent_name": "Finance Lead",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Finance Lead recommends Pilot Only with strongest support in Economic Viability and primary concern in integration_risk.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Economic Viability",
+        "score": 3.15,
+        "confidence": 0.54,
+        "evidence_completeness": 0.6,
+        "severity_flags": [],
+        "rationale": "Finance Lead adjusts Economic Viability using deterministic thin-slice heuristics for monetization_clarity and integration_risk.",
+        "evidence_refs": [
+          "portfolio.business_requirements",
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "What services burden is assumed for the initial ERP-connected customers?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "unit_economics=services_load_stays_bounded"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "sales_strategist",
+    "agent_name": "Sales Strategist",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Sales Strategist recommends Proceed with Conditions with strongest support in Market Fit and primary concern in integration_risk.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Market Fit",
+        "score": 3.7,
+        "confidence": 0.61,
+        "evidence_completeness": 0.72,
+        "severity_flags": [],
+        "rationale": "Sales Strategist adjusts Market Fit using deterministic thin-slice heuristics for buyer_clarity and integration_risk.",
+        "evidence_refs": [
+          "portfolio.product_vision",
+          "portfolio.business_requirements",
+          "portfolio.post_launch_strategy",
+          "portfolio.architecture_system_design",
+          "portfolio.mvp_roadmap"
+        ]
+      },
+      {
+        "dimension": "Economic Viability",
+        "score": 3.3,
+        "confidence": 0.55,
+        "evidence_completeness": 0.6,
+        "severity_flags": [],
+        "rationale": "Sales Strategist adjusts Economic Viability using deterministic thin-slice heuristics for buyer_clarity and integration_risk.",
+        "evidence_refs": [
+          "portfolio.product_vision",
+          "portfolio.business_requirements",
+          "portfolio.post_launch_strategy",
+          "portfolio.architecture_system_design",
+          "portfolio.mvp_roadmap"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "Which buyer objections are expected if ERP integrations land after the core workflow pilots?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "launch_scope=single_region_mvp_is_sales_acceptable"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "marketing_strategist",
+    "agent_name": "Marketing Strategist",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Marketing Strategist recommends Proceed with Conditions with strongest support in Market Fit and primary concern in compliance_gap.",
+    "findings": [
+      {
+        "finding_id": "marketing_strategist-positive-market_story_strength",
+        "title": "Positioning is differentiated enough for a first GTM story",
+        "category": "market_fit",
+        "severity": "minor",
+        "claim": "Marketing Strategist notes that positioning is differentiated enough for a first gtm story for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.competitive_landscape",
+          "portfolio.product_vision"
+        ],
+        "assumptions": [],
+        "recommended_action": "Anchor the launch narrative on workflow acceleration and auditability.",
+        "score_impacts": [
+          {
+            "dimension": "Market Fit",
+            "delta": 0.15,
+            "rationale": "Marketing Strategist adjusts Market Fit through market_story_strength."
+          },
+          {
+            "dimension": "Product Quality",
+            "delta": 0.15,
+            "rationale": "Marketing Strategist adjusts Product Quality through market_story_strength."
+          }
+        ]
+      },
+      {
+        "finding_id": "marketing_strategist-risk-compliance_gap",
+        "title": "Compliance posture is directionally positive but incomplete",
+        "category": "security_and_compliance",
+        "severity": "major",
+        "claim": "Marketing Strategist notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience"
+        ],
+        "assumptions": [
+          "trust_positioning=controls_are_marketable"
+        ],
+        "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+        "score_impacts": [
+          {
+            "dimension": "Market Fit",
+            "delta": -0.25,
+            "rationale": "Marketing Strategist adjusts Market Fit through compliance_gap."
+          },
+          {
+            "dimension": "Product Quality",
+            "delta": -0.25,
+            "rationale": "Marketing Strategist adjusts Product Quality through compliance_gap."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Market Fit",
+        "score": 3.63,
+        "confidence": 0.65,
+        "evidence_completeness": 0.74,
+        "severity_flags": [
+          "compliance_gap_market_fit"
+        ],
+        "rationale": "Marketing Strategist adjusts Market Fit using deterministic thin-slice heuristics for market_story_strength and compliance_gap.",
+        "evidence_refs": [
+          "portfolio.competitive_landscape",
+          "portfolio.product_vision",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience"
+        ]
+      },
+      {
+        "dimension": "Product Quality",
+        "score": 3.68,
+        "confidence": 0.65,
+        "evidence_completeness": 0.74,
+        "severity_flags": [
+          "compliance_gap_product_quality"
+        ],
+        "rationale": "Marketing Strategist adjusts Product Quality using deterministic thin-slice heuristics for market_story_strength and compliance_gap.",
+        "evidence_refs": [
+          "portfolio.competitive_landscape",
+          "portfolio.product_vision",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "What proof points will marketing use to address buyer trust questions in regulated accounts?"
+    ],
+    "evidence_gaps": [
+      "The fixture does not define external trust messaging artifacts or validation evidence."
+    ],
+    "assumption_register": [
+      "trust_positioning=controls_are_marketable"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "product_manager",
+    "agent_name": "Product Manager",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Product Manager recommends Proceed with Conditions with strongest support in Product Quality and primary concern in integration_risk.",
+    "findings": [
+      {
+        "finding_id": "product_manager-positive-mvp_focus",
+        "title": "The MVP scope is focused enough for a thin-slice launch",
+        "category": "product_quality",
+        "severity": "minor",
+        "claim": "Product Manager notes that the mvp scope is focused enough for a thin-slice launch for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.mvp_roadmap"
+        ],
+        "assumptions": [],
+        "recommended_action": "Protect the bounded workflow scope during the first release.",
+        "score_impacts": [
+          {
+            "dimension": "Product Quality",
+            "delta": 0.15,
+            "rationale": "Product Manager adjusts Product Quality through mvp_focus."
+          },
+          {
+            "dimension": "Problem Validity",
+            "delta": 0.15,
+            "rationale": "Product Manager adjusts Problem Validity through mvp_focus."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Product Quality",
+        "score": 3.75,
+        "confidence": 0.74,
+        "evidence_completeness": 0.75,
+        "severity_flags": [],
+        "rationale": "Product Manager adjusts Product Quality using deterministic thin-slice heuristics for mvp_focus and integration_risk.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.mvp_roadmap",
+          "portfolio.architecture_system_design",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience"
+        ]
+      },
+      {
+        "dimension": "Problem Validity",
+        "score": 3.4,
+        "confidence": 0.73,
+        "evidence_completeness": 0.73,
+        "severity_flags": [],
+        "rationale": "Product Manager adjusts Problem Validity using deterministic thin-slice heuristics for mvp_focus and integration_risk.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.mvp_roadmap",
+          "portfolio.architecture_system_design",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "Which product release gates define enterprise-ready versus pilot-ready use?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "enterprise_readiness=conditions_can_close_gaps_quickly"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "ux_ui_reviewer",
+    "agent_name": "UX/UI Reviewer",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "UX/UI Reviewer recommends Proceed with Conditions with strongest support in Product Quality and primary concern in ai_evaluation_gap.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Product Quality",
+        "score": 3.6,
+        "confidence": 0.6,
+        "evidence_completeness": 0.72,
+        "severity_flags": [],
+        "rationale": "UX/UI Reviewer adjusts Product Quality using deterministic thin-slice heuristics for workflow_traceability and ai_evaluation_gap.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.ai_agents_ethical_framework"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "How will users inspect why a supplier delta or approval suggestion was generated?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "user_trust=human_review_steps_are_visible"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "customer_success_lead",
+    "agent_name": "Customer Success Lead",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Customer Success Lead recommends Pilot Only with strongest support in Product Quality and primary concern in support_gap.",
+    "findings": [
+      {
+        "finding_id": "customer_success_lead-positive-customer_value_clarity",
+        "title": "Customer value is easy to explain in operational terms",
+        "category": "product_quality",
+        "severity": "minor",
+        "claim": "Customer Success Lead notes that customer value is easy to explain in operational terms for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.problem_discovery",
+          "portfolio.success_metrics"
+        ],
+        "assumptions": [],
+        "recommended_action": "Turn the value story into measurable onboarding outcomes.",
+        "score_impacts": [
+          {
+            "dimension": "Product Quality",
+            "delta": 0.15,
+            "rationale": "Customer Success Lead adjusts Product Quality through customer_value_clarity."
+          },
+          {
+            "dimension": "Operational Resilience",
+            "delta": 0.15,
+            "rationale": "Customer Success Lead adjusts Operational Resilience through customer_value_clarity."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Product Quality",
+        "score": 3.6,
+        "confidence": 0.74,
+        "evidence_completeness": 0.75,
+        "severity_flags": [],
+        "rationale": "Customer Success Lead adjusts Product Quality using deterministic thin-slice heuristics for customer_value_clarity and support_gap.",
+        "evidence_refs": [
+          "portfolio.problem_discovery",
+          "portfolio.success_metrics",
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ]
+      },
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.78,
+        "confidence": 0.65,
+        "evidence_completeness": 0.58,
+        "severity_flags": [],
+        "rationale": "Customer Success Lead adjusts Operational Resilience using deterministic thin-slice heuristics for customer_value_clarity and support_gap.",
+        "evidence_refs": [
+          "portfolio.problem_discovery",
+          "portfolio.success_metrics",
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "Who owns onboarding, escalation, and success reviews during the first pilot wave?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "post_sale_model=lean_team_can_support_initial_customers"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "system_architect",
+    "agent_name": "System Architect",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "System Architect recommends Pilot Only with strongest support in Technical Feasibility and primary concern in resilience_gap.",
+    "findings": [
+      {
+        "finding_id": "system_architect-risk-resilience_gap",
+        "title": "Recovery and release posture is not yet strong enough",
+        "category": "operational_resilience",
+        "severity": "major",
+        "claim": "System Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.operational_resilience",
+          "portfolio.architecture_system_design"
+        ],
+        "assumptions": [
+          "launch_scope=single_region_mvp_is_operationally_acceptable"
+        ],
+        "recommended_action": "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+        "score_impacts": [
+          {
+            "dimension": "Technical Feasibility",
+            "delta": -0.25,
+            "rationale": "System Architect adjusts Technical Feasibility through resilience_gap."
+          },
+          {
+            "dimension": "Operational Resilience",
+            "delta": -0.25,
+            "rationale": "System Architect adjusts Operational Resilience through resilience_gap."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Technical Feasibility",
+        "score": 3.31,
+        "confidence": 0.46,
+        "evidence_completeness": 0.6,
+        "severity_flags": [
+          "resilience_gap_technical_feasibility"
+        ],
+        "rationale": "System Architect adjusts Technical Feasibility using deterministic thin-slice heuristics for architecture_strength and resilience_gap.",
+        "evidence_refs": [
+          "portfolio.architecture_system_design",
+          "portfolio.operational_resilience"
+        ]
+      },
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.66,
+        "confidence": 0.42,
+        "evidence_completeness": 0.53,
+        "severity_flags": [
+          "resilience_gap_operational_resilience"
+        ],
+        "rationale": "System Architect adjusts Operational Resilience using deterministic thin-slice heuristics for architecture_strength and resilience_gap.",
+        "evidence_refs": [
+          "portfolio.architecture_system_design",
+          "portfolio.operational_resilience"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "What are the target recovery objectives and how are they validated before general availability?"
+    ],
+    "evidence_gaps": [
+      "The fixture mentions future failover work but does not define tested recovery objectives."
+    ],
+    "assumption_register": [
+      "launch_scope=single_region_mvp_is_operationally_acceptable"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "ai_data_scientist",
+    "agent_name": "AI/Data Scientist",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "AI/Data Scientist recommends Pilot Only with strongest support in AI Reliability and primary concern in ai_evaluation_gap.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "AI Reliability",
+        "score": 3.05,
+        "confidence": 0.52,
+        "evidence_completeness": 0.56,
+        "severity_flags": [],
+        "rationale": "AI/Data Scientist adjusts AI Reliability using deterministic thin-slice heuristics for ai_controls and ai_evaluation_gap.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.success_metrics"
+        ]
+      },
+      {
+        "dimension": "Technical Feasibility",
+        "score": 3.2,
+        "confidence": 0.55,
+        "evidence_completeness": 0.62,
+        "severity_flags": [],
+        "rationale": "AI/Data Scientist adjusts Technical Feasibility using deterministic thin-slice heuristics for ai_controls and ai_evaluation_gap.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.success_metrics"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "What benchmark set and quality threshold must the AI assistance layer clear before wider rollout?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "model_quality=human_review_offsets_missing_benchmarks"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "developer",
+    "agent_name": "Developer",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Developer recommends Proceed with Conditions with strongest support in Technical Feasibility and primary concern in integration_risk.",
+    "findings": [
+      {
+        "finding_id": "developer-positive-mvp_focus",
+        "title": "The MVP scope is focused enough for a thin-slice launch",
+        "category": "product_quality",
+        "severity": "minor",
+        "claim": "Developer notes that the mvp scope is focused enough for a thin-slice launch for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.architecture_system_design",
+          "portfolio.mvp_roadmap"
+        ],
+        "assumptions": [],
+        "recommended_action": "Protect the bounded workflow scope during the first release.",
+        "score_impacts": [
+          {
+            "dimension": "Technical Feasibility",
+            "delta": 0.15,
+            "rationale": "Developer adjusts Technical Feasibility through mvp_focus."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Technical Feasibility",
+        "score": 3.35,
+        "confidence": 0.69,
+        "evidence_completeness": 0.65,
+        "severity_flags": [],
+        "rationale": "Developer adjusts Technical Feasibility using deterministic thin-slice heuristics for mvp_focus and integration_risk.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.architecture_system_design",
+          "portfolio.mvp_roadmap"
+        ]
+      }
+    ],
+    "recommendation": "Proceed with Conditions",
+    "open_questions": [
+      "Which engineering tasks are out of scope for the first pilot so that the roadmap remains credible?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "delivery_scope=single_connector_is_enough_for_first_wave"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "devops_architect",
+    "agent_name": "DevOps Architect",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "DevOps Architect recommends Pilot Only with strongest support in Operational Resilience and primary concern in resilience_gap.",
+    "findings": [
+      {
+        "finding_id": "devops_architect-risk-resilience_gap",
+        "title": "Recovery and release posture is not yet strong enough",
+        "category": "operational_resilience",
+        "severity": "major",
+        "claim": "DevOps Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.operational_resilience",
+          "portfolio.mvp_roadmap"
+        ],
+        "assumptions": [
+          "ops_readiness=lightweight_controls_are_sufficient_for_pilots"
+        ],
+        "recommended_action": "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+        "score_impacts": [
+          {
+            "dimension": "Operational Resilience",
+            "delta": -0.25,
+            "rationale": "DevOps Architect adjusts Operational Resilience through resilience_gap."
+          },
+          {
+            "dimension": "Technical Feasibility",
+            "delta": -0.25,
+            "rationale": "DevOps Architect adjusts Technical Feasibility through resilience_gap."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.62,
+        "confidence": 0.42,
+        "evidence_completeness": 0.52,
+        "severity_flags": [
+          "resilience_gap_operational_resilience"
+        ],
+        "rationale": "DevOps Architect adjusts Operational Resilience using deterministic thin-slice heuristics for architecture_strength and resilience_gap.",
+        "evidence_refs": [
+          "portfolio.architecture_system_design",
+          "portfolio.operational_resilience",
+          "portfolio.mvp_roadmap"
+        ]
+      },
+      {
+        "dimension": "Technical Feasibility",
+        "score": 3.1,
+        "confidence": 0.45,
+        "evidence_completeness": 0.59,
+        "severity_flags": [
+          "resilience_gap_technical_feasibility"
+        ],
+        "rationale": "DevOps Architect adjusts Technical Feasibility using deterministic thin-slice heuristics for architecture_strength and resilience_gap.",
+        "evidence_refs": [
+          "portfolio.architecture_system_design",
+          "portfolio.operational_resilience",
+          "portfolio.mvp_roadmap"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "What release and rollback controls will exist before the first pilot reaches production data?"
+    ],
+    "evidence_gaps": [
+      "The fixture does not define release gates or tested rollback procedures."
+    ],
+    "assumption_register": [
+      "ops_readiness=lightweight_controls_are_sufficient_for_pilots"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "system_maintenance_lead",
+    "agent_name": "System Maintenance Lead",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "System Maintenance Lead recommends High Risk with strongest support in Operational Resilience and primary concern in support_gap.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.63,
+        "confidence": 0.52,
+        "evidence_completeness": 0.55,
+        "severity_flags": [],
+        "rationale": "System Maintenance Lead adjusts Operational Resilience using deterministic thin-slice heuristics for ops_controls and support_gap.",
+        "evidence_refs": [
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ]
+      }
+    ],
+    "recommendation": "High Risk",
+    "open_questions": [
+      "Who owns maintenance windows, upgrades, and post-pilot debt retirement?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "sustainment=platform_team_can_absorb_operational_load"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "qa_sdet",
+    "agent_name": "QA/SDET",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "QA/SDET recommends Pilot Only with strongest support in Product Quality and primary concern in ai_evaluation_gap.",
+    "findings": [],
+    "dimension_scores": [
+      {
+        "dimension": "Product Quality",
+        "score": 3.45,
+        "confidence": 0.6,
+        "evidence_completeness": 0.72,
+        "severity_flags": [],
+        "rationale": "QA/SDET adjusts Product Quality using deterministic thin-slice heuristics for workflow_traceability and ai_evaluation_gap.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.success_metrics"
+        ]
+      },
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.67,
+        "confidence": 0.51,
+        "evidence_completeness": 0.55,
+        "severity_flags": [],
+        "rationale": "QA/SDET adjusts Operational Resilience using deterministic thin-slice heuristics for workflow_traceability and ai_evaluation_gap.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.success_metrics"
+        ]
+      }
+    ],
+    "recommendation": "Pilot Only",
+    "open_questions": [
+      "What regression and acceptance tests must pass before the first live pilot release?"
+    ],
+    "evidence_gaps": [],
+    "assumption_register": [
+      "quality_bar=manual_review_covers_early_regression_risk"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "infosec_architect",
+    "agent_name": "InfoSec Architect",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "InfoSec Architect recommends High Risk with strongest support in Security & Compliance and primary concern in compliance_gap.",
+    "findings": [
+      {
+        "finding_id": "infosec_architect-risk-compliance_gap",
+        "title": "Compliance posture is directionally positive but incomplete",
+        "category": "security_and_compliance",
+        "severity": "major",
+        "claim": "InfoSec Architect notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.architecture_system_design"
+        ],
+        "assumptions": [
+          "security_bar=pilot_scope_allows_partial_controls"
+        ],
+        "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+        "score_impacts": [
+          {
+            "dimension": "Security & Compliance",
+            "delta": -0.25,
+            "rationale": "InfoSec Architect adjusts Security & Compliance through compliance_gap."
+          },
+          {
+            "dimension": "Operational Resilience",
+            "delta": -0.25,
+            "rationale": "InfoSec Architect adjusts Operational Resilience through compliance_gap."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Security & Compliance",
+        "score": 2.71,
+        "confidence": 0.41,
+        "evidence_completeness": 0.51,
+        "severity_flags": [
+          "compliance_gap_security_compliance"
+        ],
+        "rationale": "InfoSec Architect adjusts Security & Compliance using deterministic thin-slice heuristics for security_controls and compliance_gap.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.architecture_system_design"
+        ]
+      },
+      {
+        "dimension": "Operational Resilience",
+        "score": 2.61,
+        "confidence": 0.41,
+        "evidence_completeness": 0.52,
+        "severity_flags": [
+          "compliance_gap_operational_resilience"
+        ],
+        "rationale": "InfoSec Architect adjusts Operational Resilience using deterministic thin-slice heuristics for security_controls and compliance_gap.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.architecture_system_design"
+        ]
+      }
+    ],
+    "recommendation": "High Risk",
+    "open_questions": [
+      "What identity, secrets, and incident response controls will be in place before the first enterprise pilot?"
+    ],
+    "evidence_gaps": [
+      "No detailed security control matrix is present in the portfolio."
+    ],
+    "assumption_register": [
+      "security_bar=pilot_scope_allows_partial_controls"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  },
+  {
+    "agent_id": "legal_compliance_reviewer",
+    "agent_name": "Legal & Compliance Reviewer",
+    "portfolio_id": "weak-startup-001",
+    "review_summary": "Legal & Compliance Reviewer recommends Do Not Proceed with strongest support in Security & Compliance and primary concern in compliance_gap.",
+    "findings": [
+      {
+        "finding_id": "legal_compliance_reviewer-risk-compliance_gap",
+        "title": "Compliance posture is directionally positive but incomplete",
+        "category": "security_and_compliance",
+        "severity": "major",
+        "claim": "Legal & Compliance Reviewer notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+        "evidence_refs": [
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ],
+        "assumptions": [
+          "compliance_bar=pilot_customers_accept_partial_controls"
+        ],
+        "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+        "score_impacts": [
+          {
+            "dimension": "Security & Compliance",
+            "delta": -0.25,
+            "rationale": "Legal & Compliance Reviewer adjusts Security & Compliance through compliance_gap."
+          }
+        ]
+      }
+    ],
+    "dimension_scores": [
+      {
+        "dimension": "Security & Compliance",
+        "score": 2.67,
+        "confidence": 0.41,
+        "evidence_completeness": 0.51,
+        "severity_flags": [
+          "compliance_gap_security_compliance"
+        ],
+        "rationale": "Legal & Compliance Reviewer adjusts Security & Compliance using deterministic thin-slice heuristics for ai_controls and compliance_gap.",
+        "evidence_refs": [
+          "portfolio.product_requirements",
+          "portfolio.ai_agents_ethical_framework",
+          "portfolio.operational_resilience",
+          "portfolio.post_launch_strategy"
+        ]
+      }
+    ],
+    "recommendation": "Do Not Proceed",
+    "open_questions": [
+      "Which legal and compliance commitments are required for the first regulated pilot customers?"
+    ],
+    "evidence_gaps": [
+      "The fixture does not contain a compliance matrix, retention policy, or jurisdiction-specific control mapping."
+    ],
+    "assumption_register": [
+      "compliance_bar=pilot_customers_accept_partial_controls"
+    ],
+    "review_metadata": {
+      "prompt_contract_version": "m0.5-deterministic-v1",
+      "model_provider": "deterministic-thin-slice",
+      "model_name": "heuristic-reviewer",
+      "duration_ms": 0
+    }
+  }
+]

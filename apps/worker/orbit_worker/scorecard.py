@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .domain import DIMENSION_WEIGHTS, RECOMMENDATION_ORDER, RECOMMENDATION_RANK, SCORE_DIMENSIONS, clamp_score, dedupe_preserve_order
+from .domain import DIMENSION_WEIGHTS, RECOMMENDATION_ORDER, RECOMMENDATION_RANK, SCORE_DIMENSIONS, clamp_score, dedupe_preserve_order, round_half_up
 from .schemas import AgentReview, CanonicalPortfolio, ConflictRecord, Scorecard, validate_scorecard
 
 
@@ -9,7 +9,7 @@ def mean(values: list[float]) -> float:
 
 
 def fixed_2(value: float) -> float:
-    return float(f"{value:.2f}")
+    return round_half_up(value, 2)
 
 
 def downgrade_recommendation(recommendation: str) -> str:
@@ -107,3 +107,4 @@ def build_committee_scorecard(
             "conditions": conditions,
         }
     )
+

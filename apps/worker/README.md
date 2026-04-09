@@ -9,20 +9,21 @@ The worker now contains four runtime layers:
 
 Current capability:
 
-- ingest one markdown portfolio document through the Python runtime path
-- canonicalize it into the ORBIT section model
+- ingest markdown portfolio documents through the Python runtime path
+- canonicalize them into the ORBIT section model
 - run all 15 specialist reviewers with structured outputs
 - detect structured conflicts
 - build a committee scorecard
 - generate a committee report in JSON and Markdown
 - materialize durable persistence bundles for portfolio, review, and audit artifacts
-- expose worker liveness and readiness health endpoints for Compose
-- validate Python parity against the JS baseline through Docker Compose
+- expose worker liveness and readiness health endpoints for Compose and host debugging on port `5004`
+- validate Python parity against the frozen JS baseline through Docker Compose across all three golden fixtures
 
 Reference baseline entry points:
 
 - `apps/worker/src/review-runner.js`
 - `apps/worker/src/cli/review-portfolio.js`
+- `apps/worker/src/cli/refresh-baselines.js`
 
 Primary Python runtime entry points:
 
@@ -35,6 +36,7 @@ Primary Python runtime entry points:
 
 Compose validation commands:
 
-- `docker compose build api worker web`
+- `docker compose build api worker web worker-parity`
+- `docker compose up -d postgres redis api worker web`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`

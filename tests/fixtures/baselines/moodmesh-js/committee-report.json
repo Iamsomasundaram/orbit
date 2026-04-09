@@ -1,0 +1,297 @@
+{
+  "portfolio_id": "weak-startup-001",
+  "run_id": "thin-slice-weak-startup-001",
+  "executive_summary": "MoodMesh completes the Milestone 0.5 thin-slice review with 15 specialist reviews, 2 structured conflicts, and a final recommendation of Pilot Only. The committee sees strong business and product potential, but it still requires explicit integration, resilience, and governance conditions before broader rollout.",
+  "top_findings": [
+    {
+      "finding_id": "marketing_strategist-risk-compliance_gap",
+      "title": "Compliance posture is directionally positive but incomplete",
+      "category": "security_and_compliance",
+      "severity": "major",
+      "claim": "Marketing Strategist notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience"
+      ],
+      "assumptions": [
+        "trust_positioning=controls_are_marketable"
+      ],
+      "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+      "score_impacts": [
+        {
+          "dimension": "Market Fit",
+          "delta": -0.25,
+          "rationale": "Marketing Strategist adjusts Market Fit through compliance_gap."
+        },
+        {
+          "dimension": "Product Quality",
+          "delta": -0.25,
+          "rationale": "Marketing Strategist adjusts Product Quality through compliance_gap."
+        }
+      ],
+      "agent_id": "marketing_strategist"
+    },
+    {
+      "finding_id": "infosec_architect-risk-compliance_gap",
+      "title": "Compliance posture is directionally positive but incomplete",
+      "category": "security_and_compliance",
+      "severity": "major",
+      "claim": "InfoSec Architect notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience",
+        "portfolio.architecture_system_design"
+      ],
+      "assumptions": [
+        "security_bar=pilot_scope_allows_partial_controls"
+      ],
+      "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+      "score_impacts": [
+        {
+          "dimension": "Security & Compliance",
+          "delta": -0.25,
+          "rationale": "InfoSec Architect adjusts Security & Compliance through compliance_gap."
+        },
+        {
+          "dimension": "Operational Resilience",
+          "delta": -0.25,
+          "rationale": "InfoSec Architect adjusts Operational Resilience through compliance_gap."
+        }
+      ],
+      "agent_id": "infosec_architect"
+    },
+    {
+      "finding_id": "legal_compliance_reviewer-risk-compliance_gap",
+      "title": "Compliance posture is directionally positive but incomplete",
+      "category": "security_and_compliance",
+      "severity": "major",
+      "claim": "Legal & Compliance Reviewer notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience",
+        "portfolio.post_launch_strategy"
+      ],
+      "assumptions": [
+        "compliance_bar=pilot_customers_accept_partial_controls"
+      ],
+      "recommended_action": "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+      "score_impacts": [
+        {
+          "dimension": "Security & Compliance",
+          "delta": -0.25,
+          "rationale": "Legal & Compliance Reviewer adjusts Security & Compliance through compliance_gap."
+        }
+      ],
+      "agent_id": "legal_compliance_reviewer"
+    },
+    {
+      "finding_id": "system_architect-risk-resilience_gap",
+      "title": "Recovery and release posture is not yet strong enough",
+      "category": "operational_resilience",
+      "severity": "major",
+      "claim": "System Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.operational_resilience",
+        "portfolio.architecture_system_design"
+      ],
+      "assumptions": [
+        "launch_scope=single_region_mvp_is_operationally_acceptable"
+      ],
+      "recommended_action": "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+      "score_impacts": [
+        {
+          "dimension": "Technical Feasibility",
+          "delta": -0.25,
+          "rationale": "System Architect adjusts Technical Feasibility through resilience_gap."
+        },
+        {
+          "dimension": "Operational Resilience",
+          "delta": -0.25,
+          "rationale": "System Architect adjusts Operational Resilience through resilience_gap."
+        }
+      ],
+      "agent_id": "system_architect"
+    },
+    {
+      "finding_id": "devops_architect-risk-resilience_gap",
+      "title": "Recovery and release posture is not yet strong enough",
+      "category": "operational_resilience",
+      "severity": "major",
+      "claim": "DevOps Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.operational_resilience",
+        "portfolio.mvp_roadmap"
+      ],
+      "assumptions": [
+        "ops_readiness=lightweight_controls_are_sufficient_for_pilots"
+      ],
+      "recommended_action": "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+      "score_impacts": [
+        {
+          "dimension": "Operational Resilience",
+          "delta": -0.25,
+          "rationale": "DevOps Architect adjusts Operational Resilience through resilience_gap."
+        },
+        {
+          "dimension": "Technical Feasibility",
+          "delta": -0.25,
+          "rationale": "DevOps Architect adjusts Technical Feasibility through resilience_gap."
+        }
+      ],
+      "agent_id": "devops_architect"
+    },
+    {
+      "finding_id": "customer_success_lead-positive-customer_value_clarity",
+      "title": "Customer value is easy to explain in operational terms",
+      "category": "product_quality",
+      "severity": "minor",
+      "claim": "Customer Success Lead notes that customer value is easy to explain in operational terms for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.problem_discovery",
+        "portfolio.success_metrics"
+      ],
+      "assumptions": [],
+      "recommended_action": "Turn the value story into measurable onboarding outcomes.",
+      "score_impacts": [
+        {
+          "dimension": "Product Quality",
+          "delta": 0.15,
+          "rationale": "Customer Success Lead adjusts Product Quality through customer_value_clarity."
+        },
+        {
+          "dimension": "Operational Resilience",
+          "delta": 0.15,
+          "rationale": "Customer Success Lead adjusts Operational Resilience through customer_value_clarity."
+        }
+      ],
+      "agent_id": "customer_success_lead"
+    },
+    {
+      "finding_id": "marketing_strategist-positive-market_story_strength",
+      "title": "Positioning is differentiated enough for a first GTM story",
+      "category": "market_fit",
+      "severity": "minor",
+      "claim": "Marketing Strategist notes that positioning is differentiated enough for a first gtm story for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.competitive_landscape",
+        "portfolio.product_vision"
+      ],
+      "assumptions": [],
+      "recommended_action": "Anchor the launch narrative on workflow acceleration and auditability.",
+      "score_impacts": [
+        {
+          "dimension": "Market Fit",
+          "delta": 0.15,
+          "rationale": "Marketing Strategist adjusts Market Fit through market_story_strength."
+        },
+        {
+          "dimension": "Product Quality",
+          "delta": 0.15,
+          "rationale": "Marketing Strategist adjusts Product Quality through market_story_strength."
+        }
+      ],
+      "agent_id": "marketing_strategist"
+    },
+    {
+      "finding_id": "product_manager-positive-mvp_focus",
+      "title": "The MVP scope is focused enough for a thin-slice launch",
+      "category": "product_quality",
+      "severity": "minor",
+      "claim": "Product Manager notes that the mvp scope is focused enough for a thin-slice launch for this portfolio based on the available source material.",
+      "evidence_refs": [
+        "portfolio.product_requirements",
+        "portfolio.mvp_roadmap"
+      ],
+      "assumptions": [],
+      "recommended_action": "Protect the bounded workflow scope during the first release.",
+      "score_impacts": [
+        {
+          "dimension": "Product Quality",
+          "delta": 0.15,
+          "rationale": "Product Manager adjusts Product Quality through mvp_focus."
+        },
+        {
+          "dimension": "Problem Validity",
+          "delta": 0.15,
+          "rationale": "Product Manager adjusts Problem Validity through mvp_focus."
+        }
+      ],
+      "agent_id": "product_manager"
+    }
+  ],
+  "top_conflicts": [
+    {
+      "conflict_id": "conflict-001",
+      "conflict_type": "recommendation_conflict",
+      "topic": "rollout_timing",
+      "participants": [
+        "ai_data_scientist",
+        "business_owner",
+        "customer_success_lead",
+        "developer",
+        "devops_architect",
+        "finance_lead",
+        "infosec_architect",
+        "legal_compliance_reviewer",
+        "marketing_strategist",
+        "product_manager",
+        "qa_sdet",
+        "sales_strategist",
+        "system_architect",
+        "system_maintenance_lead",
+        "ux_ui_reviewer"
+      ],
+      "severity": "high",
+      "trigger_reason": "15 reviewers are separated by at least two recommendation tiers on rollout timing.",
+      "supporting_artifacts": [
+        "agent_review.ai_data_scientist",
+        "agent_review.business_owner",
+        "agent_review.customer_success_lead",
+        "agent_review.developer",
+        "agent_review.devops_architect",
+        "agent_review.finance_lead",
+        "agent_review.infosec_architect",
+        "agent_review.legal_compliance_reviewer",
+        "agent_review.marketing_strategist",
+        "agent_review.product_manager",
+        "agent_review.qa_sdet",
+        "agent_review.sales_strategist",
+        "agent_review.system_architect",
+        "agent_review.system_maintenance_lead",
+        "agent_review.ux_ui_reviewer"
+      ],
+      "debate_required": true,
+      "routing_reason": "Recommendation polarity differs enough to alter rollout guidance.",
+      "status": "open"
+    },
+    {
+      "conflict_id": "conflict-002",
+      "conflict_type": "assumption_mismatch",
+      "topic": "launch_scope",
+      "participants": [
+        "sales_strategist",
+        "system_architect"
+      ],
+      "severity": "medium",
+      "trigger_reason": "Assumption topic launch_scope contains incompatible values including single_region_mvp_is_sales_acceptable vs single_region_mvp_is_operationally_acceptable.",
+      "supporting_artifacts": [
+        "agent_review.sales_strategist",
+        "agent_review.system_architect"
+      ],
+      "debate_required": false,
+      "routing_reason": "Different assumptions could distort committee synthesis.",
+      "status": "open"
+    }
+  ],
+  "conditions": [
+    "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+    "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+    "Resolve recommendation_conflict on rollout_timing before broad rollout."
+  ],
+  "audit_notes": [
+    "Thin slice executed with deterministic structured reviewer logic for all 15 agents.",
+    "Conflict detector v1 evaluated 2 structured conflict records.",
+    "Scorecard recommendation follows the Milestone 0 override rules for governance blockers."
+  ],
+  "markdown": "# ORBIT Committee Report: MoodMesh\n\nFinal recommendation: **Pilot Only**\nWeighted composite score: **3.19 / 5.00**\nAverage confidence: **0.56**\nAverage evidence completeness: **0.63**\n\n## Executive Summary\nMoodMesh completes the Milestone 0.5 thin-slice review with 15 specialist reviews, 2 structured conflicts, and a final recommendation of Pilot Only. The committee sees strong business and product potential, but it still requires explicit integration, resilience, and governance conditions before broader rollout.\n\n## Scorecard\n| Dimension | Score | Confidence | Evidence Completeness |\n| --- | ---: | ---: | ---: |\n| Problem Validity | 3.42 | 0.67 | 0.71 |\n| Market Fit | 3.67 | 0.63 | 0.73 |\n| Product Quality | 3.62 | 0.67 | 0.74 |\n| Technical Feasibility | 3.24 | 0.54 | 0.61 |\n| AI Reliability | 3.05 | 0.52 | 0.56 |\n| Economic Viability | 3.27 | 0.55 | 0.60 |\n| Operational Resilience | 2.66 | 0.49 | 0.54 |\n| Security & Compliance | 2.69 | 0.41 | 0.51 |\n\n## Top Findings\n- Compliance posture is directionally positive but incomplete (major): Marketing Strategist notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.\n- Compliance posture is directionally positive but incomplete (major): InfoSec Architect notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.\n- Compliance posture is directionally positive but incomplete (major): Legal & Compliance Reviewer notes that compliance posture is directionally positive but incomplete for this portfolio based on the available source material.\n- Recovery and release posture is not yet strong enough (major): System Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.\n- Recovery and release posture is not yet strong enough (major): DevOps Architect notes that recovery and release posture is not yet strong enough for this portfolio based on the available source material.\n- Customer value is easy to explain in operational terms (minor): Customer Success Lead notes that customer value is easy to explain in operational terms for this portfolio based on the available source material.\n- Positioning is differentiated enough for a first GTM story (minor): Marketing Strategist notes that positioning is differentiated enough for a first gtm story for this portfolio based on the available source material.\n- The MVP scope is focused enough for a thin-slice launch (minor): Product Manager notes that the mvp scope is focused enough for a thin-slice launch for this portfolio based on the available source material.\n\n## Top Conflicts\n- recommendation_conflict on rollout_timing: 15 reviewers are separated by at least two recommendation tiers on rollout timing.\n- assumption_mismatch on launch_scope: Assumption topic launch_scope contains incompatible values including single_region_mvp_is_sales_acceptable vs single_region_mvp_is_operationally_acceptable.\n\n## Conditions\n- Add retention, identity, incident, and jurisdiction controls before broad rollout.\n- Define recovery objectives, rollback rules, and validation steps before broader rollout.\n- Resolve recommendation_conflict on rollout_timing before broad rollout.\n\n## Audit Notes\n- Thin slice executed with deterministic structured reviewer logic for all 15 agents.\n- Conflict detector v1 evaluated 2 structured conflict records.\n- Scorecard recommendation follows the Milestone 0 override rules for governance blockers.\n"
+}

@@ -1,0 +1,64 @@
+[
+  {
+    "conflict_id": "conflict-001",
+    "conflict_type": "recommendation_conflict",
+    "topic": "rollout_timing",
+    "participants": [
+      "ai_data_scientist",
+      "business_owner",
+      "customer_success_lead",
+      "developer",
+      "devops_architect",
+      "finance_lead",
+      "infosec_architect",
+      "legal_compliance_reviewer",
+      "marketing_strategist",
+      "product_manager",
+      "qa_sdet",
+      "sales_strategist",
+      "system_architect",
+      "system_maintenance_lead",
+      "ux_ui_reviewer"
+    ],
+    "severity": "high",
+    "trigger_reason": "15 reviewers are separated by at least two recommendation tiers on rollout timing.",
+    "supporting_artifacts": [
+      "agent_review.ai_data_scientist",
+      "agent_review.business_owner",
+      "agent_review.customer_success_lead",
+      "agent_review.developer",
+      "agent_review.devops_architect",
+      "agent_review.finance_lead",
+      "agent_review.infosec_architect",
+      "agent_review.legal_compliance_reviewer",
+      "agent_review.marketing_strategist",
+      "agent_review.product_manager",
+      "agent_review.qa_sdet",
+      "agent_review.sales_strategist",
+      "agent_review.system_architect",
+      "agent_review.system_maintenance_lead",
+      "agent_review.ux_ui_reviewer"
+    ],
+    "debate_required": true,
+    "routing_reason": "Recommendation polarity differs enough to alter rollout guidance.",
+    "status": "open"
+  },
+  {
+    "conflict_id": "conflict-002",
+    "conflict_type": "assumption_mismatch",
+    "topic": "launch_scope",
+    "participants": [
+      "sales_strategist",
+      "system_architect"
+    ],
+    "severity": "medium",
+    "trigger_reason": "Assumption topic launch_scope contains incompatible values including single_region_mvp_is_sales_acceptable vs single_region_mvp_is_operationally_acceptable.",
+    "supporting_artifacts": [
+      "agent_review.sales_strategist",
+      "agent_review.system_architect"
+    ],
+    "debate_required": false,
+    "routing_reason": "Different assumptions could distort committee synthesis.",
+    "status": "open"
+  }
+]

@@ -47,7 +47,7 @@ Observed results:
 Known issues:
 
 - durable models and DDL are executable, but no live database write path is added yet by design
-- parity coverage still only executes against the strong starter portfolio; the promising and weak cases remain planned carry-forward work
+- parity coverage still only executes against the strong starter portfolio at the Milestone 2 boundary; Milestone 2.1 expands the stabilization gate across all three fixtures
 - the JS baseline is still retained as a reference profile until the broader parity and CI gates are complete
 
 ## Risks
@@ -55,7 +55,7 @@ Known issues:
 Technical risk:
 
 - schema evolution rules are not yet backed by a migrations framework, so future schema changes still need strict milestone discipline
-- payload hashes provide drift detection, but replay and regression coverage across all three starter portfolios is still incomplete
+- payload hashes provide drift detection, but replay and regression coverage across all three starter portfolios is only completed in Milestone 2.1
 - API-to-worker contract sharing currently relies on Compose `PYTHONPATH` wiring; that is acceptable for the local platform but should be formalized further before larger backend expansion
 
 Product risk:
@@ -93,18 +93,17 @@ How to validate locally:
 - Do the API introspection endpoints expose the schema catalog and generated DDL successfully?
 - Does the approved thin-slice behavior remain unchanged for the strong starter portfolio?
 - Are parity expansion, JS archival timing, and CI regression planning explicitly tracked as carry-forward items?
+- Is this pack reviewed together with Milestone 2.1 before any move forward?
 
 ## Recommendation
 
 Proceed with fixes.
 
-Fixes to carry into the next approved planning gate, not Milestone 2 expansion:
+Fixes to carry into the combined Milestone 2 and 2.1 gate, not Milestone 2 expansion:
 
 - expand parity coverage to the promising and weak starter portfolios
 - define the exact milestone gate that moves the JS baseline from active reference to documented archive
 - formalize CI for Compose health checks and parity regression before broader backend workflow work
 - introduce a migrations strategy only when the next approved milestone requires live database writes
 
-Milestone 2 is complete and should stop here pending review.
-
-
+Milestone 2 is complete and is reviewed together with Milestone 2.1 before any move forward.

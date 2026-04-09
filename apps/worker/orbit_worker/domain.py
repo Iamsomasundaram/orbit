@@ -99,7 +99,9 @@ AGENT_REGISTRY = [
 
 def round_half_up(value: float, digits: int = 2) -> float:
     quantum = Decimal("1") if digits == 0 else Decimal("1").scaleb(-digits)
-    return float(Decimal(str(value)).quantize(quantum, rounding=ROUND_HALF_UP))
+    # Match the frozen JS baseline by rounding from the IEEE-754 float value,
+    # not from Python's decimal string rendering of that value.
+    return float(Decimal.from_float(value).quantize(quantum, rounding=ROUND_HALF_UP))
 
 
 def clamp_score(value: float) -> float:

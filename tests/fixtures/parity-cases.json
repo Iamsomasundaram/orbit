@@ -1,0 +1,20 @@
+[
+  {
+    "case_id": "strong-ai-saas",
+    "portfolio_name": "ProcurePilot",
+    "input_path": "tests/fixtures/source-documents/procurepilot-thin-slice.md",
+    "baseline_dir": "tests/fixtures/baselines/procurepilot-js"
+  },
+  {
+    "case_id": "promising-devtool-gaps",
+    "portfolio_name": "TraceForge",
+    "input_path": "tests/fixtures/source-documents/traceforge-thin-slice.md",
+    "baseline_dir": "tests/fixtures/baselines/traceforge-js"
+  },
+  {
+    "case_id": "weak-startup-idea",
+    "portfolio_name": "MoodMesh",
+    "input_path": "tests/fixtures/source-documents/moodmesh-thin-slice.md",
+    "baseline_dir": "tests/fixtures/baselines/moodmesh-js"
+  }
+]

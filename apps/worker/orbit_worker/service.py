@@ -45,6 +45,7 @@ class WorkerInfo(BaseModel):
     active_backend: str
     reference_runtime: str
     baseline_archival_stage: str
+    baseline_archival_target_milestone: str
     persistence_schema_version: str
     persistence_tables: int
     persistence_boundary: str
@@ -85,6 +86,7 @@ def worker_info() -> WorkerInfo:
         active_backend="python",
         reference_runtime="js-baseline-only",
         baseline_archival_stage=settings.js_baseline_archival_stage,
+        baseline_archival_target_milestone=settings.js_baseline_archival_target_milestone,
         persistence_schema_version=catalog.schema_version,
         persistence_tables=len(catalog.tables),
         persistence_boundary="sqlalchemy-metadata+repository-protocol",

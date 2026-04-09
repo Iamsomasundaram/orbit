@@ -56,6 +56,8 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-frozen-baseline}
+      JS_BASELINE_ARCHIVAL_TARGET_MILESTONE: "${JS_BASELINE_ARCHIVAL_TARGET_MILESTONE:-Milestone 4}"
       PYTHONPATH: /workspace/apps/api:/workspace/apps/worker
     depends_on:
       postgres:
@@ -104,7 +106,8 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       JS_BASELINE_MODE: ${JS_BASELINE_MODE:-reference}
-      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-active-reference}
+      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-frozen-baseline}
+      JS_BASELINE_ARCHIVAL_TARGET_MILESTONE: "${JS_BASELINE_ARCHIVAL_TARGET_MILESTONE:-Milestone 4}"
       PYTHONPATH: /workspace/apps/worker
     depends_on:
       postgres:
@@ -121,6 +124,8 @@ services:
       - --reload
       - --reload-dir
       - /workspace/apps/worker
+    ports:
+      - "${WORKER_PORT:-5004}:${WORKER_INTERNAL_PORT:-8002}"
     healthcheck:
       test: ["CMD", "/app/.venv/bin/python", "-c", "import os,sys,urllib.request; port=os.environ.get('WORKER_INTERNAL_PORT','8002'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health/live').status == 200 else 1)"]
       interval: 10s
@@ -143,7 +148,7 @@ services:
       NODE_ENV: development
       PORT: ${WEB_INTERNAL_PORT:-3000}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-ORBIT}
-      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-2}
+      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-2.1}
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5001}
       INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8001}
     depends_on:
@@ -175,10 +180,7 @@ services:
       - .:/workspace
     command:
       - node
-      - apps/worker/src/cli/review-portfolio.js
-      - /workspace/tests/fixtures/source-documents/procurepilot-thin-slice.md
-      - --output-dir
-      - /workspace/tests/fixtures/baselines/procurepilot-js
+      - apps/worker/src/cli/refresh-baselines.js
 
   worker-parity:
     profiles: ["baseline"]

@@ -1,0 +1,127 @@
+{
+  "portfolio_id": "weak-startup-001",
+  "portfolio_name": "MoodMesh",
+  "portfolio_type": "startup",
+  "owner": "Solo Founder Studio",
+  "submitted_at": "2026-04-09",
+  "source_documents": [
+    {
+      "id": "source-markdown-001",
+      "kind": "markdown",
+      "title": "moodmesh-thin-slice.md",
+      "path": "/workspace/tests/fixtures/source-documents/moodmesh-thin-slice.md"
+    }
+  ],
+  "sections": {
+    "problem_discovery": {
+      "title": "Problem Discovery",
+      "summary": "The idea assumes users want an AI social network that predicts mood-compatible weekend activities and lets brands sponsor those plans.",
+      "key_points": [
+        "No credible evidence of sustained user pain or willingness to pay exists.",
+        "The concept mixes social discovery, lifestyle advice, and branded commerce without a clear core job to be done."
+      ],
+      "raw_text": "The idea assumes users want an AI social network that predicts mood-compatible weekend activities and lets brands sponsor those plans.\n- No credible evidence of sustained user pain or willingness to pay exists.\n- The concept mixes social discovery, lifestyle advice, and branded commerce without a clear core job to be done.",
+      "evidence_ref": "portfolio.problem_discovery"
+    },
+    "product_vision": {
+      "title": "Product Vision",
+      "summary": "MoodMesh would combine mood tracking, generative activity suggestions, friend matching, and sponsored recommendations in one consumer app.",
+      "key_points": [
+        "The product vision is broad and unfocused.",
+        "User trust and privacy implications are not addressed."
+      ],
+      "raw_text": "MoodMesh would combine mood tracking, generative activity suggestions, friend matching, and sponsored recommendations in one consumer app.\n- The product vision is broad and unfocused.\n- User trust and privacy implications are not addressed.",
+      "evidence_ref": "portfolio.product_vision"
+    },
+    "competitive_landscape": {
+      "title": "Competitive Landscape",
+      "summary": "The concept competes indirectly with social apps, recommendation apps, wellness products, and local discovery tools, none of which it clearly outperforms.",
+      "key_points": [
+        "Differentiation rests mainly on novelty.",
+        "Switching incentives are weak."
+      ],
+      "raw_text": "The concept competes indirectly with social apps, recommendation apps, wellness products, and local discovery tools, none of which it clearly outperforms.\n- Differentiation rests mainly on novelty.\n- Switching incentives are weak.",
+      "evidence_ref": "portfolio.competitive_landscape"
+    },
+    "business_requirements": {
+      "title": "Business Requirements",
+      "summary": "Revenue assumptions depend on rapid consumer scale and premium brand sponsorship without a tested acquisition model.",
+      "key_points": [
+        "CAC assumptions are absent.",
+        "No realistic funding or monetization path is described."
+      ],
+      "raw_text": "Revenue assumptions depend on rapid consumer scale and premium brand sponsorship without a tested acquisition model.\n- CAC assumptions are absent.\n- No realistic funding or monetization path is described.",
+      "evidence_ref": "portfolio.business_requirements"
+    },
+    "product_requirements": {
+      "title": "Product Requirements",
+      "summary": "Product requirements are high-level concepts rather than implementable workflows.",
+      "key_points": [
+        "No clear MVP boundary exists.",
+        "Safety controls for user-generated and model-generated content are not defined."
+      ],
+      "raw_text": "Product requirements are high-level concepts rather than implementable workflows.\n- No clear MVP boundary exists.\n- Safety controls for user-generated and model-generated content are not defined.",
+      "evidence_ref": "portfolio.product_requirements"
+    },
+    "architecture_system_design": {
+      "title": "Architecture & System Design",
+      "summary": "The architecture description is limited to a mobile app, a recommendation engine, and social feed concepts.",
+      "key_points": [
+        "No detail exists on scalability, moderation, or data governance.",
+        "Technical feasibility depends on assumptions that are not documented."
+      ],
+      "raw_text": "The architecture description is limited to a mobile app, a recommendation engine, and social feed concepts.\n- No detail exists on scalability, moderation, or data governance.\n- Technical feasibility depends on assumptions that are not documented.",
+      "evidence_ref": "portfolio.architecture_system_design"
+    },
+    "ai_agents_ethical_framework": {
+      "title": "AI Agents & Ethical Framework",
+      "summary": "The concept uses AI for mood inference and recommendations but provides no evaluation, privacy, or consent framework.",
+      "key_points": [
+        "The product would process sensitive personal signals.",
+        "No risk controls or redress mechanisms are described."
+      ],
+      "raw_text": "The concept uses AI for mood inference and recommendations but provides no evaluation, privacy, or consent framework.\n- The product would process sensitive personal signals.\n- No risk controls or redress mechanisms are described.",
+      "evidence_ref": "portfolio.ai_agents_ethical_framework"
+    },
+    "operational_resilience": {
+      "title": "Operational Resilience",
+      "summary": "Operations, moderation, support, and abuse handling are largely absent from the plan.",
+      "key_points": [
+        "The app would be vulnerable to trust and safety failures.",
+        "No on-call or incident model is proposed."
+      ],
+      "raw_text": "Operations, moderation, support, and abuse handling are largely absent from the plan.\n- The app would be vulnerable to trust and safety failures.\n- No on-call or incident model is proposed.",
+      "evidence_ref": "portfolio.operational_resilience"
+    },
+    "mvp_roadmap": {
+      "title": "MVP Roadmap",
+      "summary": "The roadmap expects a viral launch within eight weeks and monetization shortly afterward.",
+      "key_points": [
+        "Milestones are unrealistic.",
+        "Critical validation steps are skipped."
+      ],
+      "raw_text": "The roadmap expects a viral launch within eight weeks and monetization shortly afterward.\n- Milestones are unrealistic.\n- Critical validation steps are skipped.",
+      "evidence_ref": "portfolio.mvp_roadmap"
+    },
+    "success_metrics": {
+      "title": "Success Metrics",
+      "summary": "Success metrics focus on vanity growth measures instead of retention, monetization quality, or trust outcomes.",
+      "key_points": [
+        "Daily active users is the only explicit target.",
+        "No retention or safety KPI is defined."
+      ],
+      "raw_text": "Success metrics focus on vanity growth measures instead of retention, monetization quality, or trust outcomes.\n- Daily active users is the only explicit target.\n- No retention or safety KPI is defined.",
+      "evidence_ref": "portfolio.success_metrics"
+    },
+    "post_launch_strategy": {
+      "title": "Post Launch Strategy",
+      "summary": "The post-launch strategy assumes international expansion, brand deals, and creator partnerships without a validated home market.",
+      "key_points": [
+        "Expansion assumptions are premature.",
+        "There is no realistic go-to-market sequence."
+      ],
+      "raw_text": "The post-launch strategy assumes international expansion, brand deals, and creator partnerships without a validated home market.\n- Expansion assumptions are premature.\n- There is no realistic go-to-market sequence.",
+      "evidence_ref": "portfolio.post_launch_strategy"
+    }
+  }
+}

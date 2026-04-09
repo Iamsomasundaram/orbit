@@ -1,0 +1,127 @@
+{
+  "portfolio_id": "promising-devtool-001",
+  "portfolio_name": "TraceForge",
+  "portfolio_type": "product",
+  "owner": "Builder Tools Lab",
+  "submitted_at": "2026-04-09",
+  "source_documents": [
+    {
+      "id": "source-markdown-001",
+      "kind": "markdown",
+      "title": "traceforge-thin-slice.md",
+      "path": "/workspace/tests/fixtures/source-documents/traceforge-thin-slice.md"
+    }
+  ],
+  "sections": {
+    "problem_discovery": {
+      "title": "Problem Discovery",
+      "summary": "Backend teams struggle to correlate logs, traces, and deployment changes quickly during production incidents.",
+      "key_points": [
+        "Debugging often requires multiple tools and tribal knowledge.",
+        "Teams want faster incident triage and suggested remediation paths."
+      ],
+      "raw_text": "Backend teams struggle to correlate logs, traces, and deployment changes quickly during production incidents.\n- Debugging often requires multiple tools and tribal knowledge.\n- Teams want faster incident triage and suggested remediation paths.",
+      "evidence_ref": "portfolio.problem_discovery"
+    },
+    "product_vision": {
+      "title": "Product Vision",
+      "summary": "TraceForge is an AI-native debugging workspace that correlates stack traces, logs, release metadata, and past incidents into guided investigation flows.",
+      "key_points": [
+        "Initial persona is senior backend engineers at cloud-native startups.",
+        "Product promises root-cause hints and fix suggestions."
+      ],
+      "raw_text": "TraceForge is an AI-native debugging workspace that correlates stack traces, logs, release metadata, and past incidents into guided investigation flows.\n- Initial persona is senior backend engineers at cloud-native startups.\n- Product promises root-cause hints and fix suggestions.",
+      "evidence_ref": "portfolio.product_vision"
+    },
+    "competitive_landscape": {
+      "title": "Competitive Landscape",
+      "summary": "Existing observability vendors already offer incident workflows, but few provide a dedicated AI debugging surface with code-aware guidance.",
+      "key_points": [
+        "Competitive moat is not yet well defined.",
+        "Distribution could be difficult against incumbents with bundled suites."
+      ],
+      "raw_text": "Existing observability vendors already offer incident workflows, but few provide a dedicated AI debugging surface with code-aware guidance.\n- Competitive moat is not yet well defined.\n- Distribution could be difficult against incumbents with bundled suites.",
+      "evidence_ref": "portfolio.competitive_landscape"
+    },
+    "business_requirements": {
+      "title": "Business Requirements",
+      "summary": "The team targets self-serve growth but has not validated pricing tolerance or expansion motion.",
+      "key_points": [
+        "No clear plan exists for enterprise procurement or security review.",
+        "Revenue model alternates between seat-based and usage-based pricing."
+      ],
+      "raw_text": "The team targets self-serve growth but has not validated pricing tolerance or expansion motion.\n- No clear plan exists for enterprise procurement or security review.\n- Revenue model alternates between seat-based and usage-based pricing.",
+      "evidence_ref": "portfolio.business_requirements"
+    },
+    "product_requirements": {
+      "title": "Product Requirements",
+      "summary": "MVP includes trace ingestion, incident workspace, suggested root-cause ranking, and issue export to ticketing systems.",
+      "key_points": [
+        "Product omits explicit controls for validating AI-generated fixes.",
+        "Onboarding assumptions depend on customers already having clean telemetry."
+      ],
+      "raw_text": "MVP includes trace ingestion, incident workspace, suggested root-cause ranking, and issue export to ticketing systems.\n- Product omits explicit controls for validating AI-generated fixes.\n- Onboarding assumptions depend on customers already having clean telemetry.",
+      "evidence_ref": "portfolio.product_requirements"
+    },
+    "architecture_system_design": {
+      "title": "Architecture & System Design",
+      "summary": "Proposed design combines telemetry ingestion, vectorized incident history, code metadata connectors, and a reasoning layer over investigation state.",
+      "key_points": [
+        "Architecture seems feasible but cost assumptions for high-volume telemetry are incomplete.",
+        "Multi-tenant isolation details are missing."
+      ],
+      "raw_text": "Proposed design combines telemetry ingestion, vectorized incident history, code metadata connectors, and a reasoning layer over investigation state.\n- Architecture seems feasible but cost assumptions for high-volume telemetry are incomplete.\n- Multi-tenant isolation details are missing.",
+      "evidence_ref": "portfolio.architecture_system_design"
+    },
+    "ai_agents_ethical_framework": {
+      "title": "AI Agents & Ethical Framework",
+      "summary": "The AI layer proposes fix suggestions and incident summaries, but there is limited discussion of hallucination risk or evaluation benchmarks.",
+      "key_points": [
+        "Human review is expected before applying changes.",
+        "No rigorous offline evaluation dataset is described."
+      ],
+      "raw_text": "The AI layer proposes fix suggestions and incident summaries, but there is limited discussion of hallucination risk or evaluation benchmarks.\n- Human review is expected before applying changes.\n- No rigorous offline evaluation dataset is described.",
+      "evidence_ref": "portfolio.ai_agents_ethical_framework"
+    },
+    "operational_resilience": {
+      "title": "Operational Resilience",
+      "summary": "The product is intended for production incidents, yet SLOs, on-call expectations, and support processes are underdeveloped.",
+      "key_points": [
+        "No disaster recovery plan is described.",
+        "Observability for the observability product is not detailed."
+      ],
+      "raw_text": "The product is intended for production incidents, yet SLOs, on-call expectations, and support processes are underdeveloped.\n- No disaster recovery plan is described.\n- Observability for the observability product is not detailed.",
+      "evidence_ref": "portfolio.operational_resilience"
+    },
+    "mvp_roadmap": {
+      "title": "MVP Roadmap",
+      "summary": "A ten-week build plan aims for early design partners and a closed beta.",
+      "key_points": [
+        "Roadmap focuses heavily on core AI experience.",
+        "Security hardening and support readiness are pushed later."
+      ],
+      "raw_text": "A ten-week build plan aims for early design partners and a closed beta.\n- Roadmap focuses heavily on core AI experience.\n- Security hardening and support readiness are pushed later.",
+      "evidence_ref": "portfolio.mvp_roadmap"
+    },
+    "success_metrics": {
+      "title": "Success Metrics",
+      "summary": "Success metrics focus on engineer time saved and incident resolution speed, but revenue and retention signals are immature.",
+      "key_points": [
+        "Target 25 percent reduction in mean time to diagnose.",
+        "No clear threshold exists for acceptable false-positive fix suggestions."
+      ],
+      "raw_text": "Success metrics focus on engineer time saved and incident resolution speed, but revenue and retention signals are immature.\n- Target 25 percent reduction in mean time to diagnose.\n- No clear threshold exists for acceptable false-positive fix suggestions.",
+      "evidence_ref": "portfolio.success_metrics"
+    },
+    "post_launch_strategy": {
+      "title": "Post Launch Strategy",
+      "summary": "The post-launch plan depends on community adoption and engineering influencers, with little detail on enterprise buying motion.",
+      "key_points": [
+        "Expansion strategy is not proven.",
+        "Customer success coverage is undefined."
+      ],
+      "raw_text": "The post-launch plan depends on community adoption and engineering influencers, with little detail on enterprise buying motion.\n- Expansion strategy is not proven.\n- Customer success coverage is undefined.",
+      "evidence_ref": "portfolio.post_launch_strategy"
+    }
+  }
+}

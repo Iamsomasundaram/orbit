@@ -42,6 +42,8 @@ class ServiceInfo(BaseModel):
     runtime_direction: str
     active_backend: str
     reference_runtime: str
+    reference_runtime_stage: str
+    reference_runtime_archival_target_milestone: str
     persistence_schema_version: str
     persistence_tables: int
     environment: str
@@ -106,9 +108,11 @@ def service_info(settings: Settings) -> ServiceInfo:
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
-        runtime_direction="data-model-and-executable-schemas",
+        runtime_direction="stabilization-and-parity-hardening",
         active_backend="python",
         reference_runtime="js-baseline-only",
+        reference_runtime_stage=settings.js_baseline_archival_stage,
+        reference_runtime_archival_target_milestone=settings.js_baseline_archival_target_milestone,
         persistence_schema_version=catalog.schema_version,
         persistence_tables=len(catalog.tables),
         environment=settings.orbit_env,

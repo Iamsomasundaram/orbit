@@ -32,6 +32,5 @@ Validation commands:
 
 Stop rule:
 
-- Milestone 3 work must not start until the Milestone 2 review pack is accepted.
-
-
+- Milestone 2 and Milestone 2.1 are reviewed together as a combined gate.
+- Milestone 3 work must not start until that combined gate is accepted.
