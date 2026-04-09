@@ -60,7 +60,8 @@ Total weight = 100.
 1. Aggregate specialist dimension scores into committee-level dimension scores.
 2. Weight dimensions according to the table above.
 3. Apply confidence and evidence completeness as governance signals, not hidden modifiers.
-4. Allow rule-based recommendation overrides for critical security, legal, or reliability failures.
+4. Allow rule-based recommendation overrides for critical legal, compliance, security, or AI safety failures.
+5. Treat override conditions as higher precedence than the aggregate weighted score. A portfolio with a strong weighted average can still receive `High Risk` or `Do Not Proceed` if a critical blocker remains unresolved.
 
 Recommended reporting outputs:
 
@@ -110,7 +111,7 @@ Severity flags communicate why a score may need special handling. Planned levels
 - minor
 - informational
 
-Critical flags can override an otherwise acceptable weighted score.
+Critical legal, compliance, security, or AI safety flags can override an otherwise acceptable weighted score and force a lower recommendation tier.
 
 ## 8. Confidence and Evidence Completeness
 
@@ -124,4 +125,3 @@ High confidence with low evidence completeness is not acceptable for governance-
 - no dimension score should exist without rationale text and evidence references
 - recommendation tiers must be reproducible from the same structured inputs
 - any human override later must be recorded with an audit reason
-

@@ -7,14 +7,21 @@ ORBIT is an AI-powered multi-agent product and investment review committee for s
 Current status:
 
 - Milestone 0 artifacts are complete in `docs/milestone-0/`.
-- The repository includes only Milestone 0 scaffolding and starter fixtures.
-- Milestone 0.5 and later implementation work is intentionally gated pending review.
+- Milestone 0.5 thin slice is implemented as a deterministic worker pipeline under `apps/worker/src/` and the shared `packages/` modules.
+- The current proof path ingests one markdown portfolio document, runs all 15 structured reviewers, detects conflicts on structured outputs, builds a scorecard, and emits a committee report.
+- Milestone 1 and later platform work remain gated pending review.
 
 Primary references:
 
 - `docs/milestone-0/README.md`
 - `docs/milestone-0/review-pack.md`
+- `docs/milestone-0.5/review-pack.md`
 - `tests/fixtures/portfolios/`
+
+Thin-slice commands:
+
+- `npm run review:thin-slice`
+- `npm test`
 
 Planned repository layout:
 

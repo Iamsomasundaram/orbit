@@ -1,6 +1,9 @@
 {
   "name": "orbit",
   "private": true,
-  "packageManager": "pnpm@10.11.0"
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "review:thin-slice": "node apps/worker/src/cli/review-portfolio.js tests/fixtures/source-documents/procurepilot-thin-slice.md --output-dir .orbit-artifacts/thin-slice",
+    "test": "node --test"
+  }
 }
-

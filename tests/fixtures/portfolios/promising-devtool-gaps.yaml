@@ -14,6 +14,9 @@ evaluation_expectations:
   target_recommendation_band:
     - Pilot Only
     - Proceed with Conditions
+  target_score_band:
+    min: 2.8
+    max: 3.7
   expected_strengths:
     - Strong developer pain point around debugging distributed systems
     - Plausible technical prototype path
@@ -21,6 +24,11 @@ evaluation_expectations:
     - Unclear monetization
     - Thin compliance and support model
     - Weak evaluation plan for AI-generated fixes
+    - High-volume telemetry cost assumptions are incomplete
+  expected_conflicts:
+    - Market fit may diverge between product and sales reviewers
+    - AI reliability evidence may divide technical and governance reviewers
+    - Recommendation timing may split between pilot-only and broader proceed views
 problem_discovery:
   summary: Backend teams struggle to correlate logs, traces, and deployment changes quickly during production incidents.
   key_points:

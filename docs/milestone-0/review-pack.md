@@ -37,7 +37,7 @@ Known issues:
 
 - schema contracts are documented but not yet executable in code
 - Compose and service bootstraps are deferred to Milestone 1
-- remote repository URL is an assumption until confirmed
+- GitHub remote URL is confirmed by user input
 - placeholder author metadata remains in the root `pyproject.toml`
 
 ## Risks
@@ -81,7 +81,6 @@ Proceed with fixes.
 
 Fixes to ratify before deep implementation starts:
 
-- confirm the intended GitHub repository URL
 - approve or adjust scoring thresholds and recommendation bands
 - approve or adjust starter portfolio expectations
 - replace placeholder author metadata in root configuration

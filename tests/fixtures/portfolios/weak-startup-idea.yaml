@@ -11,6 +11,9 @@ evaluation_expectations:
   target_recommendation_band:
     - High Risk
     - Do Not Proceed
+  target_score_band:
+    min: 0.8
+    max: 2.4
   expected_strengths:
     - Fast prototype may be possible
   expected_risks:
@@ -18,6 +21,11 @@ evaluation_expectations:
     - No durable market differentiation
     - Speculative business model
     - Poor compliance and trust posture
+    - No credible safety or moderation model
+  expected_conflicts:
+    - Some reviewers may argue for prototype-only exploration despite major governance blockers
+    - Security and legal reviewers may rate risk far more severely than product optimism
+    - Assumptions about real user demand are likely to conflict
 problem_discovery:
   summary: The idea assumes users want an AI social network that predicts mood-compatible weekend activities and lets brands sponsor those plans.
   key_points:

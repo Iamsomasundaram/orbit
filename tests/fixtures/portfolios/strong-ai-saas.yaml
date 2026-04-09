@@ -17,6 +17,9 @@ evaluation_expectations:
   target_recommendation_band:
     - Proceed with Conditions
     - Strong Proceed
+  target_score_band:
+    min: 3.5
+    max: 4.2
   expected_strengths:
     - Clear procurement workflow pain with measurable ROI
     - Credible architecture and implementation roadmap
@@ -24,6 +27,11 @@ evaluation_expectations:
   expected_risks:
     - ERP integration complexity
     - Data governance depth for vendor and contract data
+    - Enterprise readiness depends on stronger resilience evidence
+  expected_conflicts:
+    - Recommendation timing may diverge between growth and risk reviewers
+    - Assumptions may conflict on what MVP operational readiness requires
+    - Security and operational reviewers may rank residual risk more severely than growth-oriented reviewers
 problem_discovery:
   summary: Mid-market procurement teams lose time consolidating supplier quotes, approvals, and contract obligations across disconnected tools.
   key_points:
@@ -79,3 +87,4 @@ post_launch_strategy:
   key_points:
     - Land-and-expand motion focuses on procurement ops and finance leadership.
     - Expansion depends on trusted auditability and measurable ROI.
+

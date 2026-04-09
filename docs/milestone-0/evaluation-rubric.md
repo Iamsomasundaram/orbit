@@ -19,8 +19,10 @@ Every golden portfolio fixture must include:
 - canonical portfolio metadata
 - all eleven ORBIT portfolio sections
 - expected recommendation band
+- expected score band
 - expected high-signal strengths
-- expected high-signal risks or gaps
+- expected top 3 to 5 risks or gaps
+- expected top 1 to 3 conflict clusters
 - optional notes on where evidence is intentionally incomplete
 
 Starter set required from Milestone 0:
@@ -94,6 +96,10 @@ Expected recommendation band:
 
 - Proceed with Conditions to Strong Proceed
 
+Expected score band:
+
+- 3.5 to 4.2
+
 Expected strengths:
 
 - clear problem and buyer
@@ -104,12 +110,21 @@ Expected caution areas:
 
 - integration complexity
 - data governance depth
+- enterprise readiness evidence is still thinner than the commercial case
+
+Expected top conflicts:
+
+- recommendation conflict between growth-oriented and risk-oriented reviewers around rollout timing`n- assumption mismatch on what single-region MVP readiness really means`n- risk severity mismatch on security and operational readiness
 
 ### Promising Devtool with Gaps
 
 Expected recommendation band:
 
 - Pilot Only to Proceed with Conditions
+
+Expected score band:
+
+- 2.8 to 3.7
 
 Expected strengths:
 
@@ -121,6 +136,13 @@ Expected caution areas:
 - unclear monetization
 - weak compliance posture
 - incomplete evaluation and support model
+- high-volume telemetry cost assumptions are incomplete
+
+Expected top conflicts:
+
+- score divergence on Market Fit between product and commercial reviewers
+- evidence completeness mismatch on AI Reliability due missing evaluation benchmarks
+- recommendation conflict on whether enterprise pilots are premature
 
 ### Weak Startup Idea
 
@@ -128,12 +150,23 @@ Expected recommendation band:
 
 - High Risk to Do Not Proceed
 
+Expected score band:
+
+- 0.8 to 2.4
+
 Expected weaknesses:
 
 - poor problem validation
 - weak differentiation
 - unsupported business assumptions
 - unclear or speculative delivery path
+- no credible safety or moderation model
+
+Expected top conflicts:
+
+- risk severity mismatch between product novelty optimism and security or legal concerns
+- recommendation conflict on whether a prototype is still worth piloting
+- assumption mismatch on whether user demand exists at all
 
 ## 7. Regression Triggers
 
@@ -153,3 +186,4 @@ Evaluation is not only automated. Milestone gates require a human review of:
 - finding quality
 - residual blind spots in the rubric
 - false confidence caused by incomplete evidence
+
