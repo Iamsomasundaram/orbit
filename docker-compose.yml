@@ -49,13 +49,14 @@ services:
       POSTGRES_INTERNAL_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-orbit}
       POSTGRES_USER: ${POSTGRES_USER:-orbit}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://orbit:orbit@postgres:5432/orbit}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://orbit:orbit@postgres:5432/orbit}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_INTERNAL_PORT: ${REDIS_INTERNAL_PORT:-6379}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PORTFOLIO_STORAGE_DIR: ${PORTFOLIO_STORAGE_DIR:-/workspace/.orbit-data/portfolio-submissions}
       JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-frozen-baseline}
       JS_BASELINE_ARCHIVAL_TARGET_MILESTONE: "${JS_BASELINE_ARCHIVAL_TARGET_MILESTONE:-Milestone 4}"
       PYTHONPATH: /workspace/apps/api:/workspace/apps/worker
@@ -98,7 +99,7 @@ services:
       WORKER_INTERNAL_PORT: ${WORKER_INTERNAL_PORT:-8002}
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_INTERNAL_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://orbit:orbit@postgres:5432/orbit}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://orbit:orbit@postgres:5432/orbit}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_INTERNAL_PORT: ${REDIS_INTERNAL_PORT:-6379}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -148,7 +149,7 @@ services:
       NODE_ENV: development
       PORT: ${WEB_INTERNAL_PORT:-3000}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-ORBIT}
-      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-2.1}
+      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-3}
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5001}
       INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8001}
     depends_on:

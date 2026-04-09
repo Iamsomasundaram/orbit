@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint, create_engine, select
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
 from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, OrbitModel, Scorecard, SourceDocument
@@ -165,7 +165,21 @@ class ReviewPersistenceBundle(OrbitModel):
     audit_events: list[AuditEventRecord]
 
 
+class PortfolioIngestionBundle(OrbitModel):
+    schema_version: str
+    portfolio: PortfolioRecord
+    source_documents: list[SourceDocumentRecord]
+    canonical_portfolio: CanonicalPortfolioRecord
+    audit_events: list[AuditEventRecord]
+
+
 class PersistenceRepository(Protocol):
+    def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None: ...
+
+    def get_portfolio_bundle(self, portfolio_id: str) -> PortfolioIngestionBundle | None: ...
+
+    def list_portfolio_bundles(self) -> list[PortfolioIngestionBundle]: ...
+
     def save_review_bundle(self, bundle: ReviewPersistenceBundle) -> None: ...
 
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None: ...
@@ -175,11 +189,34 @@ class PersistenceRepository(Protocol):
 
 class InMemoryPersistenceRepository:
     def __init__(self) -> None:
+        self._portfolios: dict[str, PortfolioIngestionBundle] = {}
         self._review_runs: dict[str, ReviewPersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
 
+    def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
+        self._portfolios[bundle.portfolio.portfolio_id] = bundle
+        for event in bundle.audit_events:
+            self._audit_events[event.event_id] = event
+
+    def get_portfolio_bundle(self, portfolio_id: str) -> PortfolioIngestionBundle | None:
+        return self._portfolios.get(portfolio_id)
+
+    def list_portfolio_bundles(self) -> list[PortfolioIngestionBundle]:
+        return sorted(
+            self._portfolios.values(),
+            key=lambda bundle: (bundle.portfolio.created_at, bundle.portfolio.portfolio_id),
+            reverse=True,
+        )
+
     def save_review_bundle(self, bundle: ReviewPersistenceBundle) -> None:
         self._review_runs[bundle.review_run.run_id] = bundle
+        self._portfolios[bundle.portfolio.portfolio_id] = PortfolioIngestionBundle(
+            schema_version=bundle.schema_version,
+            portfolio=bundle.portfolio,
+            source_documents=bundle.source_documents,
+            canonical_portfolio=bundle.canonical_portfolio,
+            audit_events=bundle.audit_events,
+        )
         for event in bundle.audit_events:
             self._audit_events[event.event_id] = event
 
@@ -214,7 +251,7 @@ def payload_sha256(value: Any) -> str:
 
 
 def _model_row(model: BaseModel) -> dict[str, Any]:
-    return model.model_dump(mode="json")
+    return model.model_dump(mode="python")
 
 
 def _source_document_hash(source_document: SourceDocument) -> tuple[str, bool]:
@@ -492,6 +529,58 @@ def build_audit_event_records(
     ]
 
 
+def build_ingestion_audit_event_records(
+    canonical_portfolio: CanonicalPortfolio,
+    now: datetime | None = None,
+) -> list[AuditEventRecord]:
+    timestamp = now or datetime.now(timezone.utc)
+    actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
+    return [
+        AuditEventRecord(
+            event_id=_audit_event_id(None, "portfolio.registered", canonical_portfolio.portfolio_id),
+            portfolio_id=canonical_portfolio.portfolio_id,
+            run_id=None,
+            actor=actor,
+            action="portfolio.registered",
+            entity_type="portfolio",
+            entity_id=canonical_portfolio.portfolio_id,
+            event_payload={
+                "portfolio_name": canonical_portfolio.portfolio_name,
+                "portfolio_type": canonical_portfolio.portfolio_type,
+            },
+            created_at=timestamp,
+        ),
+        AuditEventRecord(
+            event_id=_audit_event_id(None, "canonical_portfolio.materialized", canonical_portfolio.portfolio_id),
+            portfolio_id=canonical_portfolio.portfolio_id,
+            run_id=None,
+            actor=actor,
+            action="canonical_portfolio.materialized",
+            entity_type="canonical_portfolio",
+            entity_id=canonical_portfolio.portfolio_id,
+            event_payload={
+                "schema_version": PERSISTENCE_SCHEMA_VERSION,
+                "section_count": len(canonical_portfolio.sections),
+            },
+            created_at=timestamp,
+        ),
+    ]
+
+
+def build_portfolio_ingestion_bundle(
+    canonical_portfolio: CanonicalPortfolio,
+    now: datetime | None = None,
+) -> PortfolioIngestionBundle:
+    timestamp = now or datetime.now(timezone.utc)
+    return PortfolioIngestionBundle(
+        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        portfolio=build_portfolio_record(canonical_portfolio, latest_review_run_id=None, now=timestamp),
+        source_documents=build_source_document_records(canonical_portfolio, now=timestamp),
+        canonical_portfolio=build_canonical_portfolio_record(canonical_portfolio, now=timestamp),
+        audit_events=build_ingestion_audit_event_records(canonical_portfolio, now=timestamp),
+    )
+
+
 def build_review_persistence_bundle(
     run_id: str,
     canonical_portfolio: CanonicalPortfolio,
@@ -577,6 +666,198 @@ def bundle_to_table_rows(bundle: ReviewPersistenceBundle) -> dict[str, list[dict
         "committee_reports": [committee_report_row_values(bundle.committee_report)],
         "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
     }
+
+
+def ingestion_bundle_to_table_rows(bundle: PortfolioIngestionBundle) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "portfolios": [portfolio_row_values(bundle.portfolio)],
+        "source_documents": [source_document_row_values(record) for record in bundle.source_documents],
+        "canonical_portfolios": [canonical_portfolio_row_values(bundle.canonical_portfolio)],
+        "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
+    }
+
+
+def _upsert_row(connection: Any, table: Table, row: dict[str, Any], conflict_columns: list[str]) -> None:
+    statement = insert(table).values(**row)
+    update_columns = {
+        column.name: getattr(statement.excluded, column.name)
+        for column in table.columns
+        if column.name not in conflict_columns
+    }
+    connection.execute(
+        statement.on_conflict_do_update(
+            index_elements=conflict_columns,
+            set_=update_columns,
+        )
+    )
+
+
+def _audit_event_from_row(row: dict[str, Any]) -> AuditEventRecord:
+    return AuditEventRecord.model_validate(
+        {
+            "event_id": row["event_id"],
+            "portfolio_id": row["portfolio_id"],
+            "run_id": row["run_id"],
+            "actor": {
+                "actor_type": row["actor_type"],
+                "actor_id": row["actor_id"],
+                "display_name": row["display_name"],
+            },
+            "action": row["action"],
+            "entity_type": row["entity_type"],
+            "entity_id": row["entity_id"],
+            "event_payload": row["event_payload"],
+            "created_at": row["created_at"],
+        }
+    )
+
+
+class SqlAlchemyPersistenceRepository:
+    def __init__(self, database_url: str) -> None:
+        self._engine = create_engine(database_url, future=True, pool_pre_ping=True)
+
+    def ensure_schema(self) -> None:
+        persistence_metadata.create_all(self._engine)
+
+    def dispose(self) -> None:
+        self._engine.dispose()
+
+    def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
+        rows = ingestion_bundle_to_table_rows(bundle)
+        with self._engine.begin() as connection:
+            _upsert_row(connection, portfolios_table, rows["portfolios"][0], ["portfolio_id"])
+            for row in rows["source_documents"]:
+                _upsert_row(connection, source_documents_table, row, ["source_document_row_id"])
+            _upsert_row(connection, canonical_portfolios_table, rows["canonical_portfolios"][0], ["canonical_portfolio_row_id"])
+            for row in rows["audit_events"]:
+                _upsert_row(connection, audit_events_table, row, ["event_id"])
+
+    def get_portfolio_bundle(self, portfolio_id: str) -> PortfolioIngestionBundle | None:
+        with self._engine.connect() as connection:
+            portfolio_row = connection.execute(
+                select(portfolios_table).where(portfolios_table.c.portfolio_id == portfolio_id)
+            ).mappings().first()
+            if portfolio_row is None:
+                return None
+
+            source_document_rows = connection.execute(
+                select(source_documents_table)
+                .where(source_documents_table.c.portfolio_id == portfolio_id)
+                .order_by(source_documents_table.c.source_document_row_id)
+            ).mappings().all()
+            canonical_row = connection.execute(
+                select(canonical_portfolios_table)
+                .where(canonical_portfolios_table.c.portfolio_id == portfolio_id)
+                .order_by(canonical_portfolios_table.c.created_at.desc())
+            ).mappings().first()
+            audit_rows = connection.execute(
+                select(audit_events_table)
+                .where(audit_events_table.c.portfolio_id == portfolio_id)
+                .order_by(audit_events_table.c.created_at, audit_events_table.c.event_id)
+            ).mappings().all()
+
+        if canonical_row is None:
+            return None
+
+        return PortfolioIngestionBundle(
+            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            portfolio=PortfolioRecord.model_validate(dict(portfolio_row)),
+            source_documents=[SourceDocumentRecord.model_validate(dict(row)) for row in source_document_rows],
+            canonical_portfolio=CanonicalPortfolioRecord.model_validate(dict(canonical_row)),
+            audit_events=[_audit_event_from_row(dict(row)) for row in audit_rows],
+        )
+
+    def list_portfolio_bundles(self) -> list[PortfolioIngestionBundle]:
+        with self._engine.connect() as connection:
+            portfolio_ids = [
+                row["portfolio_id"]
+                for row in connection.execute(
+                    select(portfolios_table.c.portfolio_id).order_by(
+                        portfolios_table.c.created_at.desc(),
+                        portfolios_table.c.portfolio_id.desc(),
+                    )
+                ).mappings().all()
+            ]
+        return [bundle for portfolio_id in portfolio_ids if (bundle := self.get_portfolio_bundle(portfolio_id)) is not None]
+
+    def save_review_bundle(self, bundle: ReviewPersistenceBundle) -> None:
+        rows = bundle_to_table_rows(bundle)
+        with self._engine.begin() as connection:
+            _upsert_row(connection, portfolios_table, rows["portfolios"][0], ["portfolio_id"])
+            for row in rows["source_documents"]:
+                _upsert_row(connection, source_documents_table, row, ["source_document_row_id"])
+            _upsert_row(connection, canonical_portfolios_table, rows["canonical_portfolios"][0], ["canonical_portfolio_row_id"])
+            _upsert_row(connection, review_runs_table, rows["review_runs"][0], ["run_id"])
+            for row in rows["agent_reviews"]:
+                _upsert_row(connection, agent_reviews_table, row, ["agent_review_row_id"])
+            for row in rows["conflicts"]:
+                _upsert_row(connection, conflicts_table, row, ["conflict_row_id"])
+            _upsert_row(connection, scorecards_table, rows["scorecards"][0], ["run_id"])
+            _upsert_row(connection, committee_reports_table, rows["committee_reports"][0], ["run_id"])
+            for row in rows["audit_events"]:
+                _upsert_row(connection, audit_events_table, row, ["event_id"])
+
+    def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None:
+        with self._engine.connect() as connection:
+            review_run_row = connection.execute(
+                select(review_runs_table).where(review_runs_table.c.run_id == run_id)
+            ).mappings().first()
+            if review_run_row is None:
+                return None
+
+            portfolio_id = review_run_row["portfolio_id"]
+            portfolio_bundle = self.get_portfolio_bundle(portfolio_id)
+            if portfolio_bundle is None:
+                return None
+
+            agent_rows = connection.execute(
+                select(agent_reviews_table)
+                .where(agent_reviews_table.c.run_id == run_id)
+                .order_by(agent_reviews_table.c.agent_review_row_id)
+            ).mappings().all()
+            conflict_rows = connection.execute(
+                select(conflicts_table)
+                .where(conflicts_table.c.run_id == run_id)
+                .order_by(conflicts_table.c.conflict_row_id)
+            ).mappings().all()
+            scorecard_row = connection.execute(
+                select(scorecards_table).where(scorecards_table.c.run_id == run_id)
+            ).mappings().first()
+            committee_report_row = connection.execute(
+                select(committee_reports_table).where(committee_reports_table.c.run_id == run_id)
+            ).mappings().first()
+            audit_rows = connection.execute(
+                select(audit_events_table)
+                .where(audit_events_table.c.run_id == run_id)
+                .order_by(audit_events_table.c.created_at, audit_events_table.c.event_id)
+            ).mappings().all()
+
+        if scorecard_row is None or committee_report_row is None:
+            return None
+
+        return ReviewPersistenceBundle(
+            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            portfolio=portfolio_bundle.portfolio,
+            source_documents=portfolio_bundle.source_documents,
+            canonical_portfolio=portfolio_bundle.canonical_portfolio,
+            review_run=ReviewRunRecord.model_validate(dict(review_run_row)),
+            agent_reviews=[AgentReviewRecord.model_validate(dict(row)) for row in agent_rows],
+            conflicts=[ConflictPersistenceRecord.model_validate(dict(row)) for row in conflict_rows],
+            scorecard=ScorecardRecord.model_validate(dict(scorecard_row)),
+            committee_report=CommitteeReportRecord.model_validate(dict(committee_report_row)),
+            audit_events=[_audit_event_from_row(dict(row)) for row in audit_rows],
+        )
+
+    def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
+        statement = select(audit_events_table)
+        if portfolio_id is not None:
+            statement = statement.where(audit_events_table.c.portfolio_id == portfolio_id)
+        if run_id is not None:
+            statement = statement.where(audit_events_table.c.run_id == run_id)
+        statement = statement.order_by(audit_events_table.c.created_at, audit_events_table.c.event_id)
+        with self._engine.connect() as connection:
+            rows = connection.execute(statement).mappings().all()
+        return [_audit_event_from_row(dict(row)) for row in rows]
 
 
 NAMING_CONVENTION = {

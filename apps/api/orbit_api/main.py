@@ -1,15 +1,46 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, Response, status
+from contextlib import asynccontextmanager
+from pathlib import Path
 
-from orbit_worker.persistence import PersistenceSchemaCatalog
+from fastapi import FastAPI, HTTPException, Request, Response, status
+
+from orbit_worker.persistence import PersistenceSchemaCatalog, SqlAlchemyPersistenceRepository
 
 from .config import get_settings
 from .health import HealthResponse, ServiceInfo, live_response, readiness_response, service_info
+from .portfolios import (
+    InvalidPortfolioDocumentError,
+    PortfolioAlreadyExistsError,
+    PortfolioDetail,
+    PortfolioDocumentSubmission,
+    PortfolioIngestionService,
+    PortfolioListResponse,
+)
 from .persistence import PersistenceDdlResponse, persistence_ddl_response, persistence_schema_catalog
 
 settings = get_settings()
-app = FastAPI(title="ORBIT API", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    repository = SqlAlchemyPersistenceRepository(settings.database_url)
+    repository.ensure_schema()
+    app.state.portfolio_ingestion_service = PortfolioIngestionService(
+        repository=repository,
+        storage_root=Path(settings.portfolio_storage_dir),
+    )
+    try:
+        yield
+    finally:
+        repository.dispose()
+
+
+app = FastAPI(title="ORBIT API", version="0.1.0", lifespan=lifespan)
+
+
+def portfolio_service(request: Request) -> PortfolioIngestionService:
+    return request.app.state.portfolio_ingestion_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -43,3 +74,27 @@ def persistence_schema() -> PersistenceSchemaCatalog:
 @app.get("/api/v1/system/persistence/ddl", response_model=PersistenceDdlResponse)
 def persistence_ddl() -> PersistenceDdlResponse:
     return persistence_ddl_response()
+
+
+@app.post("/api/v1/portfolios", response_model=PortfolioDetail, status_code=status.HTTP_201_CREATED)
+def submit_portfolio(request: Request, submission: PortfolioDocumentSubmission) -> PortfolioDetail:
+    service = portfolio_service(request)
+    try:
+        return service.submit_document(submission)
+    except PortfolioAlreadyExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except InvalidPortfolioDocumentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/portfolios", response_model=PortfolioListResponse)
+def list_portfolios(request: Request) -> PortfolioListResponse:
+    return portfolio_service(request).list_portfolios()
+
+
+@app.get("/api/v1/portfolios/{portfolio_id}", response_model=PortfolioDetail)
+def get_portfolio(request: Request, portfolio_id: str) -> PortfolioDetail:
+    detail = portfolio_service(request).get_portfolio(portfolio_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Portfolio '{portfolio_id}' was not found.")
+    return detail

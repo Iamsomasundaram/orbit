@@ -23,12 +23,17 @@ type PersistenceCatalogPayload = {
   tables: Array<{ table_name: string; purpose: string; source_contract: string | null }>;
 };
 
+type PortfolioListPayload = {
+  items: Array<{ portfolio_id: string }>;
+};
+
 export default async function HomePage() {
   const config = getRuntimeConfig();
-  const [apiReady, apiInfo, persistenceCatalog] = await Promise.all([
+  const [apiReady, apiInfo, persistenceCatalog, portfolioList] = await Promise.all([
     fetchJson<HealthPayload>(`${config.internalApiBaseUrl}/health/ready`),
     fetchJson<InfoPayload>(`${config.internalApiBaseUrl}/api/v1/system/info`),
     fetchJson<PersistenceCatalogPayload>(`${config.internalApiBaseUrl}/api/v1/system/persistence/schema`),
+    fetchJson<PortfolioListPayload>(`${config.internalApiBaseUrl}/api/v1/portfolios`),
   ]);
 
   const cards: ServiceCard[] = [
@@ -45,9 +50,9 @@ export default async function HomePage() {
       detail: `${persistenceCatalog?.tables.length ?? apiInfo?.persistence_tables ?? 0} durable tables defined from the Python worker contracts.`,
     },
     {
-      label: "Worker",
-      value: "python-primary",
-      detail: "The Python thin-slice runtime remains the active backend execution path for ORBIT, with local worker debugging on http://localhost:5004.",
+      label: "Ingestion API",
+      value: `${portfolioList?.items.length ?? 0} stored`,
+      detail: "Milestone 3 adds markdown portfolio submission, canonicalization, and durable storage through the API service.",
     },
     {
       label: "Baseline",
@@ -62,18 +67,18 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex w-fit items-center rounded-full border border-orbit-pine/15 bg-orbit-mist px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orbit-pine">
-              Milestone {config.milestone} Stabilization And Parity Hardening
+              Milestone {config.milestone} Portfolio Ingestion APIs
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              {config.appName} now hardens the Python platform around the full golden-fixture parity gate.
+              {config.appName} now accepts portfolio documents, canonicalizes them, and stores them durably.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              This stabilization milestone keeps the approved Milestone 2 persistence model intact while expanding parity coverage, exposing the worker for local debugging, and freezing the JS baseline as a controlled reference path.
+              This milestone extends the approved persistence boundary into a real submission path: one markdown document enters through the API, becomes a canonical ORBIT portfolio, and is stored in Postgres without broadening into later-stage orchestration.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
-            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Parity Gate</div>
-            <div className="mt-2 text-2xl font-semibold">3 fixtures</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Submission Path</div>
+            <div className="mt-2 text-2xl font-semibold">Markdown to Canonical</div>
             <div className="mt-1 text-sm text-orbit-mist/70">Provider: {apiInfo?.llm_provider ?? "openai"}</div>
           </div>
         </div>
@@ -91,18 +96,18 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
         <article className="rounded-[28px] border border-orbit-pine/10 bg-white/75 p-6 shadow-panel backdrop-blur">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 2.1 Scope</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 3 Scope</div>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-orbit-ink/80">
-            <li>Parity matrix expanded across strong, promising, and weak golden fixtures with artifact-identical Python and JS outputs.</li>
-            <li>Worker host debugging is exposed on port `5004` while Docker Compose remains the primary development workflow.</li>
-            <li>JS baseline lifecycle is frozen and given an explicit archival target milestone without changing current runtime logic.</li>
-            <li>Milestone 2 and Milestone 2.1 now form a combined review gate before any move into Milestone 3.</li>
+            <li>API submission accepts a bounded markdown portfolio document and canonicalizes it with the approved Python ingestion logic.</li>
+            <li>Canonical portfolios, source document metadata, and audit events are now persisted through the Milestone 2 schema boundary.</li>
+            <li>Docker Compose remains the primary development workflow, with the worker still exposed on port `5004` for debugging.</li>
+            <li>The approved thin-slice review runtime remains unchanged and is not broadened into orchestration or debate work in this milestone.</li>
           </ul>
         </article>
         <article className="rounded-[28px] border border-orbit-pine/10 bg-orbit-pine p-6 text-orbit-mist shadow-panel">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Combined Gate</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Stored Portfolios</div>
           <p className="mt-4 text-lg leading-8">
-            Milestone 3 remains blocked until the combined Milestone 2 and Milestone 2.1 review pack is accepted.
+            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently visible through the Milestone 3 API surface.
           </p>
         </article>
       </section>

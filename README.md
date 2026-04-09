@@ -12,7 +12,7 @@ Current status:
 - Milestone 1 added the local platform foundation for `web`, `api`, `worker`, `postgres`, and `redis` through Docker Compose.
 - Milestone 2 added durable persistence models, executable Postgres schema generation, and persistence boundary documentation while keeping the approved review behavior unchanged.
 - Milestone 2.1 hardens the platform with full-fixture parity coverage, frozen JS baseline lifecycle controls, and worker host debugging on port `5004`.
-- Milestone 2 and Milestone 2.1 now form a combined review gate before any move into Milestone 3.
+- Milestone 3 adds bounded portfolio submission APIs, canonical portfolio materialization, and durable ingestion storage without broadening into review orchestration.
 
 Primary references:
 
@@ -22,18 +22,21 @@ Primary references:
 - `docs/milestone-1/README.md`
 - `docs/milestone-2/README.md`
 - `docs/milestone-2.1/README.md`
+- `docs/milestone-3/README.md`
 
 Platform commands:
 
 - `docker compose up -d --build postgres redis api worker web`
 - `docker compose ps`
 - `docker compose down --remove-orphans`
+- `POST http://localhost:5001/api/v1/portfolios`
+- `GET http://localhost:5001/api/v1/portfolios`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`
 
 Repository layout:
 
-- `apps/api` -> FastAPI control plane and platform health surface
+- `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
 - `apps/web` -> Next.js platform shell and local workspace landing page
 - `apps/worker` -> primary Python backend execution runtime, parity tests, and persistence contracts
 - `packages/orbit-*` -> frozen JS baseline modules retained until archival

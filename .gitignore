@@ -38,3 +38,6 @@ redis-data/
 
 # Docker local config
 .docker-config/
+
+# Local portfolio submissions
+.orbit-data/

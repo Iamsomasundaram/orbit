@@ -5,9 +5,11 @@ from pathlib import Path
 from orbit_worker.persistence import (
     PERSISTENCE_SCHEMA_VERSION,
     InMemoryPersistenceRepository,
+    build_portfolio_ingestion_bundle,
     build_review_persistence_bundle,
     bundle_to_table_rows,
     get_persistence_schema_catalog,
+    ingestion_bundle_to_table_rows,
     render_postgres_ddl,
 )
 from orbit_worker.runner import run_review_pipeline
@@ -25,6 +27,25 @@ EXPECTED_TABLES = {
     "committee_reports",
     "audit_events",
 }
+
+
+def test_portfolio_ingestion_bundle_captures_canonical_submission_state() -> None:
+    result = run_review_pipeline(str(INPUT_PATH))
+    bundle = build_portfolio_ingestion_bundle(result["canonical_portfolio"])
+
+    assert bundle.schema_version == PERSISTENCE_SCHEMA_VERSION
+    assert bundle.portfolio.portfolio_status == "canonicalized"
+    assert bundle.portfolio.latest_review_run_id is None
+    assert bundle.canonical_portfolio.portfolio_id == result["canonical_portfolio"].portfolio_id
+    assert len(bundle.source_documents) == 1
+    assert {event.action for event in bundle.audit_events} == {
+        "portfolio.registered",
+        "canonical_portfolio.materialized",
+    }
+
+    rows = ingestion_bundle_to_table_rows(bundle)
+    assert set(rows) == {"portfolios", "source_documents", "canonical_portfolios", "audit_events"}
+    assert rows["canonical_portfolios"][0]["portfolio_id"] == result["canonical_portfolio"].portfolio_id
 
 
 def test_review_persistence_bundle_captures_all_m2_artifacts() -> None:
