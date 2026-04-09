@@ -32,3 +32,6 @@ Thumbs.db
 postgres-data/
 redis-data/
 
+
+.git.codex-sandbox-backup-*
+
