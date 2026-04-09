@@ -8,6 +8,7 @@ from fastapi import FastAPI, Response, status
 from pydantic import BaseModel, ConfigDict
 
 from .config import get_settings
+from .persistence import get_persistence_schema_catalog
 
 settings = get_settings()
 app = FastAPI(title="ORBIT Worker", version="0.1.0")
@@ -44,6 +45,9 @@ class WorkerInfo(BaseModel):
     active_backend: str
     reference_runtime: str
     baseline_archival_stage: str
+    persistence_schema_version: str
+    persistence_tables: int
+    persistence_boundary: str
     environment: str
     thin_slice_entrypoint: str
 
@@ -73,6 +77,7 @@ def tcp_dependency(name: str, host: str, port: int, timeout: float = 0.5) -> Dep
 
 
 def worker_info() -> WorkerInfo:
+    catalog = get_persistence_schema_catalog()
     return WorkerInfo(
         service=settings.service_name,
         status="ok",
@@ -80,6 +85,9 @@ def worker_info() -> WorkerInfo:
         active_backend="python",
         reference_runtime="js-baseline-only",
         baseline_archival_stage=settings.js_baseline_archival_stage,
+        persistence_schema_version=catalog.schema_version,
+        persistence_tables=len(catalog.tables),
+        persistence_boundary="sqlalchemy-metadata+repository-protocol",
         environment=settings.orbit_env,
         thin_slice_entrypoint="orbit_worker.runner.run_review_pipeline",
     )

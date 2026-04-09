@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN pip install "poetry==$POETRY_VERSION"
 
 WORKDIR /app
-COPY apps/api/pyproject.toml /app/pyproject.toml
+COPY apps/api/pyproject.toml apps/api/poetry.lock ./
 RUN poetry install --no-root
 
 WORKDIR /workspace

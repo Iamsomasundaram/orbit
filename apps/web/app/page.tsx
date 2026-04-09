@@ -12,13 +12,21 @@ type InfoPayload = {
   active_backend: string;
   reference_runtime: string;
   llm_provider: string;
+  persistence_schema_version: string;
+  persistence_tables: number;
+};
+
+type PersistenceCatalogPayload = {
+  schema_version: string;
+  tables: Array<{ table_name: string; purpose: string; source_contract: string | null }>;
 };
 
 export default async function HomePage() {
   const config = getRuntimeConfig();
-  const [apiReady, apiInfo] = await Promise.all([
+  const [apiReady, apiInfo, persistenceCatalog] = await Promise.all([
     fetchJson<HealthPayload>(`${config.internalApiBaseUrl}/health/ready`),
     fetchJson<InfoPayload>(`${config.internalApiBaseUrl}/api/v1/system/info`),
+    fetchJson<PersistenceCatalogPayload>(`${config.internalApiBaseUrl}/api/v1/system/persistence/schema`),
   ]);
 
   const cards: ServiceCard[] = [
@@ -30,19 +38,19 @@ export default async function HomePage() {
         : "FastAPI readiness has not responded yet.",
     },
     {
+      label: "Persistence",
+      value: persistenceCatalog?.schema_version ?? apiInfo?.persistence_schema_version ?? "unknown",
+      detail: `${persistenceCatalog?.tables.length ?? apiInfo?.persistence_tables ?? 0} durable tables defined from the Python worker contracts.`,
+    },
+    {
       label: "Worker",
       value: "python-primary",
-      detail: "Milestone 0.5a Python runtime remains the active backend execution path.",
+      detail: "The Python thin-slice runtime remains the active backend execution path for ORBIT.",
     },
     {
       label: "Baseline",
       value: apiInfo?.reference_runtime ?? "js-baseline-only",
-      detail: "The JS thin-slice remains reference-only and is not the active backend direction.",
-    },
-    {
-      label: "Environment",
-      value: apiInfo?.environment ?? "local",
-      detail: `Public API URL ${config.publicApiBaseUrl}`,
+      detail: "The JS thin-slice stays reference-only until broader parity and archival gates are complete.",
     },
   ];
 
@@ -52,18 +60,18 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex w-fit items-center rounded-full border border-orbit-pine/15 bg-orbit-mist px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orbit-pine">
-              Milestone {config.milestone} Platform Foundation
+              Milestone {config.milestone} Data Model And Executable Schemas
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              {config.appName} local platform is now anchored around the Python backend path.
+              {config.appName} now exposes durable review data contracts from the Python backend path.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              This foundation stage adds the web shell, FastAPI control plane, Python worker service, and local dockerized dependencies without altering the approved committee behavior from Milestones 0.5 and 0.5a.
+              This milestone adds the database-facing schema boundary for portfolios, review runs, agent findings, conflicts, scorecards, committee reports, and audit events without redesigning the approved thin-slice behavior.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
-            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime</div>
-            <div className="mt-2 text-2xl font-semibold">{apiInfo?.active_backend ?? "python"}</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Schema</div>
+            <div className="mt-2 text-2xl font-semibold">{apiInfo?.persistence_schema_version ?? "m2-v1"}</div>
             <div className="mt-1 text-sm text-orbit-mist/70">Provider: {apiInfo?.llm_provider ?? "openai"}</div>
           </div>
         </div>
@@ -81,18 +89,18 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
         <article className="rounded-[28px] border border-orbit-pine/10 bg-white/75 p-6 shadow-panel backdrop-blur">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Foundation Scope</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 2 Scope</div>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-orbit-ink/80">
-            <li>Compose-managed `web`, `api`, `worker`, `postgres`, and `redis` services.</li>
-            <li>Typed Python config and health endpoints for the control plane and worker runtime.</li>
-            <li>Active backend direction fixed on Python, with JS preserved as baseline-only reference.</li>
-            <li>Carry-forward planning captured for parity coverage, JS archival, and CI regression strategy.</li>
+            <li>Durable persistence models for portfolios, source documents, canonical portfolios, review runs, agent reviews, conflicts, scorecards, committee reports, and audit events.</li>
+            <li>Executable Postgres schema metadata and DDL generated directly from the Python worker source-of-truth contracts.</li>
+            <li>Repository boundary defined for persistence without broadening into Milestone 3 ingestion workflow changes.</li>
+            <li>Carry-forward planning retained for parity expansion, JS archival, and CI regression enforcement.</li>
           </ul>
         </article>
         <article className="rounded-[28px] border border-orbit-pine/10 bg-orbit-pine p-6 text-orbit-mist shadow-panel">
           <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Next Gate</div>
           <p className="mt-4 text-lg leading-8">
-            Milestone 2 stays blocked until this foundation layer is reviewed and accepted through the Ralph review pack.
+            Milestone 3 remains blocked until the Milestone 2 review pack confirms the persistence boundary and executable schemas are accepted.
           </p>
         </article>
       </section>

@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from orbit_worker.persistence import get_persistence_schema_catalog
+
 from .config import Settings
 
 
@@ -40,6 +42,8 @@ class ServiceInfo(BaseModel):
     runtime_direction: str
     active_backend: str
     reference_runtime: str
+    persistence_schema_version: str
+    persistence_tables: int
     environment: str
     llm_provider: str
     openai_model: str
@@ -97,13 +101,16 @@ def readiness_response(settings: Settings) -> HealthResponse:
 
 
 def service_info(settings: Settings) -> ServiceInfo:
+    catalog = get_persistence_schema_catalog()
     return ServiceInfo(
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
-        runtime_direction="platform-foundation",
+        runtime_direction="data-model-and-executable-schemas",
         active_backend="python",
         reference_runtime="js-baseline-only",
+        persistence_schema_version=catalog.schema_version,
+        persistence_tables=len(catalog.tables),
         environment=settings.orbit_env,
         llm_provider=settings.llm_provider,
         openai_model=settings.openai_model,

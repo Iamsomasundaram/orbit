@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "orbit-api"
 version = "0.1.0"
-description = "ORBIT Milestone 1 FastAPI control plane"
+description = "ORBIT Milestone 2 FastAPI control plane"
 authors = ["Somasundaram P <combinesoma@gmail.com>"]
 package-mode = false
 
@@ -11,6 +11,7 @@ fastapi = "^0.115.12"
 uvicorn = { extras = ["standard"], version = "^0.34.0" }
 pydantic = "^2.12.5"
 pydantic-settings = "^2.7.1"
+sqlalchemy = "^2.0.40"
 
 [build-system]
 requires = ["poetry-core>=1.9.0"]

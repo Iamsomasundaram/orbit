@@ -56,7 +56,7 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      PYTHONPATH: /workspace/apps/api
+      PYTHONPATH: /workspace/apps/api:/workspace/apps/worker
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +72,8 @@ services:
       - --reload
       - --reload-dir
       - /workspace/apps/api
+      - --reload-dir
+      - /workspace/apps/worker
     ports:
       - "${API_PORT:-5001}:${API_INTERNAL_PORT:-8001}"
     healthcheck:
@@ -141,7 +143,7 @@ services:
       NODE_ENV: development
       PORT: ${WEB_INTERNAL_PORT:-3000}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-ORBIT}
-      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-1}
+      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-2}
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5001}
       INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8001}
     depends_on:

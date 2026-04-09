@@ -9,8 +9,9 @@ Current status:
 - Milestone 0 artifacts are complete in `docs/milestone-0/`.
 - Milestone 0.5 behavioral proof remains available as the JS reference baseline.
 - Milestone 0.5a established the Python thin-slice runtime as the primary backend execution path.
-- Milestone 1 adds the local platform foundation for `web`, `api`, `worker`, `postgres`, and `redis` through Docker Compose.
-- Milestone 2 and later scope remain gated pending Milestone 1 review.
+- Milestone 1 added the local platform foundation for `web`, `api`, `worker`, `postgres`, and `redis` through Docker Compose.
+- Milestone 2 adds durable persistence models, executable Postgres schema generation, and persistence boundary documentation while keeping the approved review behavior unchanged.
+- Milestone 3 and later scope remain gated pending Milestone 2 review.
 
 Primary references:
 
@@ -18,6 +19,7 @@ Primary references:
 - `docs/milestone-0.5/review-pack.md`
 - `docs/milestone-0.5a/review-pack.md`
 - `docs/milestone-1/README.md`
+- `docs/milestone-2/README.md`
 
 Platform commands:
 
@@ -31,7 +33,7 @@ Repository layout:
 
 - `apps/api` -> FastAPI control plane and platform health surface
 - `apps/web` -> Next.js platform shell and local workspace landing page
-- `apps/worker` -> primary Python backend execution runtime and worker service
+- `apps/worker` -> primary Python backend execution runtime and persistence contracts
 - `packages/orbit-*` -> reference JS baseline modules retained until archival
 - `docs/` -> milestone packs and review gates
 - `tests/fixtures/` -> golden portfolios and committed baseline artifacts
