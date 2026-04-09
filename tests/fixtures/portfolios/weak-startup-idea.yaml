@@ -1,0 +1,75 @@
+portfolio_id: weak-startup-001
+portfolio_name: MoodMesh
+portfolio_type: startup
+owner: Solo Founder Studio
+submitted_at: 2026-04-09
+source_documents:
+  - id: doc-memo
+    kind: memo
+    title: MoodMesh Concept Note
+evaluation_expectations:
+  target_recommendation_band:
+    - High Risk
+    - Do Not Proceed
+  expected_strengths:
+    - Fast prototype may be possible
+  expected_risks:
+    - Weak problem validation
+    - No durable market differentiation
+    - Speculative business model
+    - Poor compliance and trust posture
+problem_discovery:
+  summary: The idea assumes users want an AI social network that predicts mood-compatible weekend activities and lets brands sponsor those plans.
+  key_points:
+    - No credible evidence of sustained user pain or willingness to pay exists.
+    - The concept mixes social discovery, lifestyle advice, and branded commerce without a clear core job to be done.
+product_vision:
+  summary: MoodMesh would combine mood tracking, generative activity suggestions, friend matching, and sponsored recommendations in one consumer app.
+  key_points:
+    - The product vision is broad and unfocused.
+    - User trust and privacy implications are not addressed.
+competitive_landscape:
+  summary: The concept competes indirectly with social apps, recommendation apps, wellness products, and local discovery tools, none of which it clearly outperforms.
+  key_points:
+    - Differentiation rests mainly on novelty.
+    - Switching incentives are weak.
+business_requirements:
+  summary: Revenue assumptions depend on rapid consumer scale and premium brand sponsorship without a tested acquisition model.
+  key_points:
+    - CAC assumptions are absent.
+    - No realistic funding or monetization path is described.
+product_requirements:
+  summary: Product requirements are high-level concepts rather than implementable workflows.
+  key_points:
+    - No clear MVP boundary exists.
+    - Safety controls for user-generated and model-generated content are not defined.
+architecture_system_design:
+  summary: The architecture description is limited to a mobile app, a recommendation engine, and social feed concepts.
+  key_points:
+    - No detail exists on scalability, moderation, or data governance.
+    - Technical feasibility depends on assumptions that are not documented.
+ai_agents_ethical_framework:
+  summary: The concept uses AI for mood inference and recommendations but provides no evaluation, privacy, or consent framework.
+  key_points:
+    - The product would process sensitive personal signals.
+    - No risk controls or redress mechanisms are described.
+operational_resilience:
+  summary: Operations, moderation, support, and abuse handling are largely absent from the plan.
+  key_points:
+    - The app would be vulnerable to trust and safety failures.
+    - No on-call or incident model is proposed.
+mvp_roadmap:
+  summary: The roadmap expects a viral launch within eight weeks and monetization shortly afterward.
+  key_points:
+    - Milestones are unrealistic.
+    - Critical validation steps are skipped.
+success_metrics:
+  summary: Success metrics focus on vanity growth measures instead of retention, monetization quality, or trust outcomes.
+  key_points:
+    - Daily active users is the only explicit target.
+    - No retention or safety KPI is defined.
+post_launch_strategy:
+  summary: The post-launch strategy assumes international expansion, brand deals, and creator partnerships without a validated home market.
+  key_points:
+    - Expansion assumptions are premature.
+    - There is no realistic go-to-market sequence.

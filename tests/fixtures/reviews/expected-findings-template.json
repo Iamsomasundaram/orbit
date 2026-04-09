@@ -1,0 +1,29 @@
+{
+  "portfolio_id": "portfolio-placeholder",
+  "run_id": "run-placeholder",
+  "expected_recommendation_band": [
+    "Proceed with Conditions",
+    "Strong Proceed"
+  ],
+  "expected_dimension_ranges": {
+    "Problem Validity": [3.5, 5.0],
+    "Market Fit": [3.0, 5.0],
+    "Product Quality": [3.0, 5.0],
+    "Technical Feasibility": [3.0, 5.0],
+    "AI Reliability": [2.5, 5.0],
+    "Economic Viability": [2.5, 5.0],
+    "Operational Resilience": [2.5, 5.0],
+    "Security & Compliance": [2.5, 5.0]
+  },
+  "expected_major_findings": [
+    {
+      "category": "security_and_compliance",
+      "severity": "major",
+      "must_reference_any": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience"
+      ]
+    }
+  ]
+}
+
