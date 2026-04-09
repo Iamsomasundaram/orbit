@@ -1,8 +1,15 @@
 # API App
 
-Planned FastAPI service for portfolio intake, review run control, health endpoints, report retrieval, and audit access.
+Milestone 1 establishes the FastAPI platform foundation for ORBIT.
 
-Milestone status:
+Current capability:
 
-- Directory scaffold only
-- Implementation deferred until Milestone 1 and Milestone 2
+- process-level service metadata endpoint
+- liveness and readiness health endpoints
+- typed environment settings for local Compose execution
+- readiness checks for postgres and redis
+
+Entry points:
+
+- `apps/api/orbit_api/main.py`
+- `apps/api/Dockerfile`

@@ -6,3 +6,7 @@ node_modules/
 **/.mypy_cache/
 **/.ruff_cache/
 **/.venv/
+
+.docker-config/
+postgres-data/
+redis-data/

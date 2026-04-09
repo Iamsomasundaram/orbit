@@ -2,41 +2,41 @@
 
 ORBIT stands for Organizational Review for Business, Intelligence, and Technology.
 
-ORBIT is an AI-powered multi-agent product and investment review committee for startup ideas, AI products, and enterprise innovation proposals. It is designed to ingest portfolio documents, normalize them into a canonical structure, run bounded specialist reviews, detect conflicts, moderate debate, and synthesize an evidence-backed committee report.
+ORBIT is an AI-powered multi-agent product and investment review committee for startup ideas, AI products, and enterprise innovation proposals. It ingests portfolio documents, normalizes them into a canonical structure, runs bounded specialist reviews, detects conflicts, and synthesizes an evidence-backed committee report.
 
 Current status:
 
 - Milestone 0 artifacts are complete in `docs/milestone-0/`.
-- Milestone 0.5 thin slice is implemented as a deterministic worker pipeline under `apps/worker/src/` and the shared `packages/` modules.
-- The current proof path ingests one markdown portfolio document, runs all 15 structured reviewers, detects conflicts on structured outputs, builds a scorecard, and emits a committee report.
-- Milestone 1 and later platform work remain gated pending review.
+- Milestone 0.5 behavioral proof remains available as the JS reference baseline.
+- Milestone 0.5a established the Python thin-slice runtime as the primary backend execution path.
+- Milestone 1 adds the local platform foundation for `web`, `api`, `worker`, `postgres`, and `redis` through Docker Compose.
+- Milestone 2 and later scope remain gated pending Milestone 1 review.
 
 Primary references:
 
 - `docs/milestone-0/README.md`
-- `docs/milestone-0/review-pack.md`
 - `docs/milestone-0.5/review-pack.md`
-- `tests/fixtures/portfolios/`
+- `docs/milestone-0.5a/review-pack.md`
+- `docs/milestone-1/README.md`
 
-Thin-slice commands:
+Platform commands:
 
-- `npm run review:thin-slice`
-- `npm test`
+- `docker compose up -d --build postgres redis api worker web`
+- `docker compose ps`
+- `docker compose down --remove-orphans`
+- `docker compose --profile baseline run --rm worker-js-baseline`
+- `docker compose --profile baseline run --rm worker-parity`
 
-Planned repository layout:
+Repository layout:
 
-- `apps/api` -> FastAPI control plane and public API
-- `apps/web` -> Next.js review workspace and report UI
-- `apps/worker` -> orchestration and background execution
-- `packages/orbit-core` -> shared domain models and provider abstraction
-- `packages/orbit-agents` -> agent registry, contracts, prompt definitions
-- `packages/orbit-ingestion` -> ingestion and canonicalization logic
-- `packages/orbit-scoring` -> score normalization and recommendation logic
-- `packages/orbit-debate` -> conflict detection and debate workflow
-- `packages/orbit-reporting` -> committee synthesis and report generation
-- `packages/orbit-evals` -> golden portfolio datasets and regression harness
+- `apps/api` -> FastAPI control plane and platform health surface
+- `apps/web` -> Next.js platform shell and local workspace landing page
+- `apps/worker` -> primary Python backend execution runtime and worker service
+- `packages/orbit-*` -> reference JS baseline modules retained until archival
+- `docs/` -> milestone packs and review gates
+- `tests/fixtures/` -> golden portfolios and committed baseline artifacts
 
-Approved defaults captured in Milestone 0:
+Approved defaults:
 
 - `pnpm` workspaces for the monorepo manager
 - `poetry` for Python packaging

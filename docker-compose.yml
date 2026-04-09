@@ -1,7 +1,172 @@
-name: orbit-m05a
+name: orbit
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-orbit}
+      POSTGRES_USER: ${POSTGRES_USER:-orbit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orbit}
+    ports:
+      - "${POSTGRES_PORT:-5002}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orbit} -d ${POSTGRES_DB:-orbit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-5003}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      ORBIT_ENV: ${ORBIT_ENV:-local}
+      API_INTERNAL_PORT: ${API_INTERNAL_PORT:-8001}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_INTERNAL_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-orbit}
+      POSTGRES_USER: ${POSTGRES_USER:-orbit}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://orbit:orbit@postgres:5432/orbit}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_INTERNAL_PORT: ${REDIS_INTERNAL_PORT:-6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PYTHONPATH: /workspace/apps/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - /app/.venv/bin/uvicorn
+      - orbit_api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${API_INTERNAL_PORT:-8001}
+      - --reload
+      - --reload-dir
+      - /workspace/apps/api
+    ports:
+      - "${API_PORT:-5001}:${API_INTERNAL_PORT:-8001}"
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import os,sys,urllib.request; port=os.environ.get('API_INTERNAL_PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health/live').status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      ORBIT_ENV: ${ORBIT_ENV:-local}
+      WORKER_INTERNAL_PORT: ${WORKER_INTERNAL_PORT:-8002}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_INTERNAL_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://orbit:orbit@postgres:5432/orbit}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_INTERNAL_PORT: ${REDIS_INTERNAL_PORT:-6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JS_BASELINE_MODE: ${JS_BASELINE_MODE:-reference}
+      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-active-reference}
+      PYTHONPATH: /workspace/apps/worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - /app/.venv/bin/uvicorn
+      - orbit_worker.service:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${WORKER_INTERNAL_PORT:-8002}
+      - --reload
+      - --reload-dir
+      - /workspace/apps/worker
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import os,sys,urllib.request; port=os.environ.get('WORKER_INTERNAL_PORT','8002'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health/live').status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - web-node-modules:/workspace/node_modules
+      - web-app-node-modules:/workspace/apps/web/node_modules
+      - web-next-cache:/workspace/apps/web/.next
+    environment:
+      NODE_ENV: development
+      PORT: ${WEB_INTERNAL_PORT:-3000}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-ORBIT}
+      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-1}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5001}
+      INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8001}
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - pnpm
+      - --filter
+      - "@orbit/web"
+      - dev
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - ${WEB_INTERNAL_PORT:-3000}
+    ports:
+      - "${WEB_PORT:-5000}:${WEB_INTERNAL_PORT:-3000}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "const port = process.env.PORT || '3000'; fetch('http://127.0.0.1:' + port + '/api/health/live').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   worker-js-baseline:
+    profiles: ["baseline"]
     image: node:20-slim
     working_dir: /workspace
     volumes:
@@ -13,24 +178,8 @@ services:
       - --output-dir
       - /workspace/tests/fixtures/baselines/procurepilot-js
 
-  worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile.python
-    working_dir: /workspace
-    environment:
-      PYTHONPATH: /workspace/apps/worker
-    volumes:
-      - .:/workspace
-    command:
-      - /app/.venv/bin/python
-      - -m
-      - orbit_worker.cli
-      - /workspace/tests/fixtures/source-documents/procurepilot-thin-slice.md
-      - --output-dir
-      - /workspace/.orbit-artifacts/python-thin-slice
-
-  worker-test:
+  worker-parity:
+    profiles: ["baseline"]
     build:
       context: .
       dockerfile: apps/worker/Dockerfile.python
@@ -43,3 +192,10 @@ services:
       - /app/.venv/bin/pytest
       - apps/worker/tests
       - -q
+
+volumes:
+  postgres-data:
+  redis-data:
+  web-node-modules:
+  web-app-node-modules:
+  web-next-cache:
