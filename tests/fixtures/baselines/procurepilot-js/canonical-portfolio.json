@@ -1,0 +1,127 @@
+{
+  "portfolio_id": "strong-ai-saas-001",
+  "portfolio_name": "ProcurePilot",
+  "portfolio_type": "product",
+  "owner": "Venture Studio Alpha",
+  "submitted_at": "2026-04-09",
+  "source_documents": [
+    {
+      "id": "source-markdown-001",
+      "kind": "markdown",
+      "title": "procurepilot-thin-slice.md",
+      "path": "/workspace/tests/fixtures/source-documents/procurepilot-thin-slice.md"
+    }
+  ],
+  "sections": {
+    "problem_discovery": {
+      "title": "Problem Discovery",
+      "summary": "Mid-market procurement teams lose time consolidating supplier quotes, approvals, and contract obligations across disconnected tools.",
+      "key_points": [
+        "Teams spend 8 to 12 hours per sourcing event on manual comparison and follow-up.",
+        "CFO and procurement leaders want cycle-time reduction and auditability."
+      ],
+      "raw_text": "Mid-market procurement teams lose time consolidating supplier quotes, approvals, and contract obligations across disconnected tools.\n- Teams spend 8 to 12 hours per sourcing event on manual comparison and follow-up.\n- CFO and procurement leaders want cycle-time reduction and auditability.",
+      "evidence_ref": "portfolio.problem_discovery"
+    },
+    "product_vision": {
+      "title": "Product Vision",
+      "summary": "ProcurePilot is an AI-assisted procurement workflow copilot that recommends next actions, summarizes supplier deltas, and drafts approval packets.",
+      "key_points": [
+        "Primary buyer is VP Procurement in companies with 200 to 2000 employees.",
+        "Product starts with intake, quote analysis, and approval summaries."
+      ],
+      "raw_text": "ProcurePilot is an AI-assisted procurement workflow copilot that recommends next actions, summarizes supplier deltas, and drafts approval packets.\n- Primary buyer is VP Procurement in companies with 200 to 2000 employees.\n- Product starts with intake, quote analysis, and approval summaries.",
+      "evidence_ref": "portfolio.product_vision"
+    },
+    "competitive_landscape": {
+      "title": "Competitive Landscape",
+      "summary": "Competition includes traditional procurement suites and lightweight sourcing tools, but most focus on record systems rather than AI-assisted workflow acceleration.",
+      "key_points": [
+        "Differentiation relies on faster time to value and workflow summarization.",
+        "Incumbents may respond with bundled AI features."
+      ],
+      "raw_text": "Competition includes traditional procurement suites and lightweight sourcing tools, but most focus on record systems rather than AI-assisted workflow acceleration.\n- Differentiation relies on faster time to value and workflow summarization.\n- Incumbents may respond with bundled AI features.",
+      "evidence_ref": "portfolio.competitive_landscape"
+    },
+    "business_requirements": {
+      "title": "Business Requirements",
+      "summary": "The business requires gross margin above 70 percent, enterprise pricing, and sub-six-month implementation for the first segment.",
+      "key_points": [
+        "Initial ICP is regulated but not heavily restricted mid-market companies.",
+        "First-year GTM focuses on direct sales and implementation partners."
+      ],
+      "raw_text": "The business requires gross margin above 70 percent, enterprise pricing, and sub-six-month implementation for the first segment.\n- Initial ICP is regulated but not heavily restricted mid-market companies.\n- First-year GTM focuses on direct sales and implementation partners.",
+      "evidence_ref": "portfolio.business_requirements"
+    },
+    "product_requirements": {
+      "title": "Product Requirements",
+      "summary": "MVP requires request intake, supplier comparison, approval workflow summaries, user roles, and activity audit trails.",
+      "key_points": [
+        "Users need comment threads and source traceability in every recommendation.",
+        "Approval packet export is mandatory for procurement leadership."
+      ],
+      "raw_text": "MVP requires request intake, supplier comparison, approval workflow summaries, user roles, and activity audit trails.\n- Users need comment threads and source traceability in every recommendation.\n- Approval packet export is mandatory for procurement leadership.",
+      "evidence_ref": "portfolio.product_requirements"
+    },
+    "architecture_system_design": {
+      "title": "Architecture & System Design",
+      "summary": "The system uses a web app, API, worker layer, relational data store, vector retrieval for historical sourcing context, and event-driven processing.",
+      "key_points": [
+        "Tenant isolation is planned at the data and application layers.",
+        "Integration adapters target ERP and contract repository systems."
+      ],
+      "raw_text": "The system uses a web app, API, worker layer, relational data store, vector retrieval for historical sourcing context, and event-driven processing.\n- Tenant isolation is planned at the data and application layers.\n- Integration adapters target ERP and contract repository systems.",
+      "evidence_ref": "portfolio.architecture_system_design"
+    },
+    "ai_agents_ethical_framework": {
+      "title": "AI Agents & Ethical Framework",
+      "summary": "AI features assist recommendation and summarization, with human approval required for all external actions.",
+      "key_points": [
+        "Model outputs are logged and visible to users.",
+        "Sensitive contract data is subject to redaction and access policy controls."
+      ],
+      "raw_text": "AI features assist recommendation and summarization, with human approval required for all external actions.\n- Model outputs are logged and visible to users.\n- Sensitive contract data is subject to redaction and access policy controls.",
+      "evidence_ref": "portfolio.ai_agents_ethical_framework"
+    },
+    "operational_resilience": {
+      "title": "Operational Resilience",
+      "summary": "Target availability is 99.9 percent with daily backups, defined recovery targets, and staged rollout controls.",
+      "key_points": [
+        "Monitoring and alerting are planned for all critical workflows.",
+        "Regional failover is a future enhancement rather than MVP scope."
+      ],
+      "raw_text": "Target availability is 99.9 percent with daily backups, defined recovery targets, and staged rollout controls.\n- Monitoring and alerting are planned for all critical workflows.\n- Regional failover is a future enhancement rather than MVP scope.",
+      "evidence_ref": "portfolio.operational_resilience"
+    },
+    "mvp_roadmap": {
+      "title": "MVP Roadmap",
+      "summary": "Twelve-week MVP ending with three pilot customers and one ERP integration.",
+      "key_points": [
+        "Phase 1 covers canonical workflow and approval packet generation.",
+        "Phase 2 adds supplier insight and onboarding automation."
+      ],
+      "raw_text": "Twelve-week MVP ending with three pilot customers and one ERP integration.\n- Phase 1 covers canonical workflow and approval packet generation.\n- Phase 2 adds supplier insight and onboarding automation.",
+      "evidence_ref": "portfolio.mvp_roadmap"
+    },
+    "success_metrics": {
+      "title": "Success Metrics",
+      "summary": "Success is measured through cycle-time reduction, approval throughput, user adoption, and gross retention.",
+      "key_points": [
+        "Target 30 percent sourcing cycle-time reduction.",
+        "Target 80 percent weekly active usage among pilot buyer teams."
+      ],
+      "raw_text": "Success is measured through cycle-time reduction, approval throughput, user adoption, and gross retention.\n- Target 30 percent sourcing cycle-time reduction.\n- Target 80 percent weekly active usage among pilot buyer teams.",
+      "evidence_ref": "portfolio.success_metrics"
+    },
+    "post_launch_strategy": {
+      "title": "Post Launch Strategy",
+      "summary": "Post-launch strategy expands through implementation partners, new ERP connectors, and analytics upsell modules.",
+      "key_points": [
+        "Land-and-expand motion focuses on procurement ops and finance leadership.",
+        "Expansion depends on trusted auditability and measurable ROI."
+      ],
+      "raw_text": "Post-launch strategy expands through implementation partners, new ERP connectors, and analytics upsell modules.\n- Land-and-expand motion focuses on procurement ops and finance leadership.\n- Expansion depends on trusted auditability and measurable ROI.",
+      "evidence_ref": "portfolio.post_launch_strategy"
+    }
+  }
+}

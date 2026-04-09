@@ -35,3 +35,6 @@ redis-data/
 
 # Local git backup artifacts
 .git.codex-sandbox-backup-*
+
+# Docker local config
+.docker-config/

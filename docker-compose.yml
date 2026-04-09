@@ -1,0 +1,45 @@
+name: orbit-m05a
+
+services:
+  worker-js-baseline:
+    image: node:20-slim
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command:
+      - node
+      - apps/worker/src/cli/review-portfolio.js
+      - /workspace/tests/fixtures/source-documents/procurepilot-thin-slice.md
+      - --output-dir
+      - /workspace/tests/fixtures/baselines/procurepilot-js
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.python
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace/apps/worker
+    volumes:
+      - .:/workspace
+    command:
+      - /app/.venv/bin/python
+      - -m
+      - orbit_worker.cli
+      - /workspace/tests/fixtures/source-documents/procurepilot-thin-slice.md
+      - --output-dir
+      - /workspace/.orbit-artifacts/python-thin-slice
+
+  worker-test:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.python
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace/apps/worker
+    volumes:
+      - .:/workspace
+    command:
+      - /app/.venv/bin/pytest
+      - apps/worker/tests
+      - -q

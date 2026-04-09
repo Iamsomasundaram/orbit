@@ -1,0 +1,198 @@
+{
+  "portfolio_id": "strong-ai-saas-001",
+  "run_id": "thin-slice-strong-ai-saas-001",
+  "dimension_scores": [
+    {
+      "dimension": "Problem Validity",
+      "score": 4.48,
+      "confidence": 0.73,
+      "evidence_completeness": 0.9,
+      "severity_flags": [
+        "integration_risk_problem_validity"
+      ],
+      "rationale": "Committee score derived from 2 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.problem_discovery",
+        "portfolio.business_requirements",
+        "portfolio.success_metrics",
+        "portfolio.architecture_system_design",
+        "portfolio.post_launch_strategy",
+        "portfolio.product_requirements",
+        "portfolio.mvp_roadmap",
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience"
+      ]
+    },
+    {
+      "dimension": "Market Fit",
+      "score": 3.99,
+      "confidence": 0.69,
+      "evidence_completeness": 0.82,
+      "severity_flags": [
+        "compliance_gap_market_fit",
+        "integration_risk_market_fit"
+      ],
+      "rationale": "Committee score derived from 2 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.product_vision",
+        "portfolio.business_requirements",
+        "portfolio.post_launch_strategy",
+        "portfolio.architecture_system_design",
+        "portfolio.mvp_roadmap",
+        "portfolio.competitive_landscape",
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience"
+      ]
+    },
+    {
+      "dimension": "Product Quality",
+      "score": 3.81,
+      "confidence": 0.69,
+      "evidence_completeness": 0.81,
+      "severity_flags": [
+        "ai_evaluation_gap_product_quality",
+        "compliance_gap_product_quality",
+        "integration_risk_product_quality",
+        "support_gap_product_quality"
+      ],
+      "rationale": "Committee score derived from 5 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.competitive_landscape",
+        "portfolio.product_vision",
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience",
+        "portfolio.product_requirements",
+        "portfolio.mvp_roadmap",
+        "portfolio.architecture_system_design",
+        "portfolio.problem_discovery",
+        "portfolio.success_metrics",
+        "portfolio.post_launch_strategy"
+      ]
+    },
+    {
+      "dimension": "Technical Feasibility",
+      "score": 3.71,
+      "confidence": 0.63,
+      "evidence_completeness": 0.71,
+      "severity_flags": [
+        "ai_evaluation_gap_technical_feasibility",
+        "integration_risk_technical_feasibility",
+        "resilience_gap_technical_feasibility"
+      ],
+      "rationale": "Committee score derived from 4 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.architecture_system_design",
+        "portfolio.operational_resilience",
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.success_metrics",
+        "portfolio.product_requirements",
+        "portfolio.mvp_roadmap"
+      ]
+    },
+    {
+      "dimension": "AI Reliability",
+      "score": 3.25,
+      "confidence": 0.61,
+      "evidence_completeness": 0.66,
+      "severity_flags": [
+        "ai_evaluation_gap_ai_reliability"
+      ],
+      "rationale": "Committee score derived from 1 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.success_metrics"
+      ]
+    },
+    {
+      "dimension": "Economic Viability",
+      "score": 3.59,
+      "confidence": 0.64,
+      "evidence_completeness": 0.71,
+      "severity_flags": [
+        "integration_risk_economic_viability"
+      ],
+      "rationale": "Committee score derived from 3 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.problem_discovery",
+        "portfolio.business_requirements",
+        "portfolio.success_metrics",
+        "portfolio.architecture_system_design",
+        "portfolio.post_launch_strategy",
+        "portfolio.operational_resilience",
+        "portfolio.product_vision",
+        "portfolio.mvp_roadmap"
+      ]
+    },
+    {
+      "dimension": "Operational Resilience",
+      "score": 3.06,
+      "confidence": 0.6,
+      "evidence_completeness": 0.65,
+      "severity_flags": [
+        "ai_evaluation_gap_operational_resilience",
+        "compliance_gap_operational_resilience",
+        "resilience_gap_operational_resilience",
+        "support_gap_operational_resilience"
+      ],
+      "rationale": "Committee score derived from 6 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.problem_discovery",
+        "portfolio.success_metrics",
+        "portfolio.operational_resilience",
+        "portfolio.post_launch_strategy",
+        "portfolio.architecture_system_design",
+        "portfolio.mvp_roadmap",
+        "portfolio.product_requirements",
+        "portfolio.ai_agents_ethical_framework"
+      ]
+    },
+    {
+      "dimension": "Security & Compliance",
+      "score": 3.14,
+      "confidence": 0.62,
+      "evidence_completeness": 0.7,
+      "severity_flags": [
+        "compliance_gap_security_compliance"
+      ],
+      "rationale": "Committee score derived from 2 structured reviewer dimension entries.",
+      "evidence_refs": [
+        "portfolio.ai_agents_ethical_framework",
+        "portfolio.operational_resilience",
+        "portfolio.architecture_system_design",
+        "portfolio.product_requirements",
+        "portfolio.post_launch_strategy"
+      ]
+    }
+  ],
+  "weighted_composite_score": 3.61,
+  "average_confidence": 0.65,
+  "average_evidence_completeness": 0.75,
+  "severity_flags": [
+    "ai_evaluation_gap_ai_reliability",
+    "ai_evaluation_gap_operational_resilience",
+    "ai_evaluation_gap_product_quality",
+    "ai_evaluation_gap_technical_feasibility",
+    "compliance_gap_market_fit",
+    "compliance_gap_operational_resilience",
+    "compliance_gap_product_quality",
+    "compliance_gap_security_compliance",
+    "integration_risk_economic_viability",
+    "integration_risk_market_fit",
+    "integration_risk_problem_validity",
+    "integration_risk_product_quality",
+    "integration_risk_technical_feasibility",
+    "resilience_gap_operational_resilience",
+    "resilience_gap_technical_feasibility",
+    "support_gap_operational_resilience",
+    "support_gap_product_quality"
+  ],
+  "final_recommendation": "Proceed with Conditions",
+  "override_applied": false,
+  "conditions": [
+    "Add retention, identity, incident, and jurisdiction controls before broad rollout.",
+    "Define offline evaluation benchmarks and acceptance thresholds before scale.",
+    "Assign ownership for onboarding, support, and maintenance before expanding pilots.",
+    "Define recovery objectives, rollback rules, and validation steps before broader rollout.",
+    "Resolve recommendation_conflict on rollout_timing before broad rollout."
+  ]
+}

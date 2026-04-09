@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
+
+from .domain import AGENT_REGISTRY, PORTFOLIO_SECTIONS, RECOMMENDATION_RANK, SCORE_DIMENSIONS, SEVERITY_RANK
+
+
+class OrbitModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class SourceDocument(OrbitModel):
+    id: str
+    kind: str
+    title: str
+    path: str
+
+
+class PortfolioSection(OrbitModel):
+    title: str
+    summary: str
+    key_points: list[str]
+    raw_text: str
+    evidence_ref: str
+
+
+class CanonicalPortfolio(OrbitModel):
+    portfolio_id: str
+    portfolio_name: str
+    portfolio_type: str
+    owner: str
+    submitted_at: str
+    source_documents: list[SourceDocument]
+    sections: dict[str, PortfolioSection]
+
+
+class ScoreImpact(OrbitModel):
+    dimension: str
+    delta: float
+    rationale: str
+
+
+class Finding(OrbitModel):
+    finding_id: str
+    title: str
+    category: str
+    severity: str
+    claim: str
+    evidence_refs: list[str]
+    assumptions: list[str]
+    recommended_action: str
+    score_impacts: list[ScoreImpact]
+
+
+class ReportFinding(Finding):
+    agent_id: str
+
+
+class DimensionScore(OrbitModel):
+    dimension: str
+    score: float
+    confidence: float
+    evidence_completeness: float
+    severity_flags: list[str]
+    rationale: str
+    evidence_refs: list[str]
+
+
+class ReviewMetadata(OrbitModel):
+    prompt_contract_version: str
+    model_provider: str
+    model_name: str
+    duration_ms: int
+
+
+class AgentReview(OrbitModel):
+    agent_id: str
+    agent_name: str
+    portfolio_id: str
+    review_summary: str
+    findings: list[Finding]
+    dimension_scores: list[DimensionScore]
+    recommendation: str
+    open_questions: list[str]
+    evidence_gaps: list[str]
+    assumption_register: list[str]
+    review_metadata: ReviewMetadata
+
+
+class ConflictRecord(OrbitModel):
+    conflict_id: str
+    conflict_type: str
+    topic: str
+    participants: list[str]
+    severity: str
+    trigger_reason: str
+    supporting_artifacts: list[str]
+    debate_required: bool
+    routing_reason: str
+    status: str
+
+
+class Scorecard(OrbitModel):
+    portfolio_id: str
+    run_id: str
+    dimension_scores: list[DimensionScore]
+    weighted_composite_score: float
+    average_confidence: float
+    average_evidence_completeness: float
+    severity_flags: list[str]
+    final_recommendation: str
+    override_applied: bool
+    conditions: list[str]
+
+
+class CommitteeReport(OrbitModel):
+    portfolio_id: str
+    run_id: str
+    executive_summary: str
+    top_findings: list[ReportFinding]
+    top_conflicts: list[ConflictRecord]
+    conditions: list[str]
+    audit_notes: list[str]
+    markdown: str
+
+
+def _require_non_empty(value: Any, message: str) -> None:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(message)
+
+
+def validate_canonical_portfolio(portfolio: Any) -> CanonicalPortfolio:
+    model = CanonicalPortfolio.model_validate(portfolio)
+    _require_non_empty(model.portfolio_id, "Canonical portfolio requires portfolio_id.")
+    _require_non_empty(model.portfolio_name, "Canonical portfolio requires portfolio_name.")
+    _require_non_empty(model.portfolio_type, "Canonical portfolio requires portfolio_type.")
+    _require_non_empty(model.owner, "Canonical portfolio requires owner.")
+    _require_non_empty(model.submitted_at, "Canonical portfolio requires submitted_at.")
+    for section in PORTFOLIO_SECTIONS:
+        value = model.sections.get(section["key"])
+        if value is None:
+            raise ValueError(f"Missing section {section['key']}.")
+        _require_non_empty(value.title, f"Section {section['key']} requires title.")
+        _require_non_empty(value.summary, f"Section {section['key']} requires summary.")
+        if not isinstance(value.key_points, list):
+            raise ValueError(f"Section {section['key']} requires key_points.")
+    return model
+
+
+def validate_finding(finding: Any) -> Finding:
+    model = Finding.model_validate(finding)
+    if model.severity not in SEVERITY_RANK:
+        raise ValueError(f"Unsupported severity {model.severity}.")
+    return model
+
+
+def validate_dimension_score(score: Any) -> DimensionScore:
+    model = DimensionScore.model_validate(score)
+    if model.dimension not in SCORE_DIMENSIONS:
+        raise ValueError(f"Unsupported dimension {model.dimension}.")
+    return model
+
+
+def validate_agent_review(review: Any) -> AgentReview:
+    model = AgentReview.model_validate(review)
+    if not any(agent.id == model.agent_id for agent in AGENT_REGISTRY):
+        raise ValueError(f"Unknown agent_id {model.agent_id}.")
+    if model.recommendation not in RECOMMENDATION_RANK:
+        raise ValueError(f"Unsupported recommendation {model.recommendation}.")
+    for finding in model.findings:
+        validate_finding(finding)
+    for score in model.dimension_scores:
+        validate_dimension_score(score)
+    return model
+
+
+def validate_conflict_record(conflict: Any) -> ConflictRecord:
+    return ConflictRecord.model_validate(conflict)
+
+
+def validate_scorecard(scorecard: Any) -> Scorecard:
+    model = Scorecard.model_validate(scorecard)
+    if model.final_recommendation not in RECOMMENDATION_RANK:
+        raise ValueError(f"Unsupported final recommendation {model.final_recommendation}.")
+    for score in model.dimension_scores:
+        validate_dimension_score(score)
+    return model
+
+
+def validate_committee_report(report: Any) -> CommitteeReport:
+    model = CommitteeReport.model_validate(report)
+    for finding in model.top_findings:
+        validate_finding(finding.model_dump(mode="json", exclude={"agent_id"}))
+    for conflict in model.top_conflicts:
+        validate_conflict_record(conflict)
+    return model
