@@ -19,6 +19,19 @@ Planned local runtime under Docker Compose:
 - `postgres` on port 5002 for structured persistence
 - `redis` on port 5003 for queues, locks, and workflow coordination
 
+### Development Port Allocation
+
+ORBIT uses non-standard development ports to avoid conflicts with commonly used local services.
+
+| Service | Port |
+| --- | --- |
+| web | 5000 |
+| api | 5001 |
+| postgres | 5002 |
+| redis | 5003 |
+
+These can be overridden through environment variables when needed.
+
 ## 3. Core Services and Packages
 
 | Layer | Component | Responsibility |
