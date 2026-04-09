@@ -139,3 +139,4 @@ Milestone 0.5 may simplify internals, but it must preserve:
 - structured conflicts and score outputs
 - report generation from structured state rather than only free-form summaries
 
+
