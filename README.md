@@ -19,6 +19,7 @@ Current status:
 - Milestone 6.1 hardens persistence with Alembic-managed schema discipline, DB-backed duplicate enforcement on bounded creation paths, migration bootstrap for legacy local dev databases, and regression coverage for original versus re-synthesized artifact selection.
 - Milestone 7 adds lineage-aware review history and artifact inspection APIs so portfolios, review runs, debates, and re-syntheses can be audited without changing approved committee behavior.
 - Milestone 7.1 archives the executable JS baseline path, preserves parity against the committed baseline artifacts, and keeps the Python runtime as the only active backend direction.
+- Milestone 8 adds the first practical interactive workflow: JSON idea submission, persisted canonicalization, synchronous review execution, automatic bounded debate and re-synthesis when required, and minimal UI pages for portfolio detail and history inspection.
 
 Primary references:
 
@@ -35,6 +36,7 @@ Primary references:
 - `docs/milestone-6.1/README.md`
 - `docs/milestone-7/README.md`
 - `docs/milestone-7.1/README.md`
+- `docs/milestone-8/README.md`
 
 Platform commands:
 
@@ -45,8 +47,11 @@ Platform commands:
 - `docker compose exec worker /app/.venv/bin/pytest apps/worker/tests -q`
 - `POST http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios`
+- `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}`
+- `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}/history`
 - `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
 - `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}`
@@ -55,14 +60,12 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}/artifacts`
-- `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}/history`
-- `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
 - `docker compose --profile baseline run --rm worker-parity`
 
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
-- `apps/web` -> Next.js platform shell and local workspace landing page
+- `apps/web` -> Next.js shell for idea submission, portfolio detail, history inspection, and local health endpoints
 - `apps/worker` -> primary Python backend execution runtime, parity tests, and persistence contracts
 - `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
 - `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path

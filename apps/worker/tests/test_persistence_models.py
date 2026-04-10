@@ -288,8 +288,11 @@ def test_persistence_schema_catalog_and_ddl_cover_expected_tables() -> None:
     assert "JSONB" in ddl
     assert "CREATE INDEX ix_agent_reviews_agent_id" in ddl
     assert "CREATE INDEX ix_conflicts_run_id" in ddl
+    assert "CREATE INDEX ix_review_runs_portfolio_id" in ddl
     assert "CREATE INDEX ix_debate_sessions_run_id" in ddl
     assert "CREATE INDEX ix_conflict_resolutions_debate_id" in ddl
     assert "CREATE INDEX ix_resynthesis_sessions_debate_id" in ddl
     assert "CREATE INDEX ix_resynthesized_scorecards_run_id" in ddl
+    assert "CREATE INDEX ix_audit_events_portfolio_id" in ddl
+    assert "CREATE INDEX ix_audit_events_run_id" in ddl
 

@@ -1,10 +1,13 @@
 # Web App
 
-Milestone 1 establishes the Next.js platform shell for ORBIT.
+Milestone 8 turns the Next.js shell into the first practical ORBIT interaction surface.
 
 Current capability:
 
-- platform landing page aligned to the Python runtime direction
+- landing page for JSON product-idea submission
+- portfolio detail page with latest review result visibility
+- portfolio history page with lineage-aware review, debate, and artifact links
+- web-side POST handlers that forward submission and review triggers to the FastAPI backend
 - liveness and readiness endpoints for Compose health checks
 - typed runtime config for internal and public API base URLs
 - local Docker build and run support through pnpm workspaces
@@ -12,6 +15,11 @@ Current capability:
 Entry points:
 
 - `apps/web/app/page.tsx`
+- `apps/web/app/portfolios/[portfolioId]/page.tsx`
+- `apps/web/app/portfolios/[portfolioId]/history/page.tsx`
+- `apps/web/app/api/portfolios/route.ts`
+- `apps/web/app/api/portfolios/[portfolioId]/review-runs/route.ts`
 - `apps/web/app/api/health/live/route.ts`
 - `apps/web/app/api/health/ready/route.ts`
+- `apps/web/lib/orbit-api.ts`
 - `apps/web/Dockerfile`

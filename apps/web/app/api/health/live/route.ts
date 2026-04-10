@@ -5,6 +5,6 @@ export async function GET() {
     service: "orbit-web",
     status: "ok",
     runtime: "nextjs",
-    milestone: "7.1",
+    milestone: "8",
   });
 }

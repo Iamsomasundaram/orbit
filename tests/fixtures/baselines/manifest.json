@@ -1,0 +1,23 @@
+{
+  "version": "m8-archived-baseline-manifest-v1",
+  "files": {
+    "tests/fixtures/baselines/moodmesh-js/agent-reviews.json": "a8a2fa513802951dffd23915d6371dc6844859d75dd799f7341f267de99d811e",
+    "tests/fixtures/baselines/moodmesh-js/canonical-portfolio.json": "9f4c7c1ab2cf52c9052141f9fbca2c230ecd25a74b7e5186584c38de0b5119db",
+    "tests/fixtures/baselines/moodmesh-js/committee-report.json": "58ec2ceeabb23b590df12d41ac8da65b0c111d3bc436a1fc88c6118bc517439d",
+    "tests/fixtures/baselines/moodmesh-js/committee-report.md": "f1c29523815a6e9203c14c30b9f4c3f18a0c954fde5715e531c2e2e4acee67f0",
+    "tests/fixtures/baselines/moodmesh-js/conflicts.json": "01756b73879b5723e4a8354927e5d29fd51b9820c6b995f993d1e09b7fc6901c",
+    "tests/fixtures/baselines/moodmesh-js/scorecard.json": "06bb7218815330e91da5e90dae98c6ccd5647c53ba6e2a031b4bf422148baafd",
+    "tests/fixtures/baselines/procurepilot-js/agent-reviews.json": "7e44b123576a2b3662f52cbc680fa59eb723adfb1ca45930f509078ea41c7fc1",
+    "tests/fixtures/baselines/procurepilot-js/canonical-portfolio.json": "e0fd7a4985b84dfdbefe3a294e47fe0bfde84b37f59358135d1dcf6734d80f3d",
+    "tests/fixtures/baselines/procurepilot-js/committee-report.json": "adaaf7b3d20865728badd80a2d4ff65e799b049c168a2bf82fa31377e4966cd4",
+    "tests/fixtures/baselines/procurepilot-js/committee-report.md": "d02673686c37b478c87d02023906e3d5737a417317bb378154e2aaad1e28449a",
+    "tests/fixtures/baselines/procurepilot-js/conflicts.json": "1e3271ed30f21a19741a779fd15901268fe9c95deac3a5b244c1e1e744ce1610",
+    "tests/fixtures/baselines/procurepilot-js/scorecard.json": "dadc1c9756d3c506d351613f1617842a03bf207fce3ce17ba956b3b6b5d40aa3",
+    "tests/fixtures/baselines/traceforge-js/agent-reviews.json": "f9227bd2ac4d68bd1543a838c678f2e27fb86279eb98a1402d842ac448ca93c2",
+    "tests/fixtures/baselines/traceforge-js/canonical-portfolio.json": "72b9336b6f768df5486d9035064c953919771d8ca3e309defaab59b0b99dfe07",
+    "tests/fixtures/baselines/traceforge-js/committee-report.json": "0e1493b6aa605abeff7ac6321617fb61944dc97ae5984c6d9e44cfa8657fae0c",
+    "tests/fixtures/baselines/traceforge-js/committee-report.md": "afecb4c84796135dc21ca8449ebb8c249796e0b0a8639532915e2308ce9f4a93",
+    "tests/fixtures/baselines/traceforge-js/conflicts.json": "4ac5955072cf09723b6e944cb59fd35c0b68ba11006f147583ed424841cb1ca0",
+    "tests/fixtures/baselines/traceforge-js/scorecard.json": "67f7fa0fe808338a54ad0dffa4f7c98ba76e2d879b60329c59d1057b70ace3fa"
+  }
+}

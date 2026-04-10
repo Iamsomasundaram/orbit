@@ -84,6 +84,8 @@ class ArtifactInspectionDetail(OrbitModel):
     anchor_id: str
     lineage: LineagePath
     artifact_selection: ArtifactSelectionState
+    agent_review_count: int
+    conflict_count: int
     portfolio: PortfolioRecord
     review_run: ReviewRunRecord
     debate_session: DebateSessionRecord | None = None
@@ -236,6 +238,8 @@ def _build_artifact_detail(
         anchor_id=anchor_id,
         lineage=_lineage_path(review_bundle, debate_bundle=debate_bundle, resynthesis_bundle=resynthesis_bundle),
         artifact_selection=_artifact_selection(review_bundle, debate_bundle=debate_bundle, resynthesis_bundle=resynthesis_bundle),
+        agent_review_count=len(review_bundle.agent_reviews),
+        conflict_count=len(review_bundle.conflicts),
         portfolio=review_bundle.portfolio,
         review_run=review_bundle.review_run,
         debate_session=debate_bundle.debate_session if debate_bundle is not None else None,

@@ -23,6 +23,7 @@ from .portfolios import (
     PortfolioAlreadyExistsError,
     PortfolioDetail,
     PortfolioDocumentSubmission,
+    PortfolioIdeaSubmission,
     PortfolioIngestionService,
     PortfolioListResponse,
 )
@@ -33,6 +34,7 @@ from .review_runs import (
     ReviewRunService,
     ReviewRunSummary,
 )
+from .review_workflow import ReviewWorkflowService
 from .resyntheses import (
     DebateResynthesisNotFoundError,
     ResynthesisAlreadyExistsError,
@@ -50,13 +52,21 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     repository = SqlAlchemyPersistenceRepository(settings.database_url)
     repository.assert_schema_ready()
+    review_run_service = ReviewRunService(repository=repository)
+    debate_service = DebateService(repository=repository)
+    resynthesis_service = ResynthesisService(repository=repository)
     app.state.portfolio_ingestion_service = PortfolioIngestionService(
         repository=repository,
         storage_root=Path(settings.portfolio_storage_dir),
     )
-    app.state.review_run_service = ReviewRunService(repository=repository)
-    app.state.debate_service = DebateService(repository=repository)
-    app.state.resynthesis_service = ResynthesisService(repository=repository)
+    app.state.review_run_service = review_run_service
+    app.state.debate_service = debate_service
+    app.state.resynthesis_service = resynthesis_service
+    app.state.review_workflow_service = ReviewWorkflowService(
+        review_runs=review_run_service,
+        debates=debate_service,
+        resyntheses=resynthesis_service,
+    )
     app.state.review_history_service = ReviewHistoryService(repository=repository)
     try:
         yield
@@ -73,6 +83,10 @@ def portfolio_service(request: Request) -> PortfolioIngestionService:
 
 def review_run_service(request: Request) -> ReviewRunService:
     return request.app.state.review_run_service
+
+
+def review_workflow_service(request: Request) -> ReviewWorkflowService:
+    return request.app.state.review_workflow_service
 
 
 def debate_service(request: Request) -> DebateService:
@@ -121,10 +135,13 @@ def persistence_ddl() -> PersistenceDdlResponse:
 
 
 @app.post("/api/v1/portfolios", response_model=PortfolioDetail, status_code=status.HTTP_201_CREATED)
-def submit_portfolio(request: Request, submission: PortfolioDocumentSubmission) -> PortfolioDetail:
+def submit_portfolio(
+    request: Request,
+    submission: PortfolioDocumentSubmission | PortfolioIdeaSubmission,
+) -> PortfolioDetail:
     service = portfolio_service(request)
     try:
-        return service.submit_document(submission)
+        return service.submit_submission(submission)
     except PortfolioAlreadyExistsError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except InvalidPortfolioDocumentError as exc:
@@ -154,9 +171,9 @@ def get_portfolio_history(request: Request, portfolio_id: str) -> PortfolioHisto
 
 @app.post("/api/v1/portfolios/{portfolio_id}/review-runs", response_model=ReviewRunSummary, status_code=status.HTTP_201_CREATED)
 def start_review_run(request: Request, portfolio_id: str) -> ReviewRunSummary:
-    service = review_run_service(request)
+    service = review_workflow_service(request)
     try:
-        return service.start_review(portfolio_id)
+        return service.start_review(portfolio_id).review_run
     except PortfolioReviewNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 

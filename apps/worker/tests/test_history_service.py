@@ -116,6 +116,8 @@ def test_review_run_artifacts_show_original_state_before_follow_up_sessions() ->
     assert detail.lineage.review_run_id == review.run_id
     assert detail.debate_session is None
     assert detail.resynthesis_session is None
+    assert detail.agent_review_count == 15
+    assert detail.conflict_count == 5
     assert detail.artifact_selection.active_artifact_source == "original"
     assert detail.active_scorecard.final_recommendation == "Proceed with Conditions"
     assert detail.active_scorecard.weighted_composite_score == 3.61
@@ -143,6 +145,8 @@ def test_debate_artifacts_link_review_and_pending_resynthesis_state() -> None:
     assert detail.lineage.review_run_id == review.run_id
     assert detail.lineage.debate_id == debate.debate_id
     assert detail.lineage.resynthesis_id is None
+    assert detail.agent_review_count == 15
+    assert detail.conflict_count == 5
     assert detail.artifact_selection.active_artifact_source == "original"
     assert detail.resynthesis_session is None
     assert detail.resynthesized_scorecard is None

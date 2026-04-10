@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-
 ROOT = Path(__file__).resolve().parents[3]
 API_ROOT = ROOT / "apps" / "api"
 if str(API_ROOT) not in sys.path:

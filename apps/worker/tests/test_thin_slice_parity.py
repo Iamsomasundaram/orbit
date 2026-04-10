@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,10 +11,28 @@ from orbit_worker.runner import run_review_pipeline
 
 ROOT = Path(__file__).resolve().parents[3]
 CASES = json.loads((ROOT / "tests" / "fixtures" / "parity-cases.json").read_text(encoding="utf-8"))
+BASELINE_MANIFEST = json.loads(
+    (ROOT / "tests" / "fixtures" / "baselines" / "manifest.json").read_text(encoding="utf-8")
+)
 
 
 def read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_archived_baseline_artifacts_match_manifest() -> None:
+    discovered = {
+        str(path.relative_to(ROOT)).replace("\\", "/"): sha256_file(path)
+        for path in sorted((ROOT / "tests" / "fixtures" / "baselines").rglob("*"))
+        if path.is_file() and path.name != "manifest.json"
+    }
+
+    assert BASELINE_MANIFEST["version"] == "m8-archived-baseline-manifest-v1"
+    assert discovered == BASELINE_MANIFEST["files"]
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case["case_id"] for case in CASES])
