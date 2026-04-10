@@ -184,6 +184,8 @@ class PersistenceRepository(Protocol):
 
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None: ...
 
+    def list_review_run_bundles(self, portfolio_id: str | None = None) -> list[ReviewPersistenceBundle]: ...
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]: ...
 
 
@@ -222,6 +224,16 @@ class InMemoryPersistenceRepository:
 
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None:
         return self._review_runs.get(run_id)
+
+    def list_review_run_bundles(self, portfolio_id: str | None = None) -> list[ReviewPersistenceBundle]:
+        bundles = list(self._review_runs.values())
+        if portfolio_id is not None:
+            bundles = [bundle for bundle in bundles if bundle.portfolio.portfolio_id == portfolio_id]
+        return sorted(
+            bundles,
+            key=lambda bundle: (bundle.review_run.created_at, bundle.review_run.run_id),
+            reverse=True,
+        )
 
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         events = list(self._audit_events.values())
@@ -847,6 +859,17 @@ class SqlAlchemyPersistenceRepository:
             committee_report=CommitteeReportRecord.model_validate(dict(committee_report_row)),
             audit_events=[_audit_event_from_row(dict(row)) for row in audit_rows],
         )
+
+    def list_review_run_bundles(self, portfolio_id: str | None = None) -> list[ReviewPersistenceBundle]:
+        statement = select(review_runs_table.c.run_id).order_by(
+            review_runs_table.c.created_at.desc(),
+            review_runs_table.c.run_id.desc(),
+        )
+        if portfolio_id is not None:
+            statement = statement.where(review_runs_table.c.portfolio_id == portfolio_id)
+        with self._engine.connect() as connection:
+            run_ids = [row["run_id"] for row in connection.execute(statement).mappings().all()]
+        return [bundle for run_id in run_ids if (bundle := self.get_review_run_bundle(run_id)) is not None]
 
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         statement = select(audit_events_table)

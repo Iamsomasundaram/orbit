@@ -13,6 +13,7 @@ Current status:
 - Milestone 2 added durable persistence models, executable Postgres schema generation, and persistence boundary documentation while keeping the approved review behavior unchanged.
 - Milestone 2.1 hardens the platform with full-fixture parity coverage, frozen JS baseline lifecycle controls, and worker host debugging on port `5004`.
 - Milestone 3 adds bounded portfolio submission APIs, canonical portfolio materialization, and durable ingestion storage without broadening into review orchestration.
+- Milestone 4 adds bounded review-run orchestration APIs that execute the approved Python thin-slice review path from persisted canonical portfolios and store review artifacts durably.
 
 Primary references:
 
@@ -23,6 +24,7 @@ Primary references:
 - `docs/milestone-2/README.md`
 - `docs/milestone-2.1/README.md`
 - `docs/milestone-3/README.md`
+- `docs/milestone-4/README.md`
 
 Platform commands:
 
@@ -31,6 +33,8 @@ Platform commands:
 - `docker compose down --remove-orphans`
 - `POST http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios`
+- `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`
 

@@ -10,6 +10,7 @@ from .conflicts import detect_conflicts
 from .ingestion import ingest_portfolio_document
 from .reporting import build_committee_report
 from .reviewer import run_specialist_reviews
+from .schemas import CanonicalPortfolio
 from .scorecard import build_committee_scorecard
 
 
@@ -27,13 +28,16 @@ def write_json(file_path: Path, value: Any) -> None:
     file_path.write_text(f"{json.dumps(to_jsonable(value), indent=2)}\n", encoding="utf-8")
 
 
-def run_review_pipeline(input_path: str, output_dir: str | None = None) -> dict[str, Any]:
-    canonical_portfolio = ingest_portfolio_document(input_path)
-    run_id = f"thin-slice-{canonical_portfolio.portfolio_id}"
+def run_review_pipeline_for_portfolio(
+    canonical_portfolio: CanonicalPortfolio,
+    output_dir: str | None = None,
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    resolved_run_id = run_id or f"thin-slice-{canonical_portfolio.portfolio_id}"
     agent_reviews = run_specialist_reviews(canonical_portfolio)
     conflicts = detect_conflicts(agent_reviews)
-    scorecard = build_committee_scorecard(canonical_portfolio, run_id, agent_reviews, conflicts)
-    committee_report = build_committee_report(canonical_portfolio, run_id, agent_reviews, conflicts, scorecard)
+    scorecard = build_committee_scorecard(canonical_portfolio, resolved_run_id, agent_reviews, conflicts)
+    committee_report = build_committee_report(canonical_portfolio, resolved_run_id, agent_reviews, conflicts, scorecard)
 
     if output_dir:
         resolved_output_dir = Path(output_dir).resolve()
@@ -46,10 +50,15 @@ def run_review_pipeline(input_path: str, output_dir: str | None = None) -> dict[
         (resolved_output_dir / "committee-report.md").write_text(committee_report.markdown, encoding="utf-8")
 
     return {
-        "run_id": run_id,
+        "run_id": resolved_run_id,
         "canonical_portfolio": canonical_portfolio,
         "agent_reviews": agent_reviews,
         "conflicts": conflicts,
         "scorecard": scorecard,
         "committee_report": committee_report,
     }
+
+
+def run_review_pipeline(input_path: str, output_dir: str | None = None) -> dict[str, Any]:
+    canonical_portfolio = ingest_portfolio_document(input_path)
+    return run_review_pipeline_for_portfolio(canonical_portfolio, output_dir=output_dir)
