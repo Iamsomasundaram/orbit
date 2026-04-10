@@ -32,6 +32,14 @@ from .review_runs import (
     ReviewRunService,
     ReviewRunSummary,
 )
+from .resyntheses import (
+    DebateResynthesisNotFoundError,
+    ResynthesisAlreadyExistsError,
+    ResynthesisDetail,
+    ResynthesisListResponse,
+    ResynthesisService,
+    ResynthesisSummary,
+)
 from .persistence import PersistenceDdlResponse, persistence_ddl_response, persistence_schema_catalog
 
 settings = get_settings()
@@ -47,6 +55,7 @@ async def lifespan(app: FastAPI):
     )
     app.state.review_run_service = ReviewRunService(repository=repository)
     app.state.debate_service = DebateService(repository=repository)
+    app.state.resynthesis_service = ResynthesisService(repository=repository)
     try:
         yield
     finally:
@@ -66,6 +75,10 @@ def review_run_service(request: Request) -> ReviewRunService:
 
 def debate_service(request: Request) -> DebateService:
     return request.app.state.debate_service
+
+
+def resynthesis_service(request: Request) -> ResynthesisService:
+    return request.app.state.resynthesis_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -172,4 +185,30 @@ def get_debate(request: Request, debate_id: str) -> DebateDetail:
     detail = debate_service(request).get_debate(debate_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Debate session '{debate_id}' was not found.")
+    return detail
+
+
+@app.post("/api/v1/debates/{debate_id}/re-synthesis", response_model=ResynthesisSummary, status_code=status.HTTP_201_CREATED)
+def start_resynthesis(request: Request, debate_id: str) -> ResynthesisSummary:
+    service = resynthesis_service(request)
+    try:
+        return service.start_resynthesis(debate_id)
+    except DebateResynthesisNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ResynthesisAlreadyExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/debates/{debate_id}/re-synthesis", response_model=ResynthesisListResponse)
+def list_debate_resyntheses(request: Request, debate_id: str) -> ResynthesisListResponse:
+    if debate_service(request).get_debate(debate_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Debate session '{debate_id}' was not found.")
+    return resynthesis_service(request).list_resyntheses(debate_id=debate_id)
+
+
+@app.get("/api/v1/re-syntheses/{resynthesis_id}", response_model=ResynthesisDetail)
+def get_resynthesis(request: Request, resynthesis_id: str) -> ResynthesisDetail:
+    detail = resynthesis_service(request).get_resynthesis(resynthesis_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Re-synthesis session '{resynthesis_id}' was not found.")
     return detail

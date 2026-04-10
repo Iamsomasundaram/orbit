@@ -108,7 +108,7 @@ def service_info(settings: Settings) -> ServiceInfo:
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
-        runtime_direction="conflict-resolution-and-debate",
+        runtime_direction="score-recheck-and-resynthesis",
         active_backend="python",
         reference_runtime="js-baseline-only",
         reference_runtime_stage=settings.js_baseline_archival_stage,

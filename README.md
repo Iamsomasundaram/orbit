@@ -15,6 +15,7 @@ Current status:
 - Milestone 3 adds bounded portfolio submission APIs, canonical portfolio materialization, and durable ingestion storage without broadening into review orchestration.
 - Milestone 4 adds bounded review-run orchestration APIs that execute the approved Python thin-slice review path from persisted canonical portfolios and store review artifacts durably.
 - Milestone 5 adds bounded moderator-controlled debate APIs that resolve persisted conflicts, store debate artifacts and resolution outcomes, and preserve approved committee scoring unless a resolution explicitly flags recheck.
+- Milestone 6 adds bounded score recheck and committee re-synthesis APIs that consume persisted debate resolutions, preserve original committee artifacts, and materialize re-synthesized outputs only when a resolution explicitly requires it.
 
 Primary references:
 
@@ -27,6 +28,7 @@ Primary references:
 - `docs/milestone-3/README.md`
 - `docs/milestone-4/README.md`
 - `docs/milestone-5/README.md`
+- `docs/milestone-6/README.md`
 
 Platform commands:
 
@@ -40,6 +42,9 @@ Platform commands:
 - `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}`
+- `POST http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
+- `GET http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
+- `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`
 

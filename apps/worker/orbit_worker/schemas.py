@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -149,6 +149,20 @@ class DebateSession(OrbitModel):
     audit_notes: list[str]
 
 
+class ResynthesisSession(OrbitModel):
+    resynthesis_id: str
+    debate_id: str
+    run_id: str
+    portfolio_id: str
+    resynthesis_status: Literal["completed_without_changes", "completed_with_recheck"]
+    score_change_required_count: int
+    reused_original_artifacts: bool
+    active_artifact_source: Literal["original", "resynthesized"]
+    applied_resolution_ids: list[str]
+    executive_summary: str
+    audit_notes: list[str]
+
+
 class Scorecard(OrbitModel):
     portfolio_id: str
     run_id: str
@@ -236,6 +250,10 @@ def validate_debate_session(session: Any) -> DebateSession:
     for resolution in model.resolutions:
         validate_conflict_resolution(resolution)
     return model
+
+
+def validate_resynthesis_session(session: Any) -> ResynthesisSession:
+    return ResynthesisSession.model_validate(session)
 
 
 def validate_scorecard(scorecard: Any) -> Scorecard:

@@ -12,15 +12,20 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
-from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, OrbitModel, Scorecard, SourceDocument
+from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
 
-PERSISTENCE_SCHEMA_VERSION = "m5-v1"
+PERSISTENCE_SCHEMA_VERSION = "m6-v1"
 SOURCE_OF_TRUTH_MODULE = "orbit_worker.schemas"
 REFERENCE_RUNTIME_MODE = "js-baseline-only"
 ACTIVE_BACKEND = "python"
 SYSTEM_ACTOR_ID = "orbit-platform"
 SYSTEM_ACTOR_NAME = "ORBIT Platform"
 DEBATE_AUDIT_ACTIONS = ("debate_session.completed", "conflict_resolution.recorded")
+RESYNTHESIS_AUDIT_ACTIONS = (
+    "resynthesis.completed",
+    "scorecard.rechecked",
+    "committee_report.resynthesized",
+)
 
 
 class PersistenceTableSpec(OrbitModel):
@@ -161,6 +166,43 @@ class ConflictResolutionRecord(OrbitModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class ResynthesisSessionRecord(OrbitModel):
+    resynthesis_id: str
+    debate_id: str
+    run_id: str
+    portfolio_id: str
+    resynthesis_status: str
+    score_change_required_count: int
+    reused_original_artifacts: bool
+    active_artifact_source: str
+    session_payload_hash: str
+    session_payload: ResynthesisSession
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ResynthesizedScorecardRecord(OrbitModel):
+    resynthesis_id: str
+    run_id: str
+    portfolio_id: str
+    final_recommendation: str
+    weighted_composite_score: float
+    scorecard_payload_hash: str
+    scorecard_payload: Scorecard
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ResynthesizedCommitteeReportRecord(OrbitModel):
+    resynthesis_id: str
+    run_id: str
+    portfolio_id: str
+    final_recommendation: str
+    report_payload_hash: str
+    markdown_sha256: str
+    markdown: str
+    report_payload: CommitteeReport
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class AuditActor(OrbitModel):
     actor_type: Literal["system", "user", "service"]
     actor_id: str
@@ -201,6 +243,17 @@ class DebatePersistenceBundle(OrbitModel):
     audit_events: list[AuditEventRecord]
 
 
+class ResynthesisPersistenceBundle(OrbitModel):
+    schema_version: str
+    portfolio: PortfolioRecord
+    review_run: ReviewRunRecord
+    debate_session: DebateSessionRecord
+    resynthesis_session: ResynthesisSessionRecord
+    resynthesized_scorecard: ResynthesizedScorecardRecord | None = None
+    resynthesized_committee_report: ResynthesizedCommitteeReportRecord | None = None
+    audit_events: list[AuditEventRecord]
+
+
 class PortfolioIngestionBundle(OrbitModel):
     schema_version: str
     portfolio: PortfolioRecord
@@ -228,6 +281,12 @@ class PersistenceRepository(Protocol):
 
     def list_debate_bundles(self, run_id: str | None = None) -> list[DebatePersistenceBundle]: ...
 
+    def save_resynthesis_bundle(self, bundle: ResynthesisPersistenceBundle) -> None: ...
+
+    def get_resynthesis_bundle(self, resynthesis_id: str) -> ResynthesisPersistenceBundle | None: ...
+
+    def list_resynthesis_bundles(self, debate_id: str | None = None) -> list[ResynthesisPersistenceBundle]: ...
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]: ...
 
 
@@ -236,6 +295,7 @@ class InMemoryPersistenceRepository:
         self._portfolios: dict[str, PortfolioIngestionBundle] = {}
         self._review_runs: dict[str, ReviewPersistenceBundle] = {}
         self._debates: dict[str, DebatePersistenceBundle] = {}
+        self._resyntheses: dict[str, ResynthesisPersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
 
     def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
@@ -293,6 +353,24 @@ class InMemoryPersistenceRepository:
         return sorted(
             bundles,
             key=lambda bundle: (bundle.debate_session.created_at, bundle.debate_session.debate_id),
+            reverse=True,
+        )
+
+    def save_resynthesis_bundle(self, bundle: ResynthesisPersistenceBundle) -> None:
+        self._resyntheses[bundle.resynthesis_session.resynthesis_id] = bundle
+        for event in bundle.audit_events:
+            self._audit_events[event.event_id] = event
+
+    def get_resynthesis_bundle(self, resynthesis_id: str) -> ResynthesisPersistenceBundle | None:
+        return self._resyntheses.get(resynthesis_id)
+
+    def list_resynthesis_bundles(self, debate_id: str | None = None) -> list[ResynthesisPersistenceBundle]:
+        bundles = list(self._resyntheses.values())
+        if debate_id is not None:
+            bundles = [bundle for bundle in bundles if bundle.debate_session.debate_id == debate_id]
+        return sorted(
+            bundles,
+            key=lambda bundle: (bundle.resynthesis_session.created_at, bundle.resynthesis_session.resynthesis_id),
             reverse=True,
         )
 
@@ -576,6 +654,62 @@ def build_conflict_resolution_records(
     ]
 
 
+def build_resynthesis_session_record(session: ResynthesisSession, now: datetime | None = None) -> ResynthesisSessionRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    return ResynthesisSessionRecord(
+        resynthesis_id=session.resynthesis_id,
+        debate_id=session.debate_id,
+        run_id=session.run_id,
+        portfolio_id=session.portfolio_id,
+        resynthesis_status=session.resynthesis_status,
+        score_change_required_count=session.score_change_required_count,
+        reused_original_artifacts=session.reused_original_artifacts,
+        active_artifact_source=session.active_artifact_source,
+        session_payload_hash=payload_sha256(session),
+        session_payload=session,
+        created_at=timestamp,
+    )
+
+
+def build_resynthesized_scorecard_record(
+    resynthesis_id: str,
+    scorecard: Scorecard,
+    now: datetime | None = None,
+) -> ResynthesizedScorecardRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    return ResynthesizedScorecardRecord(
+        resynthesis_id=resynthesis_id,
+        run_id=scorecard.run_id,
+        portfolio_id=scorecard.portfolio_id,
+        final_recommendation=scorecard.final_recommendation,
+        weighted_composite_score=scorecard.weighted_composite_score,
+        scorecard_payload_hash=payload_sha256(scorecard),
+        scorecard_payload=scorecard,
+        created_at=timestamp,
+    )
+
+
+def build_resynthesized_committee_report_record(
+    resynthesis_id: str,
+    committee_report: CommitteeReport,
+    scorecard: Scorecard,
+    now: datetime | None = None,
+) -> ResynthesizedCommitteeReportRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    markdown_sha = sha256(committee_report.markdown.encode("utf-8")).hexdigest()
+    return ResynthesizedCommitteeReportRecord(
+        resynthesis_id=resynthesis_id,
+        run_id=committee_report.run_id,
+        portfolio_id=committee_report.portfolio_id,
+        final_recommendation=scorecard.final_recommendation,
+        report_payload_hash=payload_sha256(committee_report),
+        markdown_sha256=markdown_sha,
+        markdown=committee_report.markdown,
+        report_payload=committee_report,
+        created_at=timestamp,
+    )
+
+
 def build_audit_event_records(
     canonical_portfolio: CanonicalPortfolio,
     review_run: ReviewRunRecord,
@@ -688,6 +822,70 @@ def build_debate_audit_event_records(
     return events
 
 
+def build_resynthesis_audit_event_records(
+    session: ResynthesisSession,
+    scorecard: Scorecard | None = None,
+    committee_report: CommitteeReport | None = None,
+    now: datetime | None = None,
+) -> list[AuditEventRecord]:
+    timestamp = now or datetime.now(timezone.utc)
+    actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
+    events = [
+        AuditEventRecord(
+            event_id=_audit_event_id(session.run_id, "resynthesis.completed", session.resynthesis_id),
+            portfolio_id=session.portfolio_id,
+            run_id=session.run_id,
+            actor=actor,
+            action="resynthesis.completed",
+            entity_type="resynthesis_session",
+            entity_id=session.resynthesis_id,
+            event_payload={
+                "debate_id": session.debate_id,
+                "resynthesis_status": session.resynthesis_status,
+                "active_artifact_source": session.active_artifact_source,
+                "score_change_required_count": session.score_change_required_count,
+            },
+            created_at=timestamp,
+        ),
+    ]
+    if scorecard is not None:
+        events.append(
+            AuditEventRecord(
+                event_id=_audit_event_id(session.run_id, "scorecard.rechecked", session.resynthesis_id),
+                portfolio_id=session.portfolio_id,
+                run_id=session.run_id,
+                actor=actor,
+                action="scorecard.rechecked",
+                entity_type="scorecard",
+                entity_id=session.resynthesis_id,
+                event_payload={
+                    "weighted_composite_score": scorecard.weighted_composite_score,
+                    "final_recommendation": scorecard.final_recommendation,
+                },
+                created_at=timestamp,
+            )
+        )
+    if committee_report is not None:
+        events.append(
+            AuditEventRecord(
+                event_id=_audit_event_id(session.run_id, "committee_report.resynthesized", session.resynthesis_id),
+                portfolio_id=session.portfolio_id,
+                run_id=session.run_id,
+                actor=actor,
+                action="committee_report.resynthesized",
+                entity_type="committee_report",
+                entity_id=session.resynthesis_id,
+                event_payload={
+                    "run_id": committee_report.run_id,
+                    "final_recommendation": scorecard.final_recommendation if scorecard is not None else None,
+                    "markdown_sha256": sha256(committee_report.markdown.encode("utf-8")).hexdigest(),
+                },
+                created_at=timestamp,
+            )
+        )
+    return events
+
+
 def build_ingestion_audit_event_records(
     canonical_portfolio: CanonicalPortfolio,
     now: datetime | None = None,
@@ -782,6 +980,36 @@ def build_debate_persistence_bundle(
     )
 
 
+def build_resynthesis_persistence_bundle(
+    portfolio: PortfolioRecord,
+    review_run: ReviewRunRecord,
+    debate_session: DebateSessionRecord,
+    session: ResynthesisSession,
+    scorecard: Scorecard | None = None,
+    committee_report: CommitteeReport | None = None,
+    now: datetime | None = None,
+) -> ResynthesisPersistenceBundle:
+    timestamp = now or datetime.now(timezone.utc)
+    return ResynthesisPersistenceBundle(
+        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        portfolio=portfolio,
+        review_run=review_run,
+        debate_session=debate_session,
+        resynthesis_session=build_resynthesis_session_record(session, now=timestamp),
+        resynthesized_scorecard=(
+            build_resynthesized_scorecard_record(session.resynthesis_id, scorecard, now=timestamp)
+            if scorecard is not None
+            else None
+        ),
+        resynthesized_committee_report=(
+            build_resynthesized_committee_report_record(session.resynthesis_id, committee_report, scorecard, now=timestamp)
+            if scorecard is not None and committee_report is not None
+            else None
+        ),
+        audit_events=build_resynthesis_audit_event_records(session, scorecard=scorecard, committee_report=committee_report, now=timestamp),
+    )
+
+
 def portfolio_row_values(record: PortfolioRecord) -> dict[str, Any]:
     return _model_row(record)
 
@@ -819,6 +1047,18 @@ def debate_session_row_values(record: DebateSessionRecord) -> dict[str, Any]:
 
 
 def conflict_resolution_row_values(record: ConflictResolutionRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def resynthesis_session_row_values(record: ResynthesisSessionRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def resynthesized_scorecard_row_values(record: ResynthesizedScorecardRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def resynthesized_committee_report_row_values(record: ResynthesizedCommitteeReportRecord) -> dict[str, Any]:
     return _model_row(record)
 
 
@@ -865,6 +1105,23 @@ def debate_bundle_to_table_rows(bundle: DebatePersistenceBundle) -> dict[str, li
     return {
         "debate_sessions": [debate_session_row_values(bundle.debate_session)],
         "conflict_resolutions": [conflict_resolution_row_values(record) for record in bundle.conflict_resolutions],
+        "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
+    }
+
+
+def resynthesis_bundle_to_table_rows(bundle: ResynthesisPersistenceBundle) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "resynthesis_sessions": [resynthesis_session_row_values(bundle.resynthesis_session)],
+        "resynthesized_scorecards": (
+            [resynthesized_scorecard_row_values(bundle.resynthesized_scorecard)]
+            if bundle.resynthesized_scorecard is not None
+            else []
+        ),
+        "resynthesized_committee_reports": (
+            [resynthesized_committee_report_row_values(bundle.resynthesized_committee_report)]
+            if bundle.resynthesized_committee_report is not None
+            else []
+        ),
         "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
     }
 
@@ -998,6 +1255,17 @@ class SqlAlchemyPersistenceRepository:
             for row in rows["audit_events"]:
                 _upsert_row(connection, audit_events_table, row, ["event_id"])
 
+    def save_resynthesis_bundle(self, bundle: ResynthesisPersistenceBundle) -> None:
+        rows = resynthesis_bundle_to_table_rows(bundle)
+        with self._engine.begin() as connection:
+            _upsert_row(connection, resynthesis_sessions_table, rows["resynthesis_sessions"][0], ["resynthesis_id"])
+            for row in rows["resynthesized_scorecards"]:
+                _upsert_row(connection, resynthesized_scorecards_table, row, ["resynthesis_id"])
+            for row in rows["resynthesized_committee_reports"]:
+                _upsert_row(connection, resynthesized_committee_reports_table, row, ["resynthesis_id"])
+            for row in rows["audit_events"]:
+                _upsert_row(connection, audit_events_table, row, ["event_id"])
+
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None:
         with self._engine.connect() as connection:
             review_run_row = connection.execute(
@@ -1104,6 +1372,66 @@ class SqlAlchemyPersistenceRepository:
         with self._engine.connect() as connection:
             debate_ids = [row["debate_id"] for row in connection.execute(statement).mappings().all()]
         return [bundle for debate_id in debate_ids if (bundle := self.get_debate_bundle(debate_id)) is not None]
+
+    def get_resynthesis_bundle(self, resynthesis_id: str) -> ResynthesisPersistenceBundle | None:
+        with self._engine.connect() as connection:
+            session_row = connection.execute(
+                select(resynthesis_sessions_table).where(resynthesis_sessions_table.c.resynthesis_id == resynthesis_id)
+            ).mappings().first()
+            if session_row is None:
+                return None
+
+            scorecard_row = connection.execute(
+                select(resynthesized_scorecards_table).where(resynthesized_scorecards_table.c.resynthesis_id == resynthesis_id)
+            ).mappings().first()
+            report_row = connection.execute(
+                select(resynthesized_committee_reports_table).where(resynthesized_committee_reports_table.c.resynthesis_id == resynthesis_id)
+            ).mappings().first()
+            audit_rows = connection.execute(
+                select(audit_events_table)
+                .where(audit_events_table.c.run_id == session_row["run_id"])
+                .where(audit_events_table.c.action.in_(RESYNTHESIS_AUDIT_ACTIONS))
+                .where(audit_events_table.c.entity_id == resynthesis_id)
+                .order_by(audit_events_table.c.created_at, audit_events_table.c.event_id)
+            ).mappings().all()
+
+        debate_bundle = self.get_debate_bundle(session_row["debate_id"])
+        if debate_bundle is None:
+            return None
+
+        return ResynthesisPersistenceBundle(
+            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            portfolio=debate_bundle.portfolio,
+            review_run=debate_bundle.review_run,
+            debate_session=debate_bundle.debate_session,
+            resynthesis_session=ResynthesisSessionRecord.model_validate(dict(session_row)),
+            resynthesized_scorecard=(
+                ResynthesizedScorecardRecord.model_validate(dict(scorecard_row))
+                if scorecard_row is not None
+                else None
+            ),
+            resynthesized_committee_report=(
+                ResynthesizedCommitteeReportRecord.model_validate(dict(report_row))
+                if report_row is not None
+                else None
+            ),
+            audit_events=[_audit_event_from_row(dict(row)) for row in audit_rows],
+        )
+
+    def list_resynthesis_bundles(self, debate_id: str | None = None) -> list[ResynthesisPersistenceBundle]:
+        statement = select(resynthesis_sessions_table.c.resynthesis_id).order_by(
+            resynthesis_sessions_table.c.created_at.desc(),
+            resynthesis_sessions_table.c.resynthesis_id.desc(),
+        )
+        if debate_id is not None:
+            statement = statement.where(resynthesis_sessions_table.c.debate_id == debate_id)
+        with self._engine.connect() as connection:
+            resynthesis_ids = [row["resynthesis_id"] for row in connection.execute(statement).mappings().all()]
+        return [
+            bundle
+            for resynthesis_id in resynthesis_ids
+            if (bundle := self.get_resynthesis_bundle(resynthesis_id)) is not None
+        ]
 
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         statement = select(audit_events_table)
@@ -1274,6 +1602,50 @@ conflict_resolutions_table = Table(
     UniqueConstraint("debate_id", "conflict_id"),
 )
 
+resynthesis_sessions_table = Table(
+    "resynthesis_sessions",
+    persistence_metadata,
+    Column("resynthesis_id", String(256), primary_key=True),
+    Column("debate_id", String(192), ForeignKey("debate_sessions.debate_id"), nullable=False),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("resynthesis_status", String(64), nullable=False),
+    Column("score_change_required_count", Integer, nullable=False),
+    Column("reused_original_artifacts", Boolean, nullable=False),
+    Column("active_artifact_source", String(32), nullable=False),
+    Column("session_payload_hash", String(64), nullable=False),
+    Column("session_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("debate_id"),
+)
+
+resynthesized_scorecards_table = Table(
+    "resynthesized_scorecards",
+    persistence_metadata,
+    Column("resynthesis_id", String(256), ForeignKey("resynthesis_sessions.resynthesis_id"), primary_key=True),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("final_recommendation", String(64), nullable=False),
+    Column("weighted_composite_score", Float, nullable=False),
+    Column("scorecard_payload_hash", String(64), nullable=False),
+    Column("scorecard_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+resynthesized_committee_reports_table = Table(
+    "resynthesized_committee_reports",
+    persistence_metadata,
+    Column("resynthesis_id", String(256), ForeignKey("resynthesis_sessions.resynthesis_id"), primary_key=True),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("final_recommendation", String(64), nullable=False),
+    Column("report_payload_hash", String(64), nullable=False),
+    Column("markdown_sha256", String(64), nullable=False),
+    Column("report_payload", JSONB, nullable=False),
+    Column("markdown", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
 audit_events_table = Table(
     "audit_events",
     persistence_metadata,
@@ -1297,6 +1669,10 @@ Index("ix_conflicts_run_id", conflicts_table.c.run_id)
 Index("ix_debate_sessions_run_id", debate_sessions_table.c.run_id)
 Index("ix_conflict_resolutions_debate_id", conflict_resolutions_table.c.debate_id)
 Index("ix_conflict_resolutions_run_id", conflict_resolutions_table.c.run_id)
+Index("ix_resynthesis_sessions_debate_id", resynthesis_sessions_table.c.debate_id)
+Index("ix_resynthesis_sessions_run_id", resynthesis_sessions_table.c.run_id)
+Index("ix_resynthesized_scorecards_run_id", resynthesized_scorecards_table.c.run_id)
+Index("ix_resynthesized_committee_reports_run_id", resynthesized_committee_reports_table.c.run_id)
 Index("ix_audit_events_portfolio_id", audit_events_table.c.portfolio_id)
 Index("ix_audit_events_run_id", audit_events_table.c.run_id)
 Index("ix_audit_events_entity_type", audit_events_table.c.entity_type)
@@ -1382,6 +1758,30 @@ PERSISTENCE_TABLE_SPECS = [
         source_contract="orbit_worker.schemas.ConflictResolution",
         json_payload_columns=["resolution_payload"],
         queryable_columns=["debate_id", "run_id", "portfolio_id", "conflict_id", "outcome", "score_change_required", "resolution_payload_hash"],
+    ),
+    PersistenceTableSpec(
+        table_name="resynthesis_sessions",
+        purpose="Bounded score-recheck and committee re-synthesis session derived from a persisted debate.",
+        primary_key="resynthesis_id",
+        source_contract="orbit_worker.schemas.ResynthesisSession",
+        json_payload_columns=["session_payload"],
+        queryable_columns=["debate_id", "run_id", "portfolio_id", "resynthesis_status", "score_change_required_count", "reused_original_artifacts", "active_artifact_source", "session_payload_hash"],
+    ),
+    PersistenceTableSpec(
+        table_name="resynthesized_scorecards",
+        purpose="Rechecked committee scorecard artifact materialized only when debate resolution requires score change review.",
+        primary_key="resynthesis_id",
+        source_contract="orbit_worker.schemas.Scorecard",
+        json_payload_columns=["scorecard_payload"],
+        queryable_columns=["run_id", "portfolio_id", "final_recommendation", "weighted_composite_score", "scorecard_payload_hash"],
+    ),
+    PersistenceTableSpec(
+        table_name="resynthesized_committee_reports",
+        purpose="Re-synthesized committee report artifact materialized only when score recheck is required.",
+        primary_key="resynthesis_id",
+        source_contract="orbit_worker.schemas.CommitteeReport",
+        json_payload_columns=["report_payload"],
+        queryable_columns=["run_id", "portfolio_id", "final_recommendation", "report_payload_hash", "markdown_sha256"],
     ),
     PersistenceTableSpec(
         table_name="audit_events",

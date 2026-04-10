@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .domain import DIMENSION_WEIGHTS, RECOMMENDATION_ORDER, RECOMMENDATION_RANK, SCORE_DIMENSIONS, clamp_score, dedupe_preserve_order, round_half_up
-from .schemas import AgentReview, CanonicalPortfolio, ConflictRecord, Scorecard, validate_scorecard
+from .schemas import AgentReview, CanonicalPortfolio, ConflictRecord, DimensionScore, Finding, Scorecard, validate_scorecard
 
 
 def mean(values: list[float]) -> float:
@@ -17,41 +17,33 @@ def downgrade_recommendation(recommendation: str) -> str:
     return RECOMMENDATION_ORDER[index]
 
 
-def build_committee_scorecard(
-    portfolio: CanonicalPortfolio,
-    run_id: str,
-    reviews: list[AgentReview],
-    conflicts: list[ConflictRecord],
-) -> Scorecard:
-    dimension_scores = []
-    for dimension in SCORE_DIMENSIONS:
-        entries = [score for review in reviews for score in review.dimension_scores if score.dimension == dimension]
-        dimension_scores.append(
-            {
-                "dimension": dimension,
-                "score": clamp_score(mean([entry.score for entry in entries])),
-                "confidence": fixed_2(mean([entry.confidence for entry in entries])),
-                "evidence_completeness": fixed_2(mean([entry.evidence_completeness for entry in entries])),
-                "severity_flags": sorted(dedupe_preserve_order(flag for entry in entries for flag in entry.severity_flags)),
-                "rationale": f"Committee score derived from {len(entries)} structured reviewer dimension entries.",
-                "evidence_refs": dedupe_preserve_order(ref for entry in entries for ref in entry.evidence_refs),
-            }
-        )
-
+def calculate_aggregate_metrics(dimension_scores: list[dict[str, object] | DimensionScore]) -> tuple[float, float, float, list[str]]:
+    normalized_scores = [
+        entry if isinstance(entry, dict) else entry.model_dump(mode="python")
+        for entry in dimension_scores
+    ]
     weighted_composite_score = fixed_2(
-        sum(entry["score"] * DIMENSION_WEIGHTS[entry["dimension"]] for entry in dimension_scores) / 100,
+        sum(float(entry["score"]) * DIMENSION_WEIGHTS[str(entry["dimension"])] for entry in normalized_scores) / 100,
     )
-    average_confidence = fixed_2(mean([entry["confidence"] for entry in dimension_scores]))
-    average_evidence_completeness = fixed_2(mean([entry["evidence_completeness"] for entry in dimension_scores]))
+    average_confidence = fixed_2(mean([float(entry["confidence"]) for entry in normalized_scores]))
+    average_evidence_completeness = fixed_2(mean([float(entry["evidence_completeness"]) for entry in normalized_scores]))
     severity_flags = sorted(
         dedupe_preserve_order(
             flag
-            for review in reviews
-            for entry in review.dimension_scores
-            for flag in entry.severity_flags
+            for entry in normalized_scores
+            for flag in list(entry["severity_flags"])
         )
     )
-    findings = [finding for review in reviews for finding in review.findings]
+    return weighted_composite_score, average_confidence, average_evidence_completeness, severity_flags
+
+
+def determine_final_recommendation(
+    weighted_composite_score: float,
+    average_confidence: float,
+    average_evidence_completeness: float,
+    findings: list[Finding],
+    conflicts: list[ConflictRecord],
+) -> tuple[str, bool]:
     critical_governance_finding = next(
         (
             finding
@@ -78,7 +70,11 @@ def build_committee_scorecard(
     if critical_governance_finding and RECOMMENDATION_RANK[final_recommendation] > RECOMMENDATION_RANK["High Risk"]:
         final_recommendation = "High Risk"
 
-    conditions = dedupe_preserve_order(
+    return final_recommendation, bool(critical_governance_finding)
+
+
+def build_scorecard_conditions(findings: list[Finding], conflicts: list[ConflictRecord]) -> list[str]:
+    return dedupe_preserve_order(
         [
             *[
                 finding.recommended_action
@@ -93,6 +89,41 @@ def build_committee_scorecard(
         ]
     )[:8]
 
+
+def build_committee_scorecard(
+    portfolio: CanonicalPortfolio,
+    run_id: str,
+    reviews: list[AgentReview],
+    conflicts: list[ConflictRecord],
+) -> Scorecard:
+    dimension_scores = []
+    for dimension in SCORE_DIMENSIONS:
+        entries = [score for review in reviews for score in review.dimension_scores if score.dimension == dimension]
+        dimension_scores.append(
+            {
+                "dimension": dimension,
+                "score": clamp_score(mean([entry.score for entry in entries])),
+                "confidence": fixed_2(mean([entry.confidence for entry in entries])),
+                "evidence_completeness": fixed_2(mean([entry.evidence_completeness for entry in entries])),
+                "severity_flags": sorted(dedupe_preserve_order(flag for entry in entries for flag in entry.severity_flags)),
+                "rationale": f"Committee score derived from {len(entries)} structured reviewer dimension entries.",
+                "evidence_refs": dedupe_preserve_order(ref for entry in entries for ref in entry.evidence_refs),
+            }
+        )
+
+    weighted_composite_score, average_confidence, average_evidence_completeness, severity_flags = calculate_aggregate_metrics(
+        dimension_scores
+    )
+    findings = [finding for review in reviews for finding in review.findings]
+    final_recommendation, override_applied = determine_final_recommendation(
+        weighted_composite_score,
+        average_confidence,
+        average_evidence_completeness,
+        findings,
+        conflicts,
+    )
+    conditions = build_scorecard_conditions(findings, conflicts)
+
     return validate_scorecard(
         {
             "portfolio_id": portfolio.portfolio_id,
@@ -103,7 +134,7 @@ def build_committee_scorecard(
             "average_evidence_completeness": average_evidence_completeness,
             "severity_flags": severity_flags,
             "final_recommendation": final_recommendation,
-            "override_applied": bool(critical_governance_finding),
+            "override_applied": override_applied,
             "conditions": conditions,
         }
     )
