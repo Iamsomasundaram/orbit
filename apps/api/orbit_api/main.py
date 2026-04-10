@@ -8,6 +8,14 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from orbit_worker.persistence import PersistenceSchemaCatalog, SqlAlchemyPersistenceRepository
 
 from .config import get_settings
+from .debates import (
+    DebateAlreadyExistsError,
+    DebateDetail,
+    DebateListResponse,
+    DebateService,
+    DebateSummary,
+    ReviewRunDebateNotFoundError,
+)
 from .health import HealthResponse, ServiceInfo, live_response, readiness_response, service_info
 from .portfolios import (
     InvalidPortfolioDocumentError,
@@ -38,6 +46,7 @@ async def lifespan(app: FastAPI):
         storage_root=Path(settings.portfolio_storage_dir),
     )
     app.state.review_run_service = ReviewRunService(repository=repository)
+    app.state.debate_service = DebateService(repository=repository)
     try:
         yield
     finally:
@@ -53,6 +62,10 @@ def portfolio_service(request: Request) -> PortfolioIngestionService:
 
 def review_run_service(request: Request) -> ReviewRunService:
     return request.app.state.review_run_service
+
+
+def debate_service(request: Request) -> DebateService:
+    return request.app.state.debate_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -133,4 +146,30 @@ def get_review_run(request: Request, run_id: str) -> ReviewRunDetail:
     detail = review_run_service(request).get_review_run(run_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return detail
+
+
+@app.post("/api/v1/review-runs/{run_id}/debates", response_model=DebateSummary, status_code=status.HTTP_201_CREATED)
+def start_debate(request: Request, run_id: str) -> DebateSummary:
+    service = debate_service(request)
+    try:
+        return service.start_debate(run_id)
+    except ReviewRunDebateNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DebateAlreadyExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/review-runs/{run_id}/debates", response_model=DebateListResponse)
+def list_review_run_debates(request: Request, run_id: str) -> DebateListResponse:
+    if review_run_service(request).get_review_run(run_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return debate_service(request).list_debates(run_id=run_id)
+
+
+@app.get("/api/v1/debates/{debate_id}", response_model=DebateDetail)
+def get_debate(request: Request, debate_id: str) -> DebateDetail:
+    detail = debate_service(request).get_debate(debate_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Debate session '{debate_id}' was not found.")
     return detail

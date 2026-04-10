@@ -12,14 +12,15 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
-from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, OrbitModel, Scorecard, SourceDocument
+from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, OrbitModel, Scorecard, SourceDocument
 
-PERSISTENCE_SCHEMA_VERSION = "m2-v1"
+PERSISTENCE_SCHEMA_VERSION = "m5-v1"
 SOURCE_OF_TRUTH_MODULE = "orbit_worker.schemas"
 REFERENCE_RUNTIME_MODE = "js-baseline-only"
 ACTIVE_BACKEND = "python"
 SYSTEM_ACTOR_ID = "orbit-platform"
 SYSTEM_ACTOR_NAME = "ORBIT Platform"
+DEBATE_AUDIT_ACTIONS = ("debate_session.completed", "conflict_resolution.recorded")
 
 
 class PersistenceTableSpec(OrbitModel):
@@ -134,6 +135,32 @@ class CommitteeReportRecord(OrbitModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class DebateSessionRecord(OrbitModel):
+    debate_id: str
+    run_id: str
+    portfolio_id: str
+    debate_status: str
+    max_rounds: int
+    conflicts_considered: int
+    score_change_required_count: int
+    debate_payload_hash: str
+    debate_payload: DebateSession
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ConflictResolutionRecord(OrbitModel):
+    resolution_row_id: str
+    debate_id: str
+    run_id: str
+    portfolio_id: str
+    conflict_id: str
+    outcome: str
+    score_change_required: bool
+    resolution_payload_hash: str
+    resolution_payload: ConflictResolution
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class AuditActor(OrbitModel):
     actor_type: Literal["system", "user", "service"]
     actor_id: str
@@ -165,6 +192,15 @@ class ReviewPersistenceBundle(OrbitModel):
     audit_events: list[AuditEventRecord]
 
 
+class DebatePersistenceBundle(OrbitModel):
+    schema_version: str
+    portfolio: PortfolioRecord
+    review_run: ReviewRunRecord
+    debate_session: DebateSessionRecord
+    conflict_resolutions: list[ConflictResolutionRecord]
+    audit_events: list[AuditEventRecord]
+
+
 class PortfolioIngestionBundle(OrbitModel):
     schema_version: str
     portfolio: PortfolioRecord
@@ -186,6 +222,12 @@ class PersistenceRepository(Protocol):
 
     def list_review_run_bundles(self, portfolio_id: str | None = None) -> list[ReviewPersistenceBundle]: ...
 
+    def save_debate_bundle(self, bundle: DebatePersistenceBundle) -> None: ...
+
+    def get_debate_bundle(self, debate_id: str) -> DebatePersistenceBundle | None: ...
+
+    def list_debate_bundles(self, run_id: str | None = None) -> list[DebatePersistenceBundle]: ...
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]: ...
 
 
@@ -193,6 +235,7 @@ class InMemoryPersistenceRepository:
     def __init__(self) -> None:
         self._portfolios: dict[str, PortfolioIngestionBundle] = {}
         self._review_runs: dict[str, ReviewPersistenceBundle] = {}
+        self._debates: dict[str, DebatePersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
 
     def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
@@ -232,6 +275,24 @@ class InMemoryPersistenceRepository:
         return sorted(
             bundles,
             key=lambda bundle: (bundle.review_run.created_at, bundle.review_run.run_id),
+            reverse=True,
+        )
+
+    def save_debate_bundle(self, bundle: DebatePersistenceBundle) -> None:
+        self._debates[bundle.debate_session.debate_id] = bundle
+        for event in bundle.audit_events:
+            self._audit_events[event.event_id] = event
+
+    def get_debate_bundle(self, debate_id: str) -> DebatePersistenceBundle | None:
+        return self._debates.get(debate_id)
+
+    def list_debate_bundles(self, run_id: str | None = None) -> list[DebatePersistenceBundle]:
+        bundles = list(self._debates.values())
+        if run_id is not None:
+            bundles = [bundle for bundle in bundles if bundle.review_run.run_id == run_id]
+        return sorted(
+            bundles,
+            key=lambda bundle: (bundle.debate_session.created_at, bundle.debate_session.debate_id),
             reverse=True,
         )
 
@@ -315,6 +376,10 @@ def _agent_review_row_id(run_id: str, agent_id: str) -> str:
 
 def _conflict_row_id(run_id: str, conflict_id: str) -> str:
     return f"{run_id}:{conflict_id}"
+
+
+def _resolution_row_id(debate_id: str, conflict_id: str) -> str:
+    return f"{debate_id}:{conflict_id}"
 
 
 def _audit_event_id(run_id: str | None, action: str, entity_id: str) -> str:
@@ -472,6 +537,45 @@ def build_committee_report_record(committee_report: CommitteeReport, scorecard: 
     )
 
 
+def build_debate_session_record(debate: DebateSession, now: datetime | None = None) -> DebateSessionRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    score_change_required_count = len([resolution for resolution in debate.resolutions if resolution.score_change_required])
+    return DebateSessionRecord(
+        debate_id=debate.debate_id,
+        run_id=debate.run_id,
+        portfolio_id=debate.portfolio_id,
+        debate_status=debate.debate_status,
+        max_rounds=debate.max_rounds,
+        conflicts_considered=len(debate.resolutions),
+        score_change_required_count=score_change_required_count,
+        debate_payload_hash=payload_sha256(debate),
+        debate_payload=debate,
+        created_at=timestamp,
+    )
+
+
+def build_conflict_resolution_records(
+    debate: DebateSession,
+    now: datetime | None = None,
+) -> list[ConflictResolutionRecord]:
+    timestamp = now or datetime.now(timezone.utc)
+    return [
+        ConflictResolutionRecord(
+            resolution_row_id=_resolution_row_id(debate.debate_id, resolution.conflict_id),
+            debate_id=debate.debate_id,
+            run_id=debate.run_id,
+            portfolio_id=debate.portfolio_id,
+            conflict_id=resolution.conflict_id,
+            outcome=resolution.outcome,
+            score_change_required=resolution.score_change_required,
+            resolution_payload_hash=payload_sha256(resolution),
+            resolution_payload=resolution,
+            created_at=timestamp,
+        )
+        for resolution in debate.resolutions
+    ]
+
+
 def build_audit_event_records(
     canonical_portfolio: CanonicalPortfolio,
     review_run: ReviewRunRecord,
@@ -539,6 +643,49 @@ def build_audit_event_records(
             created_at=timestamp,
         ),
     ]
+
+
+def build_debate_audit_event_records(
+    debate: DebateSession,
+    now: datetime | None = None,
+) -> list[AuditEventRecord]:
+    timestamp = now or datetime.now(timezone.utc)
+    actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
+    events = [
+        AuditEventRecord(
+            event_id=_audit_event_id(debate.run_id, "debate_session.completed", debate.debate_id),
+            portfolio_id=debate.portfolio_id,
+            run_id=debate.run_id,
+            actor=actor,
+            action="debate_session.completed",
+            entity_type="debate_session",
+            entity_id=debate.debate_id,
+            event_payload={
+                "debate_status": debate.debate_status,
+                "resolution_count": len(debate.resolutions),
+            },
+            created_at=timestamp,
+        ),
+    ]
+    events.extend(
+        AuditEventRecord(
+            event_id=_audit_event_id(debate.run_id, "conflict_resolution.recorded", resolution.conflict_id),
+            portfolio_id=debate.portfolio_id,
+            run_id=debate.run_id,
+            actor=actor,
+            action="conflict_resolution.recorded",
+            entity_type="conflict_resolution",
+            entity_id=resolution.conflict_id,
+            event_payload={
+                "debate_id": debate.debate_id,
+                "outcome": resolution.outcome,
+                "score_change_required": resolution.score_change_required,
+            },
+            created_at=timestamp,
+        )
+        for resolution in debate.resolutions
+    )
+    return events
 
 
 def build_ingestion_audit_event_records(
@@ -618,6 +765,23 @@ def build_review_persistence_bundle(
     )
 
 
+def build_debate_persistence_bundle(
+    portfolio: PortfolioRecord,
+    review_run: ReviewRunRecord,
+    debate: DebateSession,
+    now: datetime | None = None,
+) -> DebatePersistenceBundle:
+    timestamp = now or datetime.now(timezone.utc)
+    return DebatePersistenceBundle(
+        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        portfolio=portfolio,
+        review_run=review_run,
+        debate_session=build_debate_session_record(debate, now=timestamp),
+        conflict_resolutions=build_conflict_resolution_records(debate, now=timestamp),
+        audit_events=build_debate_audit_event_records(debate, now=timestamp),
+    )
+
+
 def portfolio_row_values(record: PortfolioRecord) -> dict[str, Any]:
     return _model_row(record)
 
@@ -647,6 +811,14 @@ def scorecard_row_values(record: ScorecardRecord) -> dict[str, Any]:
 
 
 def committee_report_row_values(record: CommitteeReportRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def debate_session_row_values(record: DebateSessionRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def conflict_resolution_row_values(record: ConflictResolutionRecord) -> dict[str, Any]:
     return _model_row(record)
 
 
@@ -685,6 +857,14 @@ def ingestion_bundle_to_table_rows(bundle: PortfolioIngestionBundle) -> dict[str
         "portfolios": [portfolio_row_values(bundle.portfolio)],
         "source_documents": [source_document_row_values(record) for record in bundle.source_documents],
         "canonical_portfolios": [canonical_portfolio_row_values(bundle.canonical_portfolio)],
+        "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
+    }
+
+
+def debate_bundle_to_table_rows(bundle: DebatePersistenceBundle) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "debate_sessions": [debate_session_row_values(bundle.debate_session)],
+        "conflict_resolutions": [conflict_resolution_row_values(record) for record in bundle.conflict_resolutions],
         "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
     }
 
@@ -809,6 +989,15 @@ class SqlAlchemyPersistenceRepository:
             for row in rows["audit_events"]:
                 _upsert_row(connection, audit_events_table, row, ["event_id"])
 
+    def save_debate_bundle(self, bundle: DebatePersistenceBundle) -> None:
+        rows = debate_bundle_to_table_rows(bundle)
+        with self._engine.begin() as connection:
+            _upsert_row(connection, debate_sessions_table, rows["debate_sessions"][0], ["debate_id"])
+            for row in rows["conflict_resolutions"]:
+                _upsert_row(connection, conflict_resolutions_table, row, ["resolution_row_id"])
+            for row in rows["audit_events"]:
+                _upsert_row(connection, audit_events_table, row, ["event_id"])
+
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None:
         with self._engine.connect() as connection:
             review_run_row = connection.execute(
@@ -870,6 +1059,51 @@ class SqlAlchemyPersistenceRepository:
         with self._engine.connect() as connection:
             run_ids = [row["run_id"] for row in connection.execute(statement).mappings().all()]
         return [bundle for run_id in run_ids if (bundle := self.get_review_run_bundle(run_id)) is not None]
+
+    def get_debate_bundle(self, debate_id: str) -> DebatePersistenceBundle | None:
+        with self._engine.connect() as connection:
+            debate_row = connection.execute(
+                select(debate_sessions_table).where(debate_sessions_table.c.debate_id == debate_id)
+            ).mappings().first()
+            if debate_row is None:
+                return None
+
+            run_id = debate_row["run_id"]
+            resolution_rows = connection.execute(
+                select(conflict_resolutions_table)
+                .where(conflict_resolutions_table.c.debate_id == debate_id)
+                .order_by(conflict_resolutions_table.c.resolution_row_id)
+            ).mappings().all()
+            audit_rows = connection.execute(
+                select(audit_events_table)
+                .where(audit_events_table.c.run_id == run_id)
+                .where(audit_events_table.c.action.in_(DEBATE_AUDIT_ACTIONS))
+                .order_by(audit_events_table.c.created_at, audit_events_table.c.event_id)
+            ).mappings().all()
+
+        review_bundle = self.get_review_run_bundle(debate_row["run_id"])
+        if review_bundle is None:
+            return None
+
+        return DebatePersistenceBundle(
+            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            portfolio=review_bundle.portfolio,
+            review_run=review_bundle.review_run,
+            debate_session=DebateSessionRecord.model_validate(dict(debate_row)),
+            conflict_resolutions=[ConflictResolutionRecord.model_validate(dict(row)) for row in resolution_rows],
+            audit_events=[_audit_event_from_row(dict(row)) for row in audit_rows],
+        )
+
+    def list_debate_bundles(self, run_id: str | None = None) -> list[DebatePersistenceBundle]:
+        statement = select(debate_sessions_table.c.debate_id).order_by(
+            debate_sessions_table.c.created_at.desc(),
+            debate_sessions_table.c.debate_id.desc(),
+        )
+        if run_id is not None:
+            statement = statement.where(debate_sessions_table.c.run_id == run_id)
+        with self._engine.connect() as connection:
+            debate_ids = [row["debate_id"] for row in connection.execute(statement).mappings().all()]
+        return [bundle for debate_id in debate_ids if (bundle := self.get_debate_bundle(debate_id)) is not None]
 
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         statement = select(audit_events_table)
@@ -1008,6 +1242,38 @@ committee_reports_table = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
+debate_sessions_table = Table(
+    "debate_sessions",
+    persistence_metadata,
+    Column("debate_id", String(192), primary_key=True),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("debate_status", String(64), nullable=False),
+    Column("max_rounds", Integer, nullable=False),
+    Column("conflicts_considered", Integer, nullable=False),
+    Column("score_change_required_count", Integer, nullable=False),
+    Column("debate_payload_hash", String(64), nullable=False),
+    Column("debate_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("run_id"),
+)
+
+conflict_resolutions_table = Table(
+    "conflict_resolutions",
+    persistence_metadata,
+    Column("resolution_row_id", String(256), primary_key=True),
+    Column("debate_id", String(192), ForeignKey("debate_sessions.debate_id"), nullable=False),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("conflict_id", String(128), nullable=False),
+    Column("outcome", String(64), nullable=False),
+    Column("score_change_required", Boolean, nullable=False),
+    Column("resolution_payload_hash", String(64), nullable=False),
+    Column("resolution_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("debate_id", "conflict_id"),
+)
+
 audit_events_table = Table(
     "audit_events",
     persistence_metadata,
@@ -1028,6 +1294,9 @@ Index("ix_review_runs_portfolio_id", review_runs_table.c.portfolio_id)
 Index("ix_agent_reviews_run_id", agent_reviews_table.c.run_id)
 Index("ix_agent_reviews_agent_id", agent_reviews_table.c.agent_id)
 Index("ix_conflicts_run_id", conflicts_table.c.run_id)
+Index("ix_debate_sessions_run_id", debate_sessions_table.c.run_id)
+Index("ix_conflict_resolutions_debate_id", conflict_resolutions_table.c.debate_id)
+Index("ix_conflict_resolutions_run_id", conflict_resolutions_table.c.run_id)
 Index("ix_audit_events_portfolio_id", audit_events_table.c.portfolio_id)
 Index("ix_audit_events_run_id", audit_events_table.c.run_id)
 Index("ix_audit_events_entity_type", audit_events_table.c.entity_type)
@@ -1097,6 +1366,22 @@ PERSISTENCE_TABLE_SPECS = [
         source_contract="orbit_worker.schemas.CommitteeReport",
         json_payload_columns=["report_payload"],
         queryable_columns=["portfolio_id", "final_recommendation", "report_payload_hash", "markdown_sha256"],
+    ),
+    PersistenceTableSpec(
+        table_name="debate_sessions",
+        purpose="Bounded moderator-controlled debate artifact for a completed review run.",
+        primary_key="debate_id",
+        source_contract="orbit_worker.schemas.DebateSession",
+        json_payload_columns=["debate_payload"],
+        queryable_columns=["run_id", "portfolio_id", "debate_status", "max_rounds", "conflicts_considered", "score_change_required_count", "debate_payload_hash"],
+    ),
+    PersistenceTableSpec(
+        table_name="conflict_resolutions",
+        purpose="Structured resolution outcomes for conflicts handled in a debate session.",
+        primary_key="resolution_row_id",
+        source_contract="orbit_worker.schemas.ConflictResolution",
+        json_payload_columns=["resolution_payload"],
+        queryable_columns=["debate_id", "run_id", "portfolio_id", "conflict_id", "outcome", "score_change_required", "resolution_payload_hash"],
     ),
     PersistenceTableSpec(
         table_name="audit_events",

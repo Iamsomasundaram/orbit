@@ -52,12 +52,12 @@ export default async function HomePage() {
     {
       label: "Ingestion API",
       value: `${portfolioList?.items.length ?? 0} stored`,
-      detail: "Milestone 3 adds markdown portfolio submission, canonicalization, and durable storage through the API service.",
+      detail: "The stored canonical portfolio base now feeds both persisted review runs and bounded debate sessions through the Python backend path.",
     },
     {
       label: "Baseline",
       value: apiInfo?.reference_runtime_stage ?? "frozen-baseline",
-      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} stays frozen until the archival target of ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 4"}.`,
+      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} stays frozen until the archival target of ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 6"}.`,
     },
   ];
 
@@ -67,18 +67,18 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex w-fit items-center rounded-full border border-orbit-pine/15 bg-orbit-mist px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orbit-pine">
-              Milestone {config.milestone} Review Run Orchestration
+              Milestone {config.milestone} Conflict Resolution and Debate
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              {config.appName} can now launch persisted review runs from stored canonical portfolios.
+              {config.appName} can now resolve persisted committee conflicts through bounded moderator-controlled debate.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              This milestone reuses the approved Python thin-slice committee path against canonical portfolio data already stored in Postgres, then persists review runs and committee artifacts without broadening into debate redesign or async workflow expansion.
+              This milestone builds on the approved Python review-run path by reconciling persisted conflicts through deterministic, synchronous debate sessions that preserve committee scoring unless explicit resolution rules require a recheck.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
-            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Review Path</div>
-            <div className="mt-2 text-2xl font-semibold">Canonical to Committee</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Debate Path</div>
+            <div className="mt-2 text-2xl font-semibold">Conflict to Resolution</div>
             <div className="mt-1 text-sm text-orbit-mist/70">Provider: {apiInfo?.llm_provider ?? "openai"}</div>
           </div>
         </div>
@@ -96,18 +96,18 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
         <article className="rounded-[28px] border border-orbit-pine/10 bg-white/75 p-6 shadow-panel backdrop-blur">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 4 Scope</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 5 Scope</div>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-orbit-ink/80">
-            <li>API review-run initiation now starts from a persisted canonical portfolio rather than reparsing a source document.</li>
-            <li>Review runs, agent reviews, conflicts, scorecards, committee reports, and review audit events now persist through the existing worker persistence boundary.</li>
+            <li>Persisted review conflicts can now enter a bounded, moderator-controlled debate session through the API without broadening into async job orchestration.</li>
+            <li>Debate sessions, conflict resolutions, and debate audit events now persist through the existing Python worker persistence boundary.</li>
             <li>Docker Compose remains the primary development workflow, with the worker still exposed on port `5004` for debugging.</li>
-            <li>The approved thin-slice committee behavior remains unchanged and is not broadened into debate redesign or advanced async workflow work in this milestone.</li>
+            <li>The approved thin-slice committee behavior remains unchanged, and scorecards stay intact unless a resolution explicitly flags committee recheck.</li>
           </ul>
         </article>
         <article className="rounded-[28px] border border-orbit-pine/10 bg-orbit-pine p-6 text-orbit-mist shadow-panel">
           <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Stored Portfolios</div>
           <p className="mt-4 text-lg leading-8">
-            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the Milestone 4 review-run API surface.
+            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the Milestone 5 review and debate API surface.
           </p>
         </article>
       </section>

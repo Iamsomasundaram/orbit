@@ -14,7 +14,7 @@ export type ServiceCard = {
 export function getRuntimeConfig(): RuntimeConfig {
   return {
     appName: process.env.NEXT_PUBLIC_APP_NAME || "ORBIT",
-    milestone: process.env.NEXT_PUBLIC_PLATFORM_MILESTONE || "4",
+    milestone: process.env.NEXT_PUBLIC_PLATFORM_MILESTONE || "5",
     internalApiBaseUrl: process.env.INTERNAL_API_BASE_URL || "http://api:8001",
     publicApiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001",
   };

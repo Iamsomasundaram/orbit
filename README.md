@@ -14,6 +14,7 @@ Current status:
 - Milestone 2.1 hardens the platform with full-fixture parity coverage, frozen JS baseline lifecycle controls, and worker host debugging on port `5004`.
 - Milestone 3 adds bounded portfolio submission APIs, canonical portfolio materialization, and durable ingestion storage without broadening into review orchestration.
 - Milestone 4 adds bounded review-run orchestration APIs that execute the approved Python thin-slice review path from persisted canonical portfolios and store review artifacts durably.
+- Milestone 5 adds bounded moderator-controlled debate APIs that resolve persisted conflicts, store debate artifacts and resolution outcomes, and preserve approved committee scoring unless a resolution explicitly flags recheck.
 
 Primary references:
 
@@ -25,6 +26,7 @@ Primary references:
 - `docs/milestone-2.1/README.md`
 - `docs/milestone-3/README.md`
 - `docs/milestone-4/README.md`
+- `docs/milestone-5/README.md`
 
 Platform commands:
 
@@ -35,6 +37,9 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/portfolios`
 - `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}`
+- `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
+- `GET http://localhost:5001/api/v1/debates/{debate_id}`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`
 

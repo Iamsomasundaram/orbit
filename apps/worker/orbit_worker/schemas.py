@@ -102,6 +102,53 @@ class ConflictRecord(OrbitModel):
     status: str
 
 
+class DebatePosition(OrbitModel):
+    agent_id: str
+    agent_name: str
+    recommendation: str
+    conflict_view: str
+    cited_evidence_refs: list[str]
+    dimension_focus: list[str]
+
+
+class DebateRound(OrbitModel):
+    round_index: int
+    focus: str
+    moderator_prompt: str
+    participant_positions: list[DebatePosition]
+    moderator_observation: str
+    exit_criteria_met: bool
+
+
+class ConflictResolution(OrbitModel):
+    resolution_id: str
+    conflict_id: str
+    conflict_type: str
+    topic: str
+    outcome: str
+    resolution_summary: str
+    moderator_rationale: str
+    applied_conditions: list[str]
+    score_change_required: bool
+    score_change_rationale: str | None = None
+    follow_up_action: str
+    status: str
+
+
+class DebateSession(OrbitModel):
+    debate_id: str
+    run_id: str
+    portfolio_id: str
+    moderator_id: str
+    moderator_name: str
+    debate_status: str
+    max_rounds: int
+    rounds: list[DebateRound]
+    resolutions: list[ConflictResolution]
+    executive_summary: str
+    audit_notes: list[str]
+
+
 class Scorecard(OrbitModel):
     portfolio_id: str
     run_id: str
@@ -178,6 +225,17 @@ def validate_agent_review(review: Any) -> AgentReview:
 
 def validate_conflict_record(conflict: Any) -> ConflictRecord:
     return ConflictRecord.model_validate(conflict)
+
+
+def validate_conflict_resolution(resolution: Any) -> ConflictResolution:
+    return ConflictResolution.model_validate(resolution)
+
+
+def validate_debate_session(session: Any) -> DebateSession:
+    model = DebateSession.model_validate(session)
+    for resolution in model.resolutions:
+        validate_conflict_resolution(resolution)
+    return model
 
 
 def validate_scorecard(scorecard: Any) -> Scorecard:
