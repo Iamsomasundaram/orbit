@@ -81,7 +81,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       PORTFOLIO_STORAGE_DIR: ${PORTFOLIO_STORAGE_DIR:-/workspace/.orbit-data/portfolio-submissions}
-      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-frozen-baseline}
+      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-archived-baseline}
       JS_BASELINE_ARCHIVAL_TARGET_MILESTONE: "${JS_BASELINE_ARCHIVAL_TARGET_MILESTONE:-Milestone 7.1}"
       PYTHONPATH: /workspace/apps/api:/workspace/apps/worker
     depends_on:
@@ -133,7 +133,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       JS_BASELINE_MODE: ${JS_BASELINE_MODE:-reference}
-      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-frozen-baseline}
+      JS_BASELINE_ARCHIVAL_STAGE: ${JS_BASELINE_ARCHIVAL_STAGE:-archived-baseline}
       JS_BASELINE_ARCHIVAL_TARGET_MILESTONE: "${JS_BASELINE_ARCHIVAL_TARGET_MILESTONE:-Milestone 7.1}"
       PYTHONPATH: /workspace/apps/worker
     depends_on:
@@ -177,7 +177,7 @@ services:
       NODE_ENV: development
       PORT: ${WEB_INTERNAL_PORT:-3000}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-ORBIT}
-      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-7}
+      NEXT_PUBLIC_PLATFORM_MILESTONE: ${NEXT_PUBLIC_PLATFORM_MILESTONE:-7.1}
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5001}
       INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8001}
     depends_on:
@@ -200,16 +200,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-
-  worker-js-baseline:
-    profiles: ["baseline"]
-    image: node:20-slim
-    working_dir: /workspace
-    volumes:
-      - .:/workspace
-    command:
-      - node
-      - apps/worker/src/cli/refresh-baselines.js
 
   worker-parity:
     profiles: ["baseline"]

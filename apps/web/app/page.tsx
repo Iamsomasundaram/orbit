@@ -66,13 +66,13 @@ export default async function HomePage() {
       value: `${history?.review_run_count ?? 0} runs`,
       detail:
         history != null
-          ? `${history.debate_count} debates and ${history.resynthesis_count} re-syntheses are now inspectable through lineage-aware API responses.`
+          ? `${history.debate_count} debates and ${history.resynthesis_count} re-syntheses remain inspectable through lineage-aware API responses.`
           : "Review history endpoints become active as soon as the first portfolio is stored.",
     },
     {
       label: "Baseline",
-      value: apiInfo?.reference_runtime_stage ?? "frozen-baseline",
-      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} stays frozen until the archival target of ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`,
+      value: apiInfo?.reference_runtime_stage ?? "archived-baseline",
+      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} is now archived, while parity continues against the committed artifact set targeted in ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`,
     },
   ];
 
@@ -82,18 +82,18 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex w-fit items-center rounded-full border border-orbit-pine/15 bg-orbit-mist px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orbit-pine">
-              Milestone {config.milestone} Review History and Artifact Inspection
+              Milestone {config.milestone} JS Baseline Archival
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              {config.appName} now exposes lineage-aware review history and artifact inspection across portfolios, review runs, debates, and re-syntheses.
+              {config.appName} now runs only on the Python backend path, with the former JS thin-slice preserved as an archived reference artifact set.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              This milestone adds auditable history retrieval and explicit original-versus-active artifact visibility while keeping the approved committee behavior and Docker-first workflow unchanged.
+              This milestone completes JS baseline archival, keeps parity against committed reference artifacts, and preserves the approved review, debate, and re-synthesis behavior under the Docker-first Python runtime.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
-            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Artifact Lineage</div>
-            <div className="mt-2 text-2xl font-semibold">Original and Active State</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Reference Runtime</div>
+            <div className="mt-2 text-2xl font-semibold">Archived Baseline</div>
             <div className="mt-1 text-sm text-orbit-mist/70">Provider: {apiInfo?.llm_provider ?? "openai"}</div>
           </div>
         </div>
@@ -111,18 +111,18 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
         <article className="rounded-[28px] border border-orbit-pine/10 bg-white/75 p-6 shadow-panel backdrop-blur">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 7 Scope</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 7.1 Scope</div>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-orbit-ink/80">
-            <li>Portfolio history endpoints now expose lineage across canonical portfolio state, review runs, debates, and optional re-syntheses.</li>
-            <li>Artifact inspection endpoints now show original versus active scorecard and committee report state without mutating approved committee outcomes.</li>
+            <li>The executable JS baseline path has been removed from the active Compose workflow and moved behind an explicit archive boundary in the repository.</li>
+            <li>Committed baseline artifacts remain the parity reference, so Python output is still checked against the approved historical committee outputs.</li>
             <li>Docker Compose remains the primary workflow, with migrated persistence, live API inspection, and worker validation staying on the Python backend path.</li>
-            <li>The JS baseline remains frozen reference-only while the active runtime continues to expose auditable lineage through Python-owned contracts.</li>
+            <li>Review history and artifact inspection from Milestone 7 remain intact while the platform reports the baseline lifecycle as archived.</li>
           </ul>
         </article>
         <article className="rounded-[28px] border border-orbit-pine/10 bg-orbit-pine p-6 text-orbit-mist shadow-panel">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Inspectable History</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Archived Platform State</div>
           <p className="mt-4 text-lg leading-8">
-            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the Milestone 7 history and artifact inspection API surface.
+            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the Milestone 7.1 archived-baseline platform surface.
           </p>
         </article>
       </section>

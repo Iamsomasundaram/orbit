@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     orbit_env: str = Field(default="local", alias="ORBIT_ENV")
     service_name: str = "orbit-worker"
-    milestone: str = "7"
+    milestone: str = "7.1"
     worker_internal_port: int = Field(default=8002, alias="WORKER_INTERNAL_PORT")
     postgres_host: str = Field(default="postgres", alias="POSTGRES_HOST")
     postgres_internal_port: int = Field(default=5432, alias="POSTGRES_INTERNAL_PORT")
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     llm_provider: str = Field(default="openai", alias="LLM_PROVIDER")
     openai_model: str = Field(default="", alias="OPENAI_MODEL")
     js_baseline_mode: str = Field(default="reference", alias="JS_BASELINE_MODE")
-    js_baseline_archival_stage: str = Field(default="frozen-baseline", alias="JS_BASELINE_ARCHIVAL_STAGE")
+    js_baseline_archival_stage: str = Field(default="archived-baseline", alias="JS_BASELINE_ARCHIVAL_STAGE")
     js_baseline_archival_target_milestone: str = Field(default="Milestone 7.1", alias="JS_BASELINE_ARCHIVAL_TARGET_MILESTONE")
 
 

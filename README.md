@@ -7,7 +7,7 @@ ORBIT is an AI-powered multi-agent product and investment review committee for s
 Current status:
 
 - Milestone 0 artifacts are complete in `docs/milestone-0/`.
-- Milestone 0.5 behavioral proof remains available as the JS reference baseline.
+- Milestone 0.5 behavioral proof remains preserved as committed JS baseline artifacts and archived reference source.
 - Milestone 0.5a established the Python thin-slice runtime as the primary backend execution path.
 - Milestone 1 added the local platform foundation for `web`, `api`, `worker`, `postgres`, and `redis` through Docker Compose.
 - Milestone 2 added durable persistence models, executable Postgres schema generation, and persistence boundary documentation while keeping the approved review behavior unchanged.
@@ -18,6 +18,7 @@ Current status:
 - Milestone 6 adds bounded score recheck and committee re-synthesis APIs that consume persisted debate resolutions, preserve original committee artifacts, and materialize re-synthesized outputs only when a resolution explicitly requires it.
 - Milestone 6.1 hardens persistence with Alembic-managed schema discipline, DB-backed duplicate enforcement on bounded creation paths, migration bootstrap for legacy local dev databases, and regression coverage for original versus re-synthesized artifact selection.
 - Milestone 7 adds lineage-aware review history and artifact inspection APIs so portfolios, review runs, debates, and re-syntheses can be audited without changing approved committee behavior.
+- Milestone 7.1 archives the executable JS baseline path, preserves parity against the committed baseline artifacts, and keeps the Python runtime as the only active backend direction.
 
 Primary references:
 
@@ -33,6 +34,7 @@ Primary references:
 - `docs/milestone-6/README.md`
 - `docs/milestone-6.1/README.md`
 - `docs/milestone-7/README.md`
+- `docs/milestone-7.1/README.md`
 
 Platform commands:
 
@@ -55,14 +57,15 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}/artifacts`
 - `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}/history`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
-- `docker compose --profile baseline run --rm worker-js-baseline`
+- `docker compose --profile baseline run --rm worker-parity`
 
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
 - `apps/web` -> Next.js platform shell and local workspace landing page
 - `apps/worker` -> primary Python backend execution runtime, parity tests, and persistence contracts
-- `packages/orbit-*` -> frozen JS baseline modules retained until archival
+- `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
+- `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path
 - `docs/` -> milestone packs and review gates
 - `tests/fixtures/` -> golden portfolios, source documents, parity matrix, and committed baseline artifacts
 

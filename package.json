@@ -3,13 +3,12 @@
   "private": true,
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "review:thin-slice": "node apps/worker/src/cli/review-portfolio.js tests/fixtures/source-documents/procurepilot-thin-slice.md --output-dir .orbit-artifacts/thin-slice",
-    "test": "node --test",
+    "review:thin-slice": "docker compose run --rm worker /app/.venv/bin/python -m orbit_worker.cli tests/fixtures/source-documents/procurepilot-thin-slice.md --output-dir .orbit-artifacts/thin-slice",
+    "test": "docker compose --profile baseline run --rm worker-parity",
     "platform:build": "docker compose build api worker web",
     "platform:up": "docker compose up -d --build postgres redis api worker web",
     "platform:down": "docker compose down --remove-orphans",
     "platform:ps": "docker compose ps",
-    "baseline:refresh": "docker compose --profile baseline run --rm worker-js-baseline",
     "baseline:parity": "docker compose --profile baseline run --rm worker-parity"
   }
 }

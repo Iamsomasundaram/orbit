@@ -1,11 +1,10 @@
 # Worker App
 
-The worker now contains four runtime layers:
+The worker now contains three active runtime layers:
 
-- the approved JS thin-slice baseline path for reference only
-- the Python thin-slice parity path from Milestone 0.5a
+- the Python thin-slice parity path from Milestone 0.5a onward
 - the Milestone 1 Python worker service used by the local platform foundation
-- the Milestone 2 persistence contracts and database-facing schema boundary
+- the Milestone 2+ persistence contracts and database-facing schema boundary
 
 Current capability:
 
@@ -17,13 +16,13 @@ Current capability:
 - generate a committee report in JSON and Markdown
 - materialize durable persistence bundles for portfolio, review, and audit artifacts
 - expose worker liveness and readiness health endpoints for Compose and host debugging on port `5004`
-- validate Python parity against the frozen JS baseline through Docker Compose across all three golden fixtures
+- validate Python parity against the archived JS baseline artifact set through Docker Compose across all three golden fixtures
 
-Reference baseline entry points:
+Archived JS baseline source:
 
-- `apps/worker/src/review-runner.js`
-- `apps/worker/src/cli/review-portfolio.js`
-- `apps/worker/src/cli/refresh-baselines.js`
+- `archive/js-baseline/apps/worker/src/review-runner.js`
+- `archive/js-baseline/apps/worker/src/cli/review-portfolio.js`
+- `archive/js-baseline/apps/worker/src/cli/refresh-baselines.js`
 
 Primary Python runtime entry points:
 
@@ -38,5 +37,5 @@ Compose validation commands:
 
 - `docker compose build api worker web worker-parity`
 - `docker compose up -d postgres redis api worker web`
-- `docker compose --profile baseline run --rm worker-js-baseline`
 - `docker compose --profile baseline run --rm worker-parity`
+- `docker compose run --rm worker /app/.venv/bin/python -m orbit_worker.cli tests/fixtures/source-documents/procurepilot-thin-slice.md --output-dir .orbit-artifacts/thin-slice`
