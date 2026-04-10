@@ -17,6 +17,7 @@ from .debates import (
     ReviewRunDebateNotFoundError,
 )
 from .health import HealthResponse, ServiceInfo, live_response, readiness_response, service_info
+from .history import ArtifactInspectionDetail, PortfolioHistoryDetail, ReviewHistoryService
 from .portfolios import (
     InvalidPortfolioDocumentError,
     PortfolioAlreadyExistsError,
@@ -56,6 +57,7 @@ async def lifespan(app: FastAPI):
     app.state.review_run_service = ReviewRunService(repository=repository)
     app.state.debate_service = DebateService(repository=repository)
     app.state.resynthesis_service = ResynthesisService(repository=repository)
+    app.state.review_history_service = ReviewHistoryService(repository=repository)
     try:
         yield
     finally:
@@ -79,6 +81,10 @@ def debate_service(request: Request) -> DebateService:
 
 def resynthesis_service(request: Request) -> ResynthesisService:
     return request.app.state.resynthesis_service
+
+
+def review_history_service(request: Request) -> ReviewHistoryService:
+    return request.app.state.review_history_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -138,6 +144,14 @@ def get_portfolio(request: Request, portfolio_id: str) -> PortfolioDetail:
     return detail
 
 
+@app.get("/api/v1/portfolios/{portfolio_id}/history", response_model=PortfolioHistoryDetail)
+def get_portfolio_history(request: Request, portfolio_id: str) -> PortfolioHistoryDetail:
+    detail = review_history_service(request).get_portfolio_history(portfolio_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Portfolio '{portfolio_id}' was not found.")
+    return detail
+
+
 @app.post("/api/v1/portfolios/{portfolio_id}/review-runs", response_model=ReviewRunSummary, status_code=status.HTTP_201_CREATED)
 def start_review_run(request: Request, portfolio_id: str) -> ReviewRunSummary:
     service = review_run_service(request)
@@ -157,6 +171,14 @@ def list_portfolio_review_runs(request: Request, portfolio_id: str) -> ReviewRun
 @app.get("/api/v1/review-runs/{run_id}", response_model=ReviewRunDetail)
 def get_review_run(request: Request, run_id: str) -> ReviewRunDetail:
     detail = review_run_service(request).get_review_run(run_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/review-runs/{run_id}/artifacts", response_model=ArtifactInspectionDetail)
+def get_review_run_artifacts(request: Request, run_id: str) -> ArtifactInspectionDetail:
+    detail = review_history_service(request).get_review_run_artifacts(run_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
     return detail
@@ -188,6 +210,14 @@ def get_debate(request: Request, debate_id: str) -> DebateDetail:
     return detail
 
 
+@app.get("/api/v1/debates/{debate_id}/artifacts", response_model=ArtifactInspectionDetail)
+def get_debate_artifacts(request: Request, debate_id: str) -> ArtifactInspectionDetail:
+    detail = review_history_service(request).get_debate_artifacts(debate_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Debate session '{debate_id}' was not found.")
+    return detail
+
+
 @app.post("/api/v1/debates/{debate_id}/re-synthesis", response_model=ResynthesisSummary, status_code=status.HTTP_201_CREATED)
 def start_resynthesis(request: Request, debate_id: str) -> ResynthesisSummary:
     service = resynthesis_service(request)
@@ -209,6 +239,14 @@ def list_debate_resyntheses(request: Request, debate_id: str) -> ResynthesisList
 @app.get("/api/v1/re-syntheses/{resynthesis_id}", response_model=ResynthesisDetail)
 def get_resynthesis(request: Request, resynthesis_id: str) -> ResynthesisDetail:
     detail = resynthesis_service(request).get_resynthesis(resynthesis_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Re-synthesis session '{resynthesis_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/re-syntheses/{resynthesis_id}/artifacts", response_model=ArtifactInspectionDetail)
+def get_resynthesis_artifacts(request: Request, resynthesis_id: str) -> ArtifactInspectionDetail:
+    detail = review_history_service(request).get_resynthesis_artifacts(resynthesis_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Re-synthesis session '{resynthesis_id}' was not found.")
     return detail

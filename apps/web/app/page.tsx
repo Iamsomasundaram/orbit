@@ -27,6 +27,12 @@ type PortfolioListPayload = {
   items: Array<{ portfolio_id: string }>;
 };
 
+type PortfolioHistoryPayload = {
+  review_run_count: number;
+  debate_count: number;
+  resynthesis_count: number;
+};
+
 export default async function HomePage() {
   const config = getRuntimeConfig();
   const [apiReady, apiInfo, persistenceCatalog, portfolioList] = await Promise.all([
@@ -35,6 +41,12 @@ export default async function HomePage() {
     fetchJson<PersistenceCatalogPayload>(`${config.internalApiBaseUrl}/api/v1/system/persistence/schema`),
     fetchJson<PortfolioListPayload>(`${config.internalApiBaseUrl}/api/v1/portfolios`),
   ]);
+  const history =
+    portfolioList?.items?.[0] != null
+      ? await fetchJson<PortfolioHistoryPayload>(
+          `${config.internalApiBaseUrl}/api/v1/portfolios/${portfolioList.items[0].portfolio_id}/history`,
+        )
+      : null;
 
   const cards: ServiceCard[] = [
     {
@@ -50,14 +62,17 @@ export default async function HomePage() {
       detail: `${persistenceCatalog?.tables.length ?? apiInfo?.persistence_tables ?? 0} durable tables defined from the Python worker contracts.`,
     },
     {
-      label: "Ingestion API",
-      value: `${portfolioList?.items.length ?? 0} stored`,
-      detail: "The stored canonical portfolio base now feeds persisted review runs, debate sessions, and bounded committee re-synthesis through the Python backend path.",
+      label: "History",
+      value: `${history?.review_run_count ?? 0} runs`,
+      detail:
+        history != null
+          ? `${history.debate_count} debates and ${history.resynthesis_count} re-syntheses are now inspectable through lineage-aware API responses.`
+          : "Review history endpoints become active as soon as the first portfolio is stored.",
     },
     {
       label: "Baseline",
       value: apiInfo?.reference_runtime_stage ?? "frozen-baseline",
-      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} stays frozen until the archival target of ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7"}.`,
+      detail: `${apiInfo?.reference_runtime ?? "js-baseline-only"} stays frozen until the archival target of ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`,
     },
   ];
 
@@ -67,18 +82,18 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex w-fit items-center rounded-full border border-orbit-pine/15 bg-orbit-mist px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orbit-pine">
-              Milestone {config.milestone} Persistence and Migration Hardening
+              Milestone {config.milestone} Review History and Artifact Inspection
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              {config.appName} now runs on an explicit migration baseline and stronger DB-backed persistence guarantees without changing the approved committee behavior.
+              {config.appName} now exposes lineage-aware review history and artifact inspection across portfolios, review runs, debates, and re-syntheses.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              This milestone hardens schema evolution, duplicate enforcement, and local Docker workflow discipline around the existing portfolio, review, debate, and re-synthesis paths.
+              This milestone adds auditable history retrieval and explicit original-versus-active artifact visibility while keeping the approved committee behavior and Docker-first workflow unchanged.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
-            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Migration Discipline</div>
-            <div className="mt-2 text-2xl font-semibold">Schema Before Runtime</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Artifact Lineage</div>
+            <div className="mt-2 text-2xl font-semibold">Original and Active State</div>
             <div className="mt-1 text-sm text-orbit-mist/70">Provider: {apiInfo?.llm_provider ?? "openai"}</div>
           </div>
         </div>
@@ -96,18 +111,18 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
         <article className="rounded-[28px] border border-orbit-pine/10 bg-white/75 p-6 shadow-panel backdrop-blur">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 6.1 Scope</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-pine/70">Milestone 7 Scope</div>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-orbit-ink/80">
-            <li>Alembic now owns the baseline persistence schema, and API startup expects a migrated database instead of creating tables implicitly.</li>
-            <li>Portfolio submission, debate creation, and re-synthesis creation now rely on stronger DB-backed uniqueness enforcement where practical.</li>
-            <li>Docker Compose remains the primary workflow, with migrations applied before API and worker startup and the worker still exposed on port `5004` for debugging.</li>
-            <li>Original review artifacts and optional re-synthesized artifacts keep the approved bounded behavior and storage semantics from Milestones 5 and 6.</li>
+            <li>Portfolio history endpoints now expose lineage across canonical portfolio state, review runs, debates, and optional re-syntheses.</li>
+            <li>Artifact inspection endpoints now show original versus active scorecard and committee report state without mutating approved committee outcomes.</li>
+            <li>Docker Compose remains the primary workflow, with migrated persistence, live API inspection, and worker validation staying on the Python backend path.</li>
+            <li>The JS baseline remains frozen reference-only while the active runtime continues to expose auditable lineage through Python-owned contracts.</li>
           </ul>
         </article>
         <article className="rounded-[28px] border border-orbit-pine/10 bg-orbit-pine p-6 text-orbit-mist shadow-panel">
-          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Stored Portfolios</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Inspectable History</div>
           <p className="mt-4 text-lg leading-8">
-            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the hardened Milestone 6.1 review, debate, and re-synthesis API surface.
+            {portfolioList?.items.length ?? 0} canonical portfolio submissions are currently available to the Milestone 7 history and artifact inspection API surface.
           </p>
         </article>
       </section>

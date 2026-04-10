@@ -17,6 +17,7 @@ Current status:
 - Milestone 5 adds bounded moderator-controlled debate APIs that resolve persisted conflicts, store debate artifacts and resolution outcomes, and preserve approved committee scoring unless a resolution explicitly flags recheck.
 - Milestone 6 adds bounded score recheck and committee re-synthesis APIs that consume persisted debate resolutions, preserve original committee artifacts, and materialize re-synthesized outputs only when a resolution explicitly requires it.
 - Milestone 6.1 hardens persistence with Alembic-managed schema discipline, DB-backed duplicate enforcement on bounded creation paths, migration bootstrap for legacy local dev databases, and regression coverage for original versus re-synthesized artifact selection.
+- Milestone 7 adds lineage-aware review history and artifact inspection APIs so portfolios, review runs, debates, and re-syntheses can be audited without changing approved committee behavior.
 
 Primary references:
 
@@ -31,6 +32,7 @@ Primary references:
 - `docs/milestone-5/README.md`
 - `docs/milestone-6/README.md`
 - `docs/milestone-6.1/README.md`
+- `docs/milestone-7/README.md`
 
 Platform commands:
 
@@ -46,9 +48,13 @@ Platform commands:
 - `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}`
+- `GET http://localhost:5001/api/v1/debates/{debate_id}/artifacts`
 - `POST http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
+- `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}/artifacts`
+- `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}/history`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
 - `docker compose --profile baseline run --rm worker-js-baseline`
 
 Repository layout:
