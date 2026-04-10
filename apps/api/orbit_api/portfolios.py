@@ -8,6 +8,7 @@ from orbit_worker.ingestion import parse_markdown, slugify
 from orbit_worker.persistence import (
     AuditEventRecord,
     CanonicalPortfolioRecord,
+    PortfolioConflictError,
     PersistenceRepository,
     PortfolioIngestionBundle,
     PortfolioRecord,
@@ -101,19 +102,22 @@ class PortfolioIngestionService:
 
         provisional_filename = sanitize_filename(submission.document_title)
         provisional_portfolio = parse_markdown(normalized_content, provisional_filename)
-        if self._repository.get_portfolio_bundle(provisional_portfolio.portfolio_id) is not None:
+        target_directory = (self._storage_root / provisional_portfolio.portfolio_id).resolve()
+        target_path = target_directory / provisional_filename
+        canonical_portfolio = parse_markdown(normalized_content, str(target_path))
+        bundle = build_portfolio_ingestion_bundle(
+            canonical_portfolio,
+            source_contents_by_document_id={"source-markdown-001": f"{normalized_content}\n".encode("utf-8")},
+        )
+        try:
+            self._repository.save_portfolio_bundle(bundle)
+        except PortfolioConflictError as exc:
             raise PortfolioAlreadyExistsError(
                 f"Portfolio '{provisional_portfolio.portfolio_id}' already exists in the ingestion store."
-            )
+            ) from exc
 
-        target_directory = (self._storage_root / provisional_portfolio.portfolio_id).resolve()
         target_directory.mkdir(parents=True, exist_ok=True)
-        target_path = target_directory / provisional_filename
         target_path.write_text(f"{normalized_content}\n", encoding="utf-8")
-
-        canonical_portfolio = parse_markdown(normalized_content, str(target_path))
-        bundle = build_portfolio_ingestion_bundle(canonical_portfolio)
-        self._repository.save_portfolio_bundle(bundle)
         return bundle_to_detail(bundle)
 
     def get_portfolio(self, portfolio_id: str) -> PortfolioDetail | None:

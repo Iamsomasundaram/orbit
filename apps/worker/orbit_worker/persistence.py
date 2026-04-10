@@ -7,9 +7,10 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint, create_engine, select
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint, create_engine, inspect, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
 from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
@@ -26,6 +27,26 @@ RESYNTHESIS_AUDIT_ACTIONS = (
     "scorecard.rechecked",
     "committee_report.resynthesized",
 )
+
+
+class SchemaNotReadyError(RuntimeError):
+    pass
+
+
+class PersistenceConflictError(RuntimeError):
+    pass
+
+
+class PortfolioConflictError(PersistenceConflictError):
+    pass
+
+
+class DebateConflictError(PersistenceConflictError):
+    pass
+
+
+class ResynthesisConflictError(PersistenceConflictError):
+    pass
 
 
 class PersistenceTableSpec(OrbitModel):
@@ -263,6 +284,10 @@ class PortfolioIngestionBundle(OrbitModel):
 
 
 class PersistenceRepository(Protocol):
+    def assert_schema_ready(self) -> None: ...
+
+    def dispose(self) -> None: ...
+
     def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None: ...
 
     def get_portfolio_bundle(self, portfolio_id: str) -> PortfolioIngestionBundle | None: ...
@@ -298,7 +323,17 @@ class InMemoryPersistenceRepository:
         self._resyntheses: dict[str, ResynthesisPersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
 
+    def assert_schema_ready(self) -> None:
+        return None
+
+    def dispose(self) -> None:
+        return None
+
     def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
+        if bundle.portfolio.portfolio_id in self._portfolios:
+            raise PortfolioConflictError(
+                f"Portfolio '{bundle.portfolio.portfolio_id}' already exists in the persistence store."
+            )
         self._portfolios[bundle.portfolio.portfolio_id] = bundle
         for event in bundle.audit_events:
             self._audit_events[event.event_id] = event
@@ -314,6 +349,10 @@ class InMemoryPersistenceRepository:
         )
 
     def save_review_bundle(self, bundle: ReviewPersistenceBundle) -> None:
+        if bundle.review_run.run_id in self._review_runs:
+            raise PersistenceConflictError(
+                f"Review run '{bundle.review_run.run_id}' already exists in the persistence store."
+            )
         self._review_runs[bundle.review_run.run_id] = bundle
         self._portfolios[bundle.portfolio.portfolio_id] = PortfolioIngestionBundle(
             schema_version=bundle.schema_version,
@@ -339,6 +378,10 @@ class InMemoryPersistenceRepository:
         )
 
     def save_debate_bundle(self, bundle: DebatePersistenceBundle) -> None:
+        if any(existing.review_run.run_id == bundle.review_run.run_id for existing in self._debates.values()):
+            raise DebateConflictError(
+                f"Review run '{bundle.review_run.run_id}' already has a persisted debate session."
+            )
         self._debates[bundle.debate_session.debate_id] = bundle
         for event in bundle.audit_events:
             self._audit_events[event.event_id] = event
@@ -357,6 +400,10 @@ class InMemoryPersistenceRepository:
         )
 
     def save_resynthesis_bundle(self, bundle: ResynthesisPersistenceBundle) -> None:
+        if any(existing.debate_session.debate_id == bundle.debate_session.debate_id for existing in self._resyntheses.values()):
+            raise ResynthesisConflictError(
+                f"Debate session '{bundle.debate_session.debate_id}' already has a persisted re-synthesis session."
+            )
         self._resyntheses[bundle.resynthesis_session.resynthesis_id] = bundle
         for event in bundle.audit_events:
             self._audit_events[event.event_id] = event
@@ -405,7 +452,9 @@ def _model_row(model: BaseModel) -> dict[str, Any]:
     return model.model_dump(mode="python")
 
 
-def _source_document_hash(source_document: SourceDocument) -> tuple[str, bool]:
+def _source_document_hash(source_document: SourceDocument, content_bytes: bytes | None = None) -> tuple[str, bool]:
+    if content_bytes is not None:
+        return sha256(content_bytes).hexdigest(), True
     source_path = Path(source_document.path)
     if source_path.exists() and source_path.is_file():
         return sha256(source_path.read_bytes()).hexdigest(), True
@@ -480,11 +529,16 @@ def build_portfolio_record(canonical_portfolio: CanonicalPortfolio, latest_revie
     )
 
 
-def build_source_document_records(canonical_portfolio: CanonicalPortfolio, now: datetime | None = None) -> list[SourceDocumentRecord]:
+def build_source_document_records(
+    canonical_portfolio: CanonicalPortfolio,
+    now: datetime | None = None,
+    source_contents_by_document_id: dict[str, bytes] | None = None,
+) -> list[SourceDocumentRecord]:
     timestamp = now or datetime.now(timezone.utc)
     records: list[SourceDocumentRecord] = []
     for source_document in canonical_portfolio.source_documents:
-        document_hash, content_available = _source_document_hash(source_document)
+        content_bytes = None if source_contents_by_document_id is None else source_contents_by_document_id.get(source_document.id)
+        document_hash, content_available = _source_document_hash(source_document, content_bytes=content_bytes)
         records.append(
             SourceDocumentRecord(
                 source_document_row_id=_source_document_row_id(canonical_portfolio.portfolio_id, source_document.id),
@@ -927,12 +981,17 @@ def build_ingestion_audit_event_records(
 def build_portfolio_ingestion_bundle(
     canonical_portfolio: CanonicalPortfolio,
     now: datetime | None = None,
+    source_contents_by_document_id: dict[str, bytes] | None = None,
 ) -> PortfolioIngestionBundle:
     timestamp = now or datetime.now(timezone.utc)
     return PortfolioIngestionBundle(
         schema_version=PERSISTENCE_SCHEMA_VERSION,
         portfolio=build_portfolio_record(canonical_portfolio, latest_review_run_id=None, now=timestamp),
-        source_documents=build_source_document_records(canonical_portfolio, now=timestamp),
+        source_documents=build_source_document_records(
+            canonical_portfolio,
+            now=timestamp,
+            source_contents_by_document_id=source_contents_by_document_id,
+        ),
         canonical_portfolio=build_canonical_portfolio_record(canonical_portfolio, now=timestamp),
         audit_events=build_ingestion_audit_event_records(canonical_portfolio, now=timestamp),
     )
@@ -1141,6 +1200,10 @@ def _upsert_row(connection: Any, table: Table, row: dict[str, Any], conflict_col
     )
 
 
+def _insert_row(connection: Any, table: Table, row: dict[str, Any]) -> None:
+    connection.execute(insert(table).values(**row))
+
+
 def _audit_event_from_row(row: dict[str, Any]) -> AuditEventRecord:
     return AuditEventRecord.model_validate(
         {
@@ -1165,21 +1228,35 @@ class SqlAlchemyPersistenceRepository:
     def __init__(self, database_url: str) -> None:
         self._engine = create_engine(database_url, future=True, pool_pre_ping=True)
 
-    def ensure_schema(self) -> None:
-        persistence_metadata.create_all(self._engine)
+    def assert_schema_ready(self) -> None:
+        table_names = set(inspect(self._engine).get_table_names())
+        expected_tables = {table.name for table in persistence_metadata.sorted_tables}
+        missing_tables = sorted(expected_tables - table_names)
+        if "alembic_version" not in table_names or missing_tables:
+            missing = ["alembic_version"] if "alembic_version" not in table_names else []
+            missing.extend(missing_tables)
+            raise SchemaNotReadyError(
+                "Persistence schema is not ready. Run Alembic migrations before starting ORBIT. "
+                f"Missing tables: {', '.join(missing)}."
+            )
 
     def dispose(self) -> None:
         self._engine.dispose()
 
     def save_portfolio_bundle(self, bundle: PortfolioIngestionBundle) -> None:
         rows = ingestion_bundle_to_table_rows(bundle)
-        with self._engine.begin() as connection:
-            _upsert_row(connection, portfolios_table, rows["portfolios"][0], ["portfolio_id"])
-            for row in rows["source_documents"]:
-                _upsert_row(connection, source_documents_table, row, ["source_document_row_id"])
-            _upsert_row(connection, canonical_portfolios_table, rows["canonical_portfolios"][0], ["canonical_portfolio_row_id"])
-            for row in rows["audit_events"]:
-                _upsert_row(connection, audit_events_table, row, ["event_id"])
+        try:
+            with self._engine.begin() as connection:
+                _insert_row(connection, portfolios_table, rows["portfolios"][0])
+                for row in rows["source_documents"]:
+                    _insert_row(connection, source_documents_table, row)
+                _insert_row(connection, canonical_portfolios_table, rows["canonical_portfolios"][0])
+                for row in rows["audit_events"]:
+                    _insert_row(connection, audit_events_table, row)
+        except IntegrityError as exc:
+            raise PortfolioConflictError(
+                f"Portfolio '{bundle.portfolio.portfolio_id}' already exists in the persistence store."
+            ) from exc
 
     def get_portfolio_bundle(self, portfolio_id: str) -> PortfolioIngestionBundle | None:
         with self._engine.connect() as connection:
@@ -1236,35 +1313,45 @@ class SqlAlchemyPersistenceRepository:
             for row in rows["source_documents"]:
                 _upsert_row(connection, source_documents_table, row, ["source_document_row_id"])
             _upsert_row(connection, canonical_portfolios_table, rows["canonical_portfolios"][0], ["canonical_portfolio_row_id"])
-            _upsert_row(connection, review_runs_table, rows["review_runs"][0], ["run_id"])
+            _insert_row(connection, review_runs_table, rows["review_runs"][0])
             for row in rows["agent_reviews"]:
-                _upsert_row(connection, agent_reviews_table, row, ["agent_review_row_id"])
+                _insert_row(connection, agent_reviews_table, row)
             for row in rows["conflicts"]:
-                _upsert_row(connection, conflicts_table, row, ["conflict_row_id"])
-            _upsert_row(connection, scorecards_table, rows["scorecards"][0], ["run_id"])
-            _upsert_row(connection, committee_reports_table, rows["committee_reports"][0], ["run_id"])
+                _insert_row(connection, conflicts_table, row)
+            _insert_row(connection, scorecards_table, rows["scorecards"][0])
+            _insert_row(connection, committee_reports_table, rows["committee_reports"][0])
             for row in rows["audit_events"]:
-                _upsert_row(connection, audit_events_table, row, ["event_id"])
+                _insert_row(connection, audit_events_table, row)
 
     def save_debate_bundle(self, bundle: DebatePersistenceBundle) -> None:
         rows = debate_bundle_to_table_rows(bundle)
-        with self._engine.begin() as connection:
-            _upsert_row(connection, debate_sessions_table, rows["debate_sessions"][0], ["debate_id"])
-            for row in rows["conflict_resolutions"]:
-                _upsert_row(connection, conflict_resolutions_table, row, ["resolution_row_id"])
-            for row in rows["audit_events"]:
-                _upsert_row(connection, audit_events_table, row, ["event_id"])
+        try:
+            with self._engine.begin() as connection:
+                _insert_row(connection, debate_sessions_table, rows["debate_sessions"][0])
+                for row in rows["conflict_resolutions"]:
+                    _insert_row(connection, conflict_resolutions_table, row)
+                for row in rows["audit_events"]:
+                    _insert_row(connection, audit_events_table, row)
+        except IntegrityError as exc:
+            raise DebateConflictError(
+                f"Review run '{bundle.review_run.run_id}' already has a persisted debate session."
+            ) from exc
 
     def save_resynthesis_bundle(self, bundle: ResynthesisPersistenceBundle) -> None:
         rows = resynthesis_bundle_to_table_rows(bundle)
-        with self._engine.begin() as connection:
-            _upsert_row(connection, resynthesis_sessions_table, rows["resynthesis_sessions"][0], ["resynthesis_id"])
-            for row in rows["resynthesized_scorecards"]:
-                _upsert_row(connection, resynthesized_scorecards_table, row, ["resynthesis_id"])
-            for row in rows["resynthesized_committee_reports"]:
-                _upsert_row(connection, resynthesized_committee_reports_table, row, ["resynthesis_id"])
-            for row in rows["audit_events"]:
-                _upsert_row(connection, audit_events_table, row, ["event_id"])
+        try:
+            with self._engine.begin() as connection:
+                _insert_row(connection, resynthesis_sessions_table, rows["resynthesis_sessions"][0])
+                for row in rows["resynthesized_scorecards"]:
+                    _insert_row(connection, resynthesized_scorecards_table, row)
+                for row in rows["resynthesized_committee_reports"]:
+                    _insert_row(connection, resynthesized_committee_reports_table, row)
+                for row in rows["audit_events"]:
+                    _insert_row(connection, audit_events_table, row)
+        except IntegrityError as exc:
+            raise ResynthesisConflictError(
+                f"Debate session '{bundle.debate_session.debate_id}' already has a persisted re-synthesis session."
+            ) from exc
 
     def get_review_run_bundle(self, run_id: str) -> ReviewPersistenceBundle | None:
         with self._engine.connect() as connection:

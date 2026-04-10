@@ -89,7 +89,7 @@ def worker_info() -> WorkerInfo:
         baseline_archival_target_milestone=settings.js_baseline_archival_target_milestone,
         persistence_schema_version=catalog.schema_version,
         persistence_tables=len(catalog.tables),
-        persistence_boundary="sqlalchemy-metadata+repository-protocol",
+        persistence_boundary="alembic-migrated-sqlalchemy+repository-protocol",
         environment=settings.orbit_env,
         thin_slice_entrypoint="orbit_worker.runner.run_review_pipeline",
     )

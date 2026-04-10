@@ -12,9 +12,11 @@ uvicorn = { extras = ["standard"], version = "^0.34.0" }
 pydantic = "^2.12.5"
 pydantic-settings = "^2.7.1"
 sqlalchemy = "^2.0.40"
+psycopg = { extras = ["binary"], version = "^3.2.9" }
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.4.2"
+alembic = "^1.14.1"
 
 [build-system]
 requires = ["poetry-core>=1.9.0"]

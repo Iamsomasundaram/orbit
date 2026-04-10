@@ -13,6 +13,7 @@ pydantic = "^2.12.5"
 pydantic-settings = "^2.7.1"
 sqlalchemy = "^2.0.40"
 psycopg = { extras = ["binary"], version = "^3.2.9" }
+alembic = "^1.14.1"
 
 [build-system]
 requires = ["poetry-core>=1.9.0"]

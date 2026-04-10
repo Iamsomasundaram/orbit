@@ -48,7 +48,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     repository = SqlAlchemyPersistenceRepository(settings.database_url)
-    repository.ensure_schema()
+    repository.assert_schema_ready()
     app.state.portfolio_ingestion_service = PortfolioIngestionService(
         repository=repository,
         storage_root=Path(settings.portfolio_storage_dir),

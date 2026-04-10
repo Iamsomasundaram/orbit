@@ -9,6 +9,7 @@ from orbit_worker.persistence import (
     DebateSessionRecord,
     PersistenceRepository,
     PortfolioRecord,
+    ResynthesisConflictError,
     ResynthesisPersistenceBundle,
     ResynthesisSessionRecord,
     ResynthesizedCommitteeReportRecord,
@@ -103,12 +104,6 @@ class ResynthesisService:
         if debate_bundle is None:
             raise DebateResynthesisNotFoundError(f"Debate session '{debate_id}' was not found.")
 
-        existing = self._repository.list_resynthesis_bundles(debate_id=debate_id)
-        if existing:
-            raise ResynthesisAlreadyExistsError(
-                f"Debate session '{debate_id}' already has a persisted re-synthesis session."
-            )
-
         review_bundle = self._repository.get_review_run_bundle(debate_bundle.review_run.run_id)
         if review_bundle is None:
             raise DebateResynthesisNotFoundError(
@@ -133,7 +128,12 @@ class ResynthesisService:
             scorecard=result["resynthesized_scorecard"],
             committee_report=result["resynthesized_committee_report"],
         )
-        self._repository.save_resynthesis_bundle(bundle)
+        try:
+            self._repository.save_resynthesis_bundle(bundle)
+        except ResynthesisConflictError as exc:
+            raise ResynthesisAlreadyExistsError(
+                f"Debate session '{debate_id}' already has a persisted re-synthesis session."
+            ) from exc
         return summarize_resynthesis_bundle(bundle)
 
     def get_resynthesis(self, resynthesis_id: str) -> ResynthesisDetail | None:

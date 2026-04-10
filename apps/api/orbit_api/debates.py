@@ -7,6 +7,7 @@ from orbit_worker.persistence import (
     AuditEventRecord,
     CommitteeReportRecord,
     ConflictPersistenceRecord,
+    DebateConflictError,
     ConflictResolutionRecord,
     DebatePersistenceBundle,
     DebateSessionRecord,
@@ -95,12 +96,6 @@ class DebateService:
         if review_bundle is None:
             raise ReviewRunDebateNotFoundError(f"Review run '{run_id}' was not found.")
 
-        existing = self._repository.list_debate_bundles(run_id=run_id)
-        if existing:
-            raise DebateAlreadyExistsError(
-                f"Review run '{run_id}' already has a persisted debate session."
-            )
-
         debate = run_bounded_debate(
             run_id=review_bundle.review_run.run_id,
             portfolio_id=review_bundle.portfolio.portfolio_id,
@@ -113,7 +108,12 @@ class DebateService:
             review_run=review_bundle.review_run,
             debate=debate,
         )
-        self._repository.save_debate_bundle(bundle)
+        try:
+            self._repository.save_debate_bundle(bundle)
+        except DebateConflictError as exc:
+            raise DebateAlreadyExistsError(
+                f"Review run '{run_id}' already has a persisted debate session."
+            ) from exc
         return summarize_debate_bundle(bundle)
 
     def get_debate(self, debate_id: str) -> DebateDetail | None:

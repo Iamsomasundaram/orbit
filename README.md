@@ -16,6 +16,7 @@ Current status:
 - Milestone 4 adds bounded review-run orchestration APIs that execute the approved Python thin-slice review path from persisted canonical portfolios and store review artifacts durably.
 - Milestone 5 adds bounded moderator-controlled debate APIs that resolve persisted conflicts, store debate artifacts and resolution outcomes, and preserve approved committee scoring unless a resolution explicitly flags recheck.
 - Milestone 6 adds bounded score recheck and committee re-synthesis APIs that consume persisted debate resolutions, preserve original committee artifacts, and materialize re-synthesized outputs only when a resolution explicitly requires it.
+- Milestone 6.1 hardens persistence with Alembic-managed schema discipline, DB-backed duplicate enforcement on bounded creation paths, migration bootstrap for legacy local dev databases, and regression coverage for original versus re-synthesized artifact selection.
 
 Primary references:
 
@@ -29,12 +30,15 @@ Primary references:
 - `docs/milestone-4/README.md`
 - `docs/milestone-5/README.md`
 - `docs/milestone-6/README.md`
+- `docs/milestone-6.1/README.md`
 
 Platform commands:
 
 - `docker compose up -d --build postgres redis api worker web`
+- `docker compose run --rm migrate`
 - `docker compose ps`
 - `docker compose down --remove-orphans`
+- `docker compose exec worker /app/.venv/bin/pytest apps/worker/tests -q`
 - `POST http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios`
 - `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
@@ -46,7 +50,6 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/debates/{debate_id}/re-synthesis`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
 - `docker compose --profile baseline run --rm worker-js-baseline`
-- `docker compose --profile baseline run --rm worker-parity`
 
 Repository layout:
 
