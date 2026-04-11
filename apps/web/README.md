@@ -1,6 +1,6 @@
 # Web App
 
-Milestone 10 keeps the Milestone 9 workspace structure and updates the shell to reflect llm-backed committee execution with deterministic fallback.
+Milestone 11 keeps the existing workspace shell and adds a replay-style committee deliberation page backed by persisted timeline records.
 
 Current capability:
 
@@ -8,7 +8,8 @@ Current capability:
 - side-by-side comparison page for multiple persisted portfolios
 - portfolio detail page with latest review result visibility
 - portfolio history page with lineage-aware review, debate, and artifact links
-- runtime copy and health metadata aligned to the Milestone 10 llm-backed committee engine
+- review-run deliberation page with ordered committee statements and phase summaries
+- runtime copy and health metadata aligned to the Milestone 11 deliberation-enabled committee engine
 - web-side POST handlers that forward submission and review triggers to the FastAPI backend
 - liveness and readiness endpoints for Compose health checks
 - typed runtime config for internal and public API base URLs
@@ -20,6 +21,7 @@ Entry points:
 - `apps/web/app/compare/page.tsx`
 - `apps/web/app/portfolios/[portfolioId]/page.tsx`
 - `apps/web/app/portfolios/[portfolioId]/history/page.tsx`
+- `apps/web/app/review-runs/[runId]/deliberation/page.tsx`
 - `apps/web/app/api/portfolios/route.ts`
 - `apps/web/app/api/portfolios/[portfolioId]/review-runs/route.ts`
 - `apps/web/app/api/health/live/route.ts`

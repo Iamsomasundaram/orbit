@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint, create_engine, inspect, select
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table, Text, UniqueConstraint, create_engine, delete, inspect, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
-from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
+from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, DeliberationEntry, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
 
 PERSISTENCE_SCHEMA_VERSION = "m6-v1"
 SOURCE_OF_TRUTH_MODULE = "orbit_worker.schemas"
@@ -224,6 +224,20 @@ class ResynthesizedCommitteeReportRecord(OrbitModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class DeliberationEntryRecord(OrbitModel):
+    deliberation_entry_row_id: str
+    run_id: str
+    portfolio_id: str
+    sequence_number: int
+    phase: str
+    agent_id: str | None = None
+    agent_role: str
+    statement_type: str
+    statement_text: str
+    conflict_reference: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class AuditActor(OrbitModel):
     actor_type: Literal["system", "user", "service"]
     actor_id: str
@@ -275,6 +289,13 @@ class ResynthesisPersistenceBundle(OrbitModel):
     audit_events: list[AuditEventRecord]
 
 
+class DeliberationPersistenceBundle(OrbitModel):
+    schema_version: str
+    portfolio: PortfolioRecord
+    review_run: ReviewRunRecord
+    entries: list[DeliberationEntryRecord]
+
+
 class PortfolioIngestionBundle(OrbitModel):
     schema_version: str
     portfolio: PortfolioRecord
@@ -312,6 +333,10 @@ class PersistenceRepository(Protocol):
 
     def list_resynthesis_bundles(self, debate_id: str | None = None) -> list[ResynthesisPersistenceBundle]: ...
 
+    def replace_deliberation_bundle(self, bundle: DeliberationPersistenceBundle) -> None: ...
+
+    def get_deliberation_bundle(self, run_id: str) -> DeliberationPersistenceBundle | None: ...
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]: ...
 
 
@@ -321,6 +346,7 @@ class InMemoryPersistenceRepository:
         self._review_runs: dict[str, ReviewPersistenceBundle] = {}
         self._debates: dict[str, DebatePersistenceBundle] = {}
         self._resyntheses: dict[str, ResynthesisPersistenceBundle] = {}
+        self._deliberations: dict[str, DeliberationPersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
 
     def assert_schema_ready(self) -> None:
@@ -421,6 +447,12 @@ class InMemoryPersistenceRepository:
             reverse=True,
         )
 
+    def replace_deliberation_bundle(self, bundle: DeliberationPersistenceBundle) -> None:
+        self._deliberations[bundle.review_run.run_id] = bundle
+
+    def get_deliberation_bundle(self, run_id: str) -> DeliberationPersistenceBundle | None:
+        return self._deliberations.get(run_id)
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         events = list(self._audit_events.values())
         if portfolio_id is not None:
@@ -507,6 +539,10 @@ def _conflict_row_id(run_id: str, conflict_id: str) -> str:
 
 def _resolution_row_id(debate_id: str, conflict_id: str) -> str:
     return f"{debate_id}:{conflict_id}"
+
+
+def _deliberation_entry_row_id(run_id: str, sequence_number: int) -> str:
+    return f"{run_id}:{sequence_number:04d}"
 
 
 def _audit_event_id(run_id: str | None, action: str, entity_id: str) -> str:
@@ -762,6 +798,29 @@ def build_resynthesized_committee_report_record(
         report_payload=committee_report,
         created_at=timestamp,
     )
+
+
+def build_deliberation_entry_records(
+    run_id: str,
+    portfolio_id: str,
+    entries: list[DeliberationEntry],
+) -> list[DeliberationEntryRecord]:
+    return [
+        DeliberationEntryRecord(
+            deliberation_entry_row_id=_deliberation_entry_row_id(run_id, entry.sequence_number),
+            run_id=run_id,
+            portfolio_id=portfolio_id,
+            sequence_number=entry.sequence_number,
+            phase=entry.phase,
+            agent_id=entry.agent_id,
+            agent_role=entry.agent_role,
+            statement_type=entry.statement_type,
+            statement_text=entry.statement_text,
+            conflict_reference=entry.conflict_reference,
+            created_at=entry.created_at,
+        )
+        for entry in entries
+    ]
 
 
 def build_audit_event_records(
@@ -1069,6 +1128,19 @@ def build_resynthesis_persistence_bundle(
     )
 
 
+def build_deliberation_persistence_bundle(
+    portfolio: PortfolioRecord,
+    review_run: ReviewRunRecord,
+    entries: list[DeliberationEntry],
+) -> DeliberationPersistenceBundle:
+    return DeliberationPersistenceBundle(
+        schema_version=PERSISTENCE_SCHEMA_VERSION,
+        portfolio=portfolio,
+        review_run=review_run,
+        entries=build_deliberation_entry_records(review_run.run_id, portfolio.portfolio_id, entries),
+    )
+
+
 def portfolio_row_values(record: PortfolioRecord) -> dict[str, Any]:
     return _model_row(record)
 
@@ -1118,6 +1190,10 @@ def resynthesized_scorecard_row_values(record: ResynthesizedScorecardRecord) -> 
 
 
 def resynthesized_committee_report_row_values(record: ResynthesizedCommitteeReportRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def deliberation_entry_row_values(record: DeliberationEntryRecord) -> dict[str, Any]:
     return _model_row(record)
 
 
@@ -1182,6 +1258,12 @@ def resynthesis_bundle_to_table_rows(bundle: ResynthesisPersistenceBundle) -> di
             else []
         ),
         "audit_events": [audit_event_row_values(record) for record in bundle.audit_events],
+    }
+
+
+def deliberation_bundle_to_table_rows(bundle: DeliberationPersistenceBundle) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "deliberation_entries": [deliberation_entry_row_values(record) for record in bundle.entries],
     }
 
 
@@ -1520,6 +1602,36 @@ class SqlAlchemyPersistenceRepository:
             if (bundle := self.get_resynthesis_bundle(resynthesis_id)) is not None
         ]
 
+    def replace_deliberation_bundle(self, bundle: DeliberationPersistenceBundle) -> None:
+        rows = deliberation_bundle_to_table_rows(bundle)
+        with self._engine.begin() as connection:
+            connection.execute(
+                delete(deliberation_entries_table).where(deliberation_entries_table.c.run_id == bundle.review_run.run_id)
+            )
+            for row in rows["deliberation_entries"]:
+                _insert_row(connection, deliberation_entries_table, row)
+
+    def get_deliberation_bundle(self, run_id: str) -> DeliberationPersistenceBundle | None:
+        with self._engine.connect() as connection:
+            rows = connection.execute(
+                select(deliberation_entries_table)
+                .where(deliberation_entries_table.c.run_id == run_id)
+                .order_by(deliberation_entries_table.c.sequence_number)
+            ).mappings().all()
+        if not rows:
+            return None
+
+        review_bundle = self.get_review_run_bundle(run_id)
+        if review_bundle is None:
+            return None
+
+        return DeliberationPersistenceBundle(
+            schema_version=PERSISTENCE_SCHEMA_VERSION,
+            portfolio=review_bundle.portfolio,
+            review_run=review_bundle.review_run,
+            entries=[DeliberationEntryRecord.model_validate(dict(row)) for row in rows],
+        )
+
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]:
         statement = select(audit_events_table)
         if portfolio_id is not None:
@@ -1733,6 +1845,23 @@ resynthesized_committee_reports_table = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
+deliberation_entries_table = Table(
+    "deliberation_entries",
+    persistence_metadata,
+    Column("deliberation_entry_row_id", String(192), primary_key=True),
+    Column("run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("sequence_number", Integer, nullable=False),
+    Column("phase", String(64), nullable=False),
+    Column("agent_id", String(128), nullable=True),
+    Column("agent_role", String(255), nullable=False),
+    Column("statement_type", String(64), nullable=False),
+    Column("statement_text", Text, nullable=False),
+    Column("conflict_reference", String(128), nullable=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("run_id", "sequence_number"),
+)
+
 audit_events_table = Table(
     "audit_events",
     persistence_metadata,
@@ -1760,6 +1889,7 @@ Index("ix_resynthesis_sessions_debate_id", resynthesis_sessions_table.c.debate_i
 Index("ix_resynthesis_sessions_run_id", resynthesis_sessions_table.c.run_id)
 Index("ix_resynthesized_scorecards_run_id", resynthesized_scorecards_table.c.run_id)
 Index("ix_resynthesized_committee_reports_run_id", resynthesized_committee_reports_table.c.run_id)
+Index("ix_deliberation_entries_run_id", deliberation_entries_table.c.run_id)
 Index("ix_audit_events_portfolio_id", audit_events_table.c.portfolio_id)
 Index("ix_audit_events_run_id", audit_events_table.c.run_id)
 Index("ix_audit_events_entity_type", audit_events_table.c.entity_type)
@@ -1869,6 +1999,14 @@ PERSISTENCE_TABLE_SPECS = [
         source_contract="orbit_worker.schemas.CommitteeReport",
         json_payload_columns=["report_payload"],
         queryable_columns=["run_id", "portfolio_id", "final_recommendation", "report_payload_hash", "markdown_sha256"],
+    ),
+    PersistenceTableSpec(
+        table_name="deliberation_entries",
+        purpose="Ordered committee deliberation timeline entries derived from persisted review, debate, and re-synthesis artifacts.",
+        primary_key="deliberation_entry_row_id",
+        source_contract="orbit_worker.schemas.DeliberationEntry",
+        json_payload_columns=[],
+        queryable_columns=["run_id", "portfolio_id", "sequence_number", "phase", "agent_id", "agent_role", "statement_type", "conflict_reference", "created_at"],
     ),
     PersistenceTableSpec(
         table_name="audit_events",

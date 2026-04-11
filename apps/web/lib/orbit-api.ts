@@ -180,6 +180,51 @@ export type ArtifactInspectionPayload = {
   } | null;
 };
 
+export type DeliberationEntryPayload = {
+  deliberation_entry_row_id: string;
+  run_id: string;
+  portfolio_id: string;
+  sequence_number: number;
+  phase: string;
+  agent_id: string | null;
+  agent_role: string;
+  statement_type: string;
+  statement_text: string;
+  conflict_reference: string | null;
+  created_at: string;
+};
+
+export type ReviewRunDeliberationPayload = {
+  review_run_id: string;
+  portfolio_id: string;
+  lineage: {
+    portfolio_id: string;
+    review_run_id: string;
+    debate_id: string | null;
+    resynthesis_id: string | null;
+  };
+  artifact_selection: ArtifactSelectionState;
+  final_recommendation: string;
+  weighted_composite_score: number;
+  entry_count: number;
+  entries: DeliberationEntryPayload[];
+};
+
+export type ReviewRunDeliberationSummaryPayload = {
+  review_run_id: string;
+  portfolio_id: string;
+  final_recommendation: string;
+  weighted_composite_score: number;
+  active_artifact_source: string;
+  phase_summaries: Array<{
+    phase: string;
+    label: string;
+    entry_count: number;
+    representative_statement: string;
+    conflict_references: string[];
+  }>;
+};
+
 export type PortfolioWorkspaceEntry = {
   portfolio: PortfolioRecord;
   latest_review_status: string | null;

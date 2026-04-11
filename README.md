@@ -22,6 +22,7 @@ Current status:
 - Milestone 8 adds the first practical interactive workflow: JSON idea submission, persisted canonicalization, synchronous review execution, automatic bounded debate and re-synthesis when required, and minimal UI pages for portfolio detail and history inspection.
 - Milestone 9 adds a multi-portfolio decision workspace with persisted summary, deterministic ranking, side-by-side comparison, safer bounded identity for JSON idea submission, and Compose-based regression automation.
 - Milestone 10 adds the first llm-backed committee engine with parallel agent fan-out, provider abstraction, deterministic fallback mode, and local OpenAI validation through Docker Compose.
+- Milestone 11 adds persisted committee deliberation timelines, review-run deliberation APIs, and a thin replay-style UI for ordered reasoning inspection without adding new llm calls.
 
 Primary references:
 
@@ -41,6 +42,7 @@ Primary references:
 - `docs/milestone-8/README.md`
 - `docs/milestone-9/README.md`
 - `docs/milestone-10/README.md`
+- `docs/milestone-11/README.md`
 
 Platform commands:
 
@@ -61,6 +63,8 @@ Platform commands:
 - `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}/deliberation`
+- `GET http://localhost:5001/api/v1/review-runs/{run_id}/deliberation/summary`
 - `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}`
@@ -75,8 +79,8 @@ Platform commands:
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
-- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, and local health endpoints
-- `apps/worker` -> primary Python backend execution runtime, parity tests, and persistence contracts
+- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, deliberation replay, and local health endpoints
+- `apps/worker` -> primary Python backend execution runtime, parity tests, persistence contracts, and deliberation materialization
 - `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
 - `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path
 - `docs/` -> milestone packs and review gates

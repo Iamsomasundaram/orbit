@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from .domain import AGENT_REGISTRY, PORTFOLIO_SECTIONS, RECOMMENDATION_RANK, SCORE_DIMENSIONS, SEVERITY_RANK
 from .llm_specs import LLM_AGENT_REGISTRY
@@ -164,6 +165,32 @@ class ResynthesisSession(OrbitModel):
     audit_notes: list[str]
 
 
+class DeliberationEntry(OrbitModel):
+    run_id: str
+    portfolio_id: str
+    sequence_number: int = Field(ge=1)
+    phase: Literal[
+        "opening_statements",
+        "conflict_identification",
+        "conflict_discussion",
+        "moderator_synthesis",
+        "final_verdict",
+    ]
+    agent_id: str | None = None
+    agent_role: str
+    statement_type: Literal[
+        "opening_statement",
+        "conflict_identified",
+        "conflict_argument",
+        "moderator_synthesis",
+        "final_verdict",
+        "phase_note",
+    ]
+    statement_text: str
+    conflict_reference: str | None = None
+    created_at: datetime
+
+
 class Scorecard(OrbitModel):
     portfolio_id: str
     run_id: str
@@ -256,6 +283,15 @@ def validate_debate_session(session: Any) -> DebateSession:
 
 def validate_resynthesis_session(session: Any) -> ResynthesisSession:
     return ResynthesisSession.model_validate(session)
+
+
+def validate_deliberation_entry(entry: Any) -> DeliberationEntry:
+    model = DeliberationEntry.model_validate(entry)
+    _require_non_empty(model.run_id, "Deliberation entry requires run_id.")
+    _require_non_empty(model.portfolio_id, "Deliberation entry requires portfolio_id.")
+    _require_non_empty(model.agent_role, "Deliberation entry requires agent_role.")
+    _require_non_empty(model.statement_text, "Deliberation entry requires statement_text.")
+    return model
 
 
 def validate_scorecard(scorecard: Any) -> Scorecard:

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from orbit_worker.persistence import (
     PERSISTENCE_SCHEMA_VERSION,
+    build_deliberation_persistence_bundle,
     InMemoryPersistenceRepository,
     build_debate_persistence_bundle,
     build_portfolio_ingestion_bundle,
@@ -11,11 +12,13 @@ from orbit_worker.persistence import (
     build_review_persistence_bundle,
     bundle_to_table_rows,
     debate_bundle_to_table_rows,
+    deliberation_bundle_to_table_rows,
     get_persistence_schema_catalog,
     ingestion_bundle_to_table_rows,
     render_postgres_ddl,
     resynthesis_bundle_to_table_rows,
 )
+from orbit_worker.deliberation import build_deliberation_entries
 from orbit_worker.debate import run_bounded_debate
 from orbit_worker.resynthesis import run_score_recheck_and_resynthesis
 from orbit_worker.runner import run_review_pipeline
@@ -41,12 +44,14 @@ RESYNTHESIS_EXPECTED_TABLES = {
     "resynthesized_committee_reports",
     "audit_events",
 }
+DELIBERATION_EXPECTED_TABLES = {"deliberation_entries"}
 CATALOG_EXPECTED_TABLES = REVIEW_EXPECTED_TABLES | {
     "debate_sessions",
     "conflict_resolutions",
     "resynthesis_sessions",
     "resynthesized_scorecards",
     "resynthesized_committee_reports",
+    "deliberation_entries",
 }
 
 
@@ -192,6 +197,34 @@ def test_resynthesis_persistence_bundle_captures_optional_rechecked_artifacts() 
     assert len(rows["resynthesized_committee_reports"]) == 1
 
 
+def test_deliberation_persistence_bundle_captures_ordered_committee_timeline() -> None:
+    result = run_review_pipeline(str(INPUT_PATH))
+    review_bundle = build_review_persistence_bundle(
+        result["run_id"],
+        result["canonical_portfolio"],
+        result["agent_reviews"],
+        result["conflicts"],
+        result["scorecard"],
+        result["committee_report"],
+    )
+    entries = build_deliberation_entries(review_bundle)
+    bundle = build_deliberation_persistence_bundle(
+        portfolio=review_bundle.portfolio,
+        review_run=review_bundle.review_run,
+        entries=entries,
+    )
+
+    assert bundle.schema_version == PERSISTENCE_SCHEMA_VERSION
+    assert len(bundle.entries) == 23
+    assert bundle.entries[0].phase == "opening_statements"
+    assert bundle.entries[-1].phase == "final_verdict"
+
+    rows = deliberation_bundle_to_table_rows(bundle)
+    assert set(rows) == DELIBERATION_EXPECTED_TABLES
+    assert rows["deliberation_entries"][0]["sequence_number"] == 1
+    assert rows["deliberation_entries"][-1]["statement_type"] == "final_verdict"
+
+
 def test_in_memory_repository_round_trip_and_audit_listing() -> None:
     result = run_review_pipeline(str(INPUT_PATH))
     review_bundle = build_review_persistence_bundle(
@@ -235,6 +268,17 @@ def test_in_memory_repository_round_trip_and_audit_listing() -> None:
     repository.save_review_bundle(review_bundle)
     repository.save_debate_bundle(debate_bundle)
     repository.save_resynthesis_bundle(resynthesis_bundle)
+    repository.replace_deliberation_bundle(
+        build_deliberation_persistence_bundle(
+            portfolio=review_bundle.portfolio,
+            review_run=review_bundle.review_run,
+            entries=build_deliberation_entries(
+                review_bundle,
+                debate_bundle=debate_bundle,
+                resynthesis_bundle=resynthesis_bundle,
+            ),
+        )
+    )
 
     stored = repository.get_review_run_bundle(result["run_id"])
     assert stored is not None
@@ -258,6 +302,11 @@ def test_in_memory_repository_round_trip_and_audit_listing() -> None:
     listed_resyntheses = repository.list_resynthesis_bundles(debate_id=debate_bundle.debate_session.debate_id)
     assert len(listed_resyntheses) == 1
     assert listed_resyntheses[0].resynthesis_session.resynthesis_id == resynthesis_bundle.resynthesis_session.resynthesis_id
+
+    stored_deliberation = repository.get_deliberation_bundle(result["run_id"])
+    assert stored_deliberation is not None
+    assert stored_deliberation.entries[-1].phase == "final_verdict"
+    assert stored_deliberation.entries[-1].statement_text.startswith("Final verdict:")
 
     portfolio_events = repository.list_audit_events(portfolio_id=result["canonical_portfolio"].portfolio_id)
     assert len(portfolio_events) == 13
@@ -293,6 +342,7 @@ def test_persistence_schema_catalog_and_ddl_cover_expected_tables() -> None:
     assert "CREATE INDEX ix_conflict_resolutions_debate_id" in ddl
     assert "CREATE INDEX ix_resynthesis_sessions_debate_id" in ddl
     assert "CREATE INDEX ix_resynthesized_scorecards_run_id" in ddl
+    assert "CREATE INDEX ix_deliberation_entries_run_id" in ddl
     assert "CREATE INDEX ix_audit_events_portfolio_id" in ddl
     assert "CREATE INDEX ix_audit_events_run_id" in ddl
 

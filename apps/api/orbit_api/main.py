@@ -9,6 +9,7 @@ from orbit_worker.persistence import PersistenceSchemaCatalog, SqlAlchemyPersist
 from orbit_worker.committee_engine import CommitteeRuntimeOptions
 
 from .config import get_settings
+from .deliberations import DeliberationService, ReviewRunDeliberationDetail, ReviewRunDeliberationSummary
 from .debates import (
     DebateAlreadyExistsError,
     DebateDetail,
@@ -65,9 +66,20 @@ async def lifespan(app: FastAPI):
     repository = SqlAlchemyPersistenceRepository(settings.database_url)
     repository.assert_schema_ready()
     runtime_options = CommitteeRuntimeOptions.from_settings(settings)
-    review_run_service = ReviewRunService(repository=repository, runtime_options=runtime_options)
-    debate_service = DebateService(repository=repository)
-    resynthesis_service = ResynthesisService(repository=repository)
+    deliberation_service = DeliberationService(repository=repository)
+    review_run_service = ReviewRunService(
+        repository=repository,
+        runtime_options=runtime_options,
+        deliberation_refresher=deliberation_service.refresh_review_run,
+    )
+    debate_service = DebateService(
+        repository=repository,
+        deliberation_refresher=deliberation_service.refresh_review_run,
+    )
+    resynthesis_service = ResynthesisService(
+        repository=repository,
+        deliberation_refresher=deliberation_service.refresh_review_run,
+    )
     app.state.portfolio_ingestion_service = PortfolioIngestionService(
         repository=repository,
         storage_root=Path(settings.portfolio_storage_dir),
@@ -81,6 +93,7 @@ async def lifespan(app: FastAPI):
         resyntheses=resynthesis_service,
     )
     app.state.review_history_service = ReviewHistoryService(repository=repository)
+    app.state.deliberation_service = deliberation_service
     app.state.portfolio_workspace_service = PortfolioWorkspaceService(repository=repository)
     try:
         yield
@@ -113,6 +126,10 @@ def resynthesis_service(request: Request) -> ResynthesisService:
 
 def review_history_service(request: Request) -> ReviewHistoryService:
     return request.app.state.review_history_service
+
+
+def deliberation_service(request: Request) -> DeliberationService:
+    return request.app.state.deliberation_service
 
 
 def portfolio_workspace_service(request: Request) -> PortfolioWorkspaceService:
@@ -245,6 +262,22 @@ def get_review_run(request: Request, run_id: str) -> ReviewRunDetail:
 @app.get("/api/v1/review-runs/{run_id}/artifacts", response_model=ArtifactInspectionDetail)
 def get_review_run_artifacts(request: Request, run_id: str) -> ArtifactInspectionDetail:
     detail = review_history_service(request).get_review_run_artifacts(run_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/review-runs/{run_id}/deliberation", response_model=ReviewRunDeliberationDetail)
+def get_review_run_deliberation(request: Request, run_id: str) -> ReviewRunDeliberationDetail:
+    detail = deliberation_service(request).get_review_run_deliberation(run_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/review-runs/{run_id}/deliberation/summary", response_model=ReviewRunDeliberationSummary)
+def get_review_run_deliberation_summary(request: Request, run_id: str) -> ReviewRunDeliberationSummary:
+    detail = deliberation_service(request).get_review_run_deliberation_summary(run_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
     return detail

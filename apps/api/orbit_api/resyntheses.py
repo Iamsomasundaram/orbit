@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Callable
 
 from orbit_worker.persistence import (
     AuditEventRecord,
@@ -96,8 +97,9 @@ def bundle_to_detail(
 
 
 class ResynthesisService:
-    def __init__(self, repository: PersistenceRepository) -> None:
+    def __init__(self, repository: PersistenceRepository, *, deliberation_refresher: Callable[[str], None] | None = None) -> None:
         self._repository = repository
+        self._deliberation_refresher = deliberation_refresher
 
     def start_resynthesis(self, debate_id: str) -> ResynthesisSummary:
         debate_bundle = self._repository.get_debate_bundle(debate_id)
@@ -134,6 +136,8 @@ class ResynthesisService:
             raise ResynthesisAlreadyExistsError(
                 f"Debate session '{debate_id}' already has a persisted re-synthesis session."
             ) from exc
+        if self._deliberation_refresher is not None:
+            self._deliberation_refresher(bundle.review_run.run_id)
         return summarize_resynthesis_bundle(bundle)
 
     def get_resynthesis(self, resynthesis_id: str) -> ResynthesisDetail | None:

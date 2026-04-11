@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Callable
 
 from orbit_worker.debate import run_bounded_debate
 from orbit_worker.persistence import (
@@ -88,8 +89,9 @@ def bundle_to_detail(
 
 
 class DebateService:
-    def __init__(self, repository: PersistenceRepository) -> None:
+    def __init__(self, repository: PersistenceRepository, *, deliberation_refresher: Callable[[str], None] | None = None) -> None:
         self._repository = repository
+        self._deliberation_refresher = deliberation_refresher
 
     def start_debate(self, run_id: str) -> DebateSummary:
         review_bundle = self._repository.get_review_run_bundle(run_id)
@@ -114,6 +116,8 @@ class DebateService:
             raise DebateAlreadyExistsError(
                 f"Review run '{run_id}' already has a persisted debate session."
             ) from exc
+        if self._deliberation_refresher is not None:
+            self._deliberation_refresher(run_id)
         return summarize_debate_bundle(bundle)
 
     def get_debate(self, debate_id: str) -> DebateDetail | None:

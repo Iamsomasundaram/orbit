@@ -66,7 +66,7 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 10" />
+              <StatusBadge label="Milestone 11" />
               <StatusBadge label={humanize(portfolio.portfolio.portfolio_status)} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -88,6 +88,11 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
             <ActionLink href={`/portfolios/${portfolioId}/history`} tone="muted">
               View Review History
             </ActionLink>
+            {history.latest_review_run_id ? (
+              <ActionLink href={`/review-runs/${history.latest_review_run_id}/deliberation`} tone="muted">
+                Committee Deliberation
+              </ActionLink>
+            ) : null}
           </div>
         </div>
       </section>
@@ -153,8 +158,8 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-orbit-ink/70">
-              No review run has been recorded yet. Use the review action above to execute the existing deterministic
-              ORBIT committee pipeline for this portfolio.
+              No review run has been recorded yet. Use the review action above to execute the approved ORBIT committee
+              pipeline for this portfolio.
             </p>
           )}
         </ShellCard>
@@ -171,6 +176,11 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
             {history.latest_review_run_id ? (
               <a className="block underline decoration-orbit-moss underline-offset-4" href={publicApiHref(`/api/v1/review-runs/${history.latest_review_run_id}/artifacts`)} target="_blank" rel="noreferrer">
                 Open latest artifact inspection API
+              </a>
+            ) : null}
+            {history.latest_review_run_id ? (
+              <a className="block underline decoration-orbit-moss underline-offset-4" href={publicApiHref(`/api/v1/review-runs/${history.latest_review_run_id}/deliberation`)} target="_blank" rel="noreferrer">
+                Open latest deliberation timeline API
               </a>
             ) : null}
           </div>

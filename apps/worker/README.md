@@ -6,6 +6,7 @@ The worker now contains four active runtime layers:
 - the Milestone 1 Python worker service used by the local platform foundation
 - the Milestone 2+ persistence contracts and database-facing schema boundary
 - the Milestone 10 llm-backed committee engine with deterministic fallback mode
+- the Milestone 11 deliberation-materialization layer derived from persisted committee artifacts
 
 Current capability:
 
@@ -18,6 +19,7 @@ Current capability:
 - detect structured conflicts
 - build a committee scorecard
 - generate a committee report in JSON and Markdown
+- generate ordered deliberation timeline entries from persisted review, debate, and re-synthesis artifacts
 - materialize durable persistence bundles for portfolio, review, and audit artifacts
 - expose worker liveness and readiness health endpoints for Compose and host debugging on port `5004`
 - validate Python parity against the archived JS baseline artifact set through Docker Compose across all three golden fixtures
@@ -38,9 +40,11 @@ Primary Python runtime entry points:
 - `apps/worker/orbit_worker/cli.py`
 - `apps/worker/orbit_worker/service.py`
 - `apps/worker/orbit_worker/persistence.py`
+- `apps/worker/orbit_worker/deliberation.py`
 - `apps/worker/tests/test_thin_slice_parity.py`
 - `apps/worker/tests/test_persistence_models.py`
 - `apps/worker/tests/test_llm_review_workflow.py`
+- `apps/worker/tests/test_deliberation_service.py`
 
 Compose validation commands:
 

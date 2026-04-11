@@ -94,15 +94,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               lineage from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 10 adds provider-backed committee reasoning with parallel agent fan-out while preserving the
-              approved deterministic fallback, persisted governance flow, and multi-portfolio workspace from Milestone 9.
+              Milestone 11 adds persisted committee deliberation timelines on top of the provider-backed parallel
+              committee engine, while preserving the approved deterministic fallback, governance flow, and
+              multi-portfolio workspace.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
             <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime Direction</div>
             <div className="mt-2 text-2xl font-semibold">Parallel LLM Committee</div>
             <div className="mt-1 text-sm text-orbit-mist/70">
-              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine"}
+              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine-with-deliberation-timeline"}
             </div>
           </div>
         </div>
@@ -223,7 +224,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               ))
             ) : (
               <p className="text-sm leading-6 text-orbit-mist/78">
-                Ranking appears here once portfolios have been reviewed through the deterministic committee path.
+                Ranking appears here once portfolios have been reviewed through the approved committee path.
               </p>
             )}
           </div>

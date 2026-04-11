@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Callable
 
 from orbit_worker.committee_engine import CommitteeRuntimeOptions
 from orbit_worker.persistence import (
@@ -90,10 +91,12 @@ class ReviewRunService:
         *,
         runtime_options: CommitteeRuntimeOptions | None = None,
         llm_provider: object | None = None,
+        deliberation_refresher: Callable[[str], None] | None = None,
     ) -> None:
         self._repository = repository
         self._runtime_options = runtime_options or CommitteeRuntimeOptions()
         self._llm_provider = llm_provider
+        self._deliberation_refresher = deliberation_refresher
 
     def start_review(self, portfolio_id: str) -> ReviewRunSummary:
         portfolio_bundle = self._repository.get_portfolio_bundle(portfolio_id)
@@ -118,6 +121,8 @@ class ReviewRunService:
             result["committee_report"],
         )
         self._repository.save_review_bundle(review_bundle)
+        if self._deliberation_refresher is not None:
+            self._deliberation_refresher(run_id)
         return summarize_review_bundle(review_bundle)
 
     def get_review_run(self, run_id: str) -> ReviewRunDetail | None:

@@ -41,7 +41,7 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 10" />
+              <StatusBadge label="Milestone 11" />
               <StatusBadge label={`${history.review_run_count} review ${history.review_run_count === 1 ? "run" : "runs"}`} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -62,6 +62,11 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
             <ActionLink href={`/portfolios/${portfolioId}`} tone="muted">
               Portfolio Detail
             </ActionLink>
+            {history.latest_review_run_id ? (
+              <ActionLink href={`/review-runs/${history.latest_review_run_id}/deliberation`} tone="muted">
+                Committee Deliberation
+              </ActionLink>
+            ) : null}
           </div>
         </div>
       </section>
@@ -155,6 +160,9 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
                     <a className="rounded-2xl border border-orbit-pine/10 px-4 py-3 hover:border-orbit-pine/30" href={publicApiHref(`/api/v1/review-runs/${item.review_run.run_id}/artifacts`)} target="_blank" rel="noreferrer">
                       Review artifacts
                     </a>
+                    <ActionLink href={`/review-runs/${item.review_run.run_id}/deliberation`} tone="muted">
+                      Committee Deliberation
+                    </ActionLink>
                     {item.debate ? (
                       <a className="rounded-2xl border border-orbit-pine/10 px-4 py-3 hover:border-orbit-pine/30" href={publicApiHref(`/api/v1/debates/${item.debate.debate_id}/artifacts`)} target="_blank" rel="noreferrer">
                         Debate artifacts
