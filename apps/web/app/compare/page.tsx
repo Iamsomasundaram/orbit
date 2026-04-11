@@ -59,7 +59,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 11" />
+              <StatusBadge label="Milestone 12" />
               <StatusBadge label={`${portfolioIds.length} selected`} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -69,7 +69,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-ink/75">
                 This page reads the latest active committee state for each selected portfolio and links back to the
-                approved detail, history, and artifact inspection APIs.
+                approved detail, history, artifact inspection APIs, and the new Committee Mode playback page.
               </p>
             </div>
           </div>
@@ -83,7 +83,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <ShellCard>
           <SectionEyebrow>No Portfolios Selected</SectionEyebrow>
           <p className="mt-4 text-sm leading-6 text-orbit-ink/70">
-            Select one or more portfolios from the Milestone 11 workspace to compare their latest committee outcomes.
+            Select one or more portfolios from the Milestone 12 workspace to compare their latest committee outcomes.
           </p>
         </ShellCard>
       ) : null}
@@ -204,8 +204,8 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
                       Review History
                     </ActionLink>
                     {item.latest_lineage?.review_run_id ? (
-                      <ActionLink href={`/review-runs/${item.latest_lineage.review_run_id}/deliberation`} tone="muted">
-                        Committee Deliberation
+                      <ActionLink href={`/review-runs/${item.latest_lineage.review_run_id}/committee`} tone="muted">
+                        Committee Mode
                       </ActionLink>
                     ) : null}
                     {item.latest_lineage?.review_run_id ? (

@@ -110,7 +110,7 @@ def service_info(settings: Settings) -> ServiceInfo:
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
-        runtime_direction="llm-backed-parallel-committee-engine-with-deliberation-timeline",
+        runtime_direction="llm-backed-parallel-committee-engine-with-boardroom-playback",
         runtime_mode=settings.llm_runtime_mode,
         active_backend="python",
         reference_runtime="js-baseline-only",

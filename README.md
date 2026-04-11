@@ -23,6 +23,7 @@ Current status:
 - Milestone 9 adds a multi-portfolio decision workspace with persisted summary, deterministic ranking, side-by-side comparison, safer bounded identity for JSON idea submission, and Compose-based regression automation.
 - Milestone 10 adds the first llm-backed committee engine with parallel agent fan-out, provider abstraction, deterministic fallback mode, and local OpenAI validation through Docker Compose.
 - Milestone 11 adds persisted committee deliberation timelines, review-run deliberation APIs, and a thin replay-style UI for ordered reasoning inspection without adding new llm calls.
+- Milestone 12 adds Committee Mode, a live-feel boardroom playback experience that stages the persisted deliberation timeline with phased reveal, conflict spotlights, moderator synthesis, and final verdict playback without adding new llm calls.
 
 Primary references:
 
@@ -43,6 +44,7 @@ Primary references:
 - `docs/milestone-9/README.md`
 - `docs/milestone-10/README.md`
 - `docs/milestone-11/README.md`
+- `docs/milestone-12/README.md`
 
 Platform commands:
 
@@ -65,6 +67,7 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/deliberation`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/deliberation/summary`
+- `GET http://localhost:5000/review-runs/{run_id}/committee`
 - `POST http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/debates`
 - `GET http://localhost:5001/api/v1/debates/{debate_id}`
@@ -79,7 +82,7 @@ Platform commands:
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
-- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, deliberation replay, and local health endpoints
+- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, static deliberation inspection, Committee Mode playback, and local health endpoints
 - `apps/worker` -> primary Python backend execution runtime, parity tests, persistence contracts, and deliberation materialization
 - `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
 - `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path

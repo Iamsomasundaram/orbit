@@ -90,20 +90,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <StatusBadge label={apiInfo?.reference_runtime_stage ?? "archived-baseline"} tone="success" />
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              Run a parallel llm-backed ORBIT committee, compare portfolio outcomes, and inspect the latest committee
-              lineage from one workspace.
+              Run a parallel llm-backed ORBIT committee, compare portfolio outcomes, and replay the boardroom
+              discussion from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 11 adds persisted committee deliberation timelines on top of the provider-backed parallel
-              committee engine, while preserving the approved deterministic fallback, governance flow, and
-              multi-portfolio workspace.
+              Milestone 12 turns the persisted deliberation timeline into Committee Mode: a client-side staged reveal
+              of the boardroom sequence with conflict spotlights, moderator synthesis, and final verdict playback,
+              while preserving the approved deterministic fallback, governance flow, and multi-portfolio workspace.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
             <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime Direction</div>
             <div className="mt-2 text-2xl font-semibold">Parallel LLM Committee</div>
             <div className="mt-1 text-sm text-orbit-mist/70">
-              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine-with-deliberation-timeline"}
+              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine-with-boardroom-playback"}
             </div>
           </div>
         </div>
@@ -219,6 +219,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                     >
                       Review History
                     </a>
+                    {item.latest_lineage?.review_run_id ? (
+                      <a
+                        className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-orbit-mist transition hover:border-white/35"
+                        href={`/review-runs/${item.latest_lineage.review_run_id}/committee`}
+                      >
+                        Committee Mode
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               ))
@@ -343,6 +351,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                         <ActionLink href={`/portfolios/${item.portfolio.portfolio_id}/history`} tone="muted">
                           Review History
                         </ActionLink>
+                        {item.latest_lineage?.review_run_id ? (
+                          <ActionLink href={`/review-runs/${item.latest_lineage.review_run_id}/committee`} tone="muted">
+                            Committee Mode
+                          </ActionLink>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -351,8 +364,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the M9 comparison
-              workspace.
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12
+              comparison and boardroom playback workspace.
             </p>
           )}
         </form>

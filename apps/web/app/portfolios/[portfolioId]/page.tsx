@@ -66,7 +66,7 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 11" />
+              <StatusBadge label="Milestone 12" />
               <StatusBadge label={humanize(portfolio.portfolio.portfolio_status)} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -89,8 +89,8 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
               View Review History
             </ActionLink>
             {history.latest_review_run_id ? (
-              <ActionLink href={`/review-runs/${history.latest_review_run_id}/deliberation`} tone="muted">
-                Committee Deliberation
+              <ActionLink href={`/review-runs/${history.latest_review_run_id}/committee`} tone="muted">
+                Committee Mode
               </ActionLink>
             ) : null}
           </div>
