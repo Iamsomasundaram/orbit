@@ -20,6 +20,7 @@ Current status:
 - Milestone 7 adds lineage-aware review history and artifact inspection APIs so portfolios, review runs, debates, and re-syntheses can be audited without changing approved committee behavior.
 - Milestone 7.1 archives the executable JS baseline path, preserves parity against the committed baseline artifacts, and keeps the Python runtime as the only active backend direction.
 - Milestone 8 adds the first practical interactive workflow: JSON idea submission, persisted canonicalization, synchronous review execution, automatic bounded debate and re-synthesis when required, and minimal UI pages for portfolio detail and history inspection.
+- Milestone 9 adds a multi-portfolio decision workspace with persisted summary, deterministic ranking, side-by-side comparison, safer bounded identity for JSON idea submission, and Compose-based regression automation.
 
 Primary references:
 
@@ -37,6 +38,7 @@ Primary references:
 - `docs/milestone-7/README.md`
 - `docs/milestone-7.1/README.md`
 - `docs/milestone-8/README.md`
+- `docs/milestone-9/README.md`
 
 Platform commands:
 
@@ -49,6 +51,9 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}`
 - `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}/history`
+- `GET http://localhost:5001/api/v1/portfolios/summary`
+- `GET http://localhost:5001/api/v1/portfolios/compare?portfolio_id=...`
+- `GET http://localhost:5001/api/v1/portfolios/ranking`
 - `POST http://localhost:5001/api/v1/portfolios/{portfolio_id}/review-runs`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}`
 - `GET http://localhost:5001/api/v1/review-runs/{run_id}/artifacts`
@@ -65,7 +70,7 @@ Platform commands:
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
-- `apps/web` -> Next.js shell for idea submission, portfolio detail, history inspection, and local health endpoints
+- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, and local health endpoints
 - `apps/worker` -> primary Python backend execution runtime, parity tests, and persistence contracts
 - `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
 - `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path

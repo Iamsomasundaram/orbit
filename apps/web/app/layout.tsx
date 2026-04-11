@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ORBIT Milestone 8",
-  description: "Interactive portfolio submission and first review workflow for ORBIT.",
+  title: "ORBIT Milestone 9",
+  description: "Multi-portfolio comparison and prioritization workflow for ORBIT.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
@@ -96,9 +98,36 @@ def idea_document_title(portfolio_name: str) -> str:
     return sanitize_filename(f"{slugify(portfolio_name) or 'portfolio'}-idea.md")
 
 
-def render_idea_markdown(submission: PortfolioIdeaSubmission, *, submitted_at: str) -> str:
+def idea_portfolio_id(submission: PortfolioIdeaSubmission) -> str:
+    normalized_tags = sorted(set(normalize_tags(submission.tags)))
+    normalized_metadata = normalize_metadata(submission.metadata)
+    fingerprint_payload = {
+        "portfolio_name": submission.portfolio_name.strip(),
+        "portfolio_type": submission.portfolio_type.strip(),
+        "owner": submission.owner.strip(),
+        "description": submission.description.replace("\r\n", "\n").strip(),
+        "tags": normalized_tags,
+        "metadata": {key: normalized_metadata[key] for key in sorted(normalized_metadata)},
+    }
+    fingerprint = sha256(
+        json.dumps(
+            fingerprint_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+    ).hexdigest()[:8]
+    portfolio_slug = slugify(submission.portfolio_name) or "portfolio"
+    return f"{portfolio_slug}-{fingerprint}"
+
+
+def render_idea_markdown(
+    submission: PortfolioIdeaSubmission,
+    *,
+    portfolio_id: str,
+    submitted_at: str,
+) -> str:
     normalized_description = submission.description.replace("\r\n", "\n").strip()
-    portfolio_id = slugify(submission.portfolio_name) or "portfolio"
     normalized_tags = normalize_tags(submission.tags)
     normalized_metadata = normalize_metadata(submission.metadata)
     tag_text = ", ".join(normalized_tags) if normalized_tags else "No tags provided yet."
@@ -252,14 +281,31 @@ class PortfolioIngestionService:
             raise InvalidPortfolioDocumentError("Portfolio idea type must not be empty.")
 
         submitted_at = submission_date()
+        portfolio_id = idea_portfolio_id(submission)
         document_title = idea_document_title(submission.portfolio_name)
-        markdown = render_idea_markdown(submission, submitted_at=submitted_at)
-        return self.submit_document(
-            PortfolioDocumentSubmission(
-                document_title=document_title,
-                content=markdown,
-            )
+        markdown = render_idea_markdown(
+            submission,
+            portfolio_id=portfolio_id,
+            submitted_at=submitted_at,
         )
+        normalized_content = markdown.replace("\r\n", "\n").strip()
+        target_directory = (self._storage_root / portfolio_id).resolve()
+        target_path = target_directory / document_title
+        canonical_portfolio = parse_markdown(normalized_content, str(target_path))
+        bundle = build_portfolio_ingestion_bundle(
+            canonical_portfolio,
+            source_contents_by_document_id={"source-markdown-001": f"{normalized_content}\n".encode("utf-8")},
+        )
+        try:
+            self._repository.save_portfolio_bundle(bundle)
+        except PortfolioConflictError as exc:
+            raise PortfolioAlreadyExistsError(
+                f"Portfolio '{portfolio_id}' already exists in the ingestion store."
+            ) from exc
+
+        target_directory.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(f"{normalized_content}\n", encoding="utf-8")
+        return bundle_to_detail(bundle)
 
     def submit_submission(
         self,

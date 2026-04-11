@@ -1,4 +1,5 @@
 import {
+  ActionLink,
   FieldLabel,
   Input,
   MetricCard,
@@ -14,24 +15,69 @@ import {
   type HealthPayload,
   type InfoPayload,
   type PersistenceCatalogPayload,
-  type PortfolioListPayload,
+  type PortfolioRankingPayload,
+  type PortfolioWorkspaceSummaryPayload,
   fetchOrbitJson,
   formatDate,
+  formatScore,
   humanize,
 } from "@/lib/orbit-api";
 
 type HomePageProps = {
-  searchParams?: Promise<{ submissionError?: string }>;
+  searchParams?: Promise<{
+    submissionError?: string;
+    sortBy?: string;
+    direction?: string;
+  }>;
 };
+
+const SORT_OPTIONS = [
+  { label: "Recently Updated", sortBy: "latest_updated_at", direction: "desc" },
+  { label: "Strongest Score", sortBy: "weighted_composite_score", direction: "desc" },
+  { label: "Best Recommendation", sortBy: "recommendation_rank", direction: "desc" },
+  { label: "Highest Conflict", sortBy: "conflict_count", direction: "desc" },
+  { label: "Needs Recheck", sortBy: "score_change_required_count", direction: "desc" },
+] as const;
+
+function recommendationTone(
+  recommendation: string | null | undefined,
+): "default" | "success" | "warning" | "danger" {
+  if (!recommendation) {
+    return "default";
+  }
+  if (recommendation === "Strong Proceed") {
+    return "success";
+  }
+  if (recommendation === "Proceed with Conditions" || recommendation === "Pilot Only") {
+    return "warning";
+  }
+  return "danger";
+}
+
+function normalizeSortBy(value: string | undefined): string {
+  const match = SORT_OPTIONS.find((option) => option.sortBy === value);
+  return match?.sortBy ?? "latest_updated_at";
+}
+
+function normalizeDirection(value: string | undefined): "asc" | "desc" {
+  return value === "asc" ? "asc" : "desc";
+}
+
+function workspaceSummaryPath(sortBy: string, direction: "asc" | "desc"): string {
+  return `/api/v1/portfolios/summary?sort_by=${encodeURIComponent(sortBy)}&direction=${encodeURIComponent(direction)}`;
+}
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const config = getRuntimeConfig();
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const [apiReady, apiInfo, persistenceCatalog, portfolioList] = await Promise.all([
+  const sortBy = normalizeSortBy(resolvedSearchParams.sortBy);
+  const direction = normalizeDirection(resolvedSearchParams.direction);
+  const [apiReady, apiInfo, persistenceCatalog, workspaceSummary, portfolioRanking] = await Promise.all([
     fetchOrbitJson<HealthPayload>("/health/ready"),
     fetchOrbitJson<InfoPayload>("/api/v1/system/info"),
     fetchOrbitJson<PersistenceCatalogPayload>("/api/v1/system/persistence/schema"),
-    fetchOrbitJson<PortfolioListPayload>("/api/v1/portfolios"),
+    fetchOrbitJson<PortfolioWorkspaceSummaryPayload>(workspaceSummaryPath(sortBy, direction)),
+    fetchOrbitJson<PortfolioRankingPayload>("/api/v1/portfolios/ranking?sort_by=weighted_composite_score&direction=desc"),
   ]);
 
   return (
@@ -44,20 +90,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <StatusBadge label={apiInfo?.reference_runtime_stage ?? "archived-baseline"} tone="success" />
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              Submit a new product idea, run the ORBIT committee, and inspect the full lineage without leaving the
-              current platform shell.
+              Compare multiple ORBIT portfolios, prioritize the strongest ideas, and inspect the latest committee
+              lineage from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 8 turns the approved deterministic backend into a first practical workflow: JSON idea
-              submission, persisted canonicalization, review execution, automatic bounded debate and re-synthesis, and
-              auditable result inspection.
+              Milestone 9 expands ORBIT from single-portfolio execution into a multi-portfolio decision surface:
+              persisted submission, deterministic ranking, side-by-side comparison, and direct links back to the
+              approved history and artifact APIs.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
             <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime Direction</div>
-            <div className="mt-2 text-2xl font-semibold">Interactive ORBIT Workflow</div>
+            <div className="mt-2 text-2xl font-semibold">Multi-Portfolio Decisions</div>
             <div className="mt-1 text-sm text-orbit-mist/70">
-              {apiInfo?.runtime_direction ?? "submission-review-history"}
+              {apiInfo?.runtime_direction ?? "multi-portfolio-comparison-and-prioritization"}
             </div>
           </div>
         </div>
@@ -86,9 +132,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           detail={`${persistenceCatalog?.tables.length ?? apiInfo?.persistence_tables ?? 0} durable tables remain aligned to the Python contracts.`}
         />
         <MetricCard
-          label="Portfolios"
-          value={String(portfolioList?.items.length ?? 0)}
-          detail="New ideas are accepted through the JSON submission path and persisted as canonical ORBIT portfolios."
+          label="Workspace"
+          value={String(workspaceSummary?.items.length ?? 0)}
+          detail="All submitted portfolios can now be ranked, compared, and linked back to history and artifacts."
         />
         <MetricCard
           label="Parity"
@@ -97,7 +143,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <ShellCard>
           <SectionEyebrow>Submit a New Idea</SectionEyebrow>
           <form action="/api/portfolios" method="post" className="mt-5 space-y-5">
@@ -125,7 +171,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
             <div className="flex flex-col gap-3 border-t border-orbit-pine/10 pt-4 text-sm text-orbit-ink/70 md:flex-row md:items-center md:justify-between">
               <span>
-                Submission type is stored as <span className="font-mono text-xs">product_idea</span> in Milestone 8.
+                New idea submissions use a bounded portfolio identity strategy while preserving the approved
+                canonicalization path.
               </span>
               <SubmitButton>Create Portfolio</SubmitButton>
             </div>
@@ -133,31 +180,42 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </ShellCard>
 
         <ShellCard className="bg-orbit-pine text-orbit-mist">
-          <SectionEyebrow>Recent Portfolios</SectionEyebrow>
+          <SectionEyebrow>Priority Snapshot</SectionEyebrow>
           <div className="mt-5 space-y-4">
-            {portfolioList?.items.length ? (
-              portfolioList.items.slice(0, 5).map((portfolio) => (
-                <div key={portfolio.portfolio_id} className="rounded-[24px] border border-white/10 bg-white/6 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge label={humanize(portfolio.portfolio_status)} tone="warning" />
-                    <span className="text-xs uppercase tracking-[0.2em] text-orbit-moss">
-                      {humanize(portfolio.portfolio_type)}
-                    </span>
+            {portfolioRanking?.items.length ? (
+              portfolioRanking.items.slice(0, 3).map((item) => (
+                <div key={item.portfolio.portfolio_id} className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <StatusBadge label={`Rank ${item.rank}`} />
+                    <StatusBadge
+                      label={item.latest_final_recommendation ?? "Not reviewed"}
+                      tone={recommendationTone(item.latest_final_recommendation)}
+                    />
                   </div>
-                  <div className="mt-3 text-lg font-semibold">{portfolio.portfolio_name}</div>
+                  <div className="mt-3 text-lg font-semibold">{item.portfolio.portfolio_name}</div>
                   <p className="mt-2 text-sm leading-6 text-orbit-mist/75">
-                    {portfolio.owner} · submitted {formatDate(portfolio.submitted_at)}
+                    {item.portfolio.owner} · updated {formatDate(item.latest_updated_at)}
                   </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 px-4 py-3">
+                      <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Weighted Score</div>
+                      <div className="mt-2 text-xl font-semibold">{formatScore(item.latest_weighted_composite_score)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 px-4 py-3">
+                      <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Lineage State</div>
+                      <div className="mt-2 text-xl font-semibold">{item.active_artifact_source ?? "No run yet"}</div>
+                    </div>
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <a
                       className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-orbit-mist transition hover:border-white/35"
-                      href={`/portfolios/${portfolio.portfolio_id}`}
+                      href={`/portfolios/${item.portfolio.portfolio_id}`}
                     >
                       Portfolio Detail
                     </a>
                     <a
                       className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-orbit-mist transition hover:border-white/35"
-                      href={`/portfolios/${portfolio.portfolio_id}/history`}
+                      href={`/portfolios/${item.portfolio.portfolio_id}/history`}
                     >
                       Review History
                     </a>
@@ -166,8 +224,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               ))
             ) : (
               <p className="text-sm leading-6 text-orbit-mist/78">
-                No user-submitted ideas are stored yet. The first submission through the form will create a canonical
-                portfolio and open its history page.
+                Ranking appears here once portfolios have been reviewed through the deterministic committee path.
               </p>
             )}
           </div>
@@ -175,24 +232,130 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <ShellCard>
-        <SectionEyebrow>Workflow Shape</SectionEyebrow>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <MetricCard
-            label="Submission"
-            value="JSON idea intake"
-            detail="The web shell posts minimal idea fields and the API persists both source document and canonical portfolio artifacts."
-          />
-          <MetricCard
-            label="Execution"
-            value="Review + bounded follow-ons"
-            detail="The review trigger reuses the existing deterministic worker path, then starts debate and optional re-synthesis automatically."
-          />
-          <MetricCard
-            label="Inspection"
-            value="History + artifacts"
-            detail="Portfolio history and artifact APIs remain the source of truth for original versus active committee outputs."
-          />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <SectionEyebrow>Portfolio Workspace</SectionEyebrow>
+            <p className="max-w-3xl text-sm leading-6 text-orbit-ink/70">
+              Sort all submitted portfolios by committee outcome, select multiple ideas for side-by-side comparison,
+              and jump directly into the persisted history and artifact surfaces for each one.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SORT_OPTIONS.map((option) => {
+              const isActive = option.sortBy === sortBy && option.direction === direction;
+              return (
+                <a
+                  key={`${option.sortBy}:${option.direction}`}
+                  href={`/?sortBy=${encodeURIComponent(option.sortBy)}&direction=${encodeURIComponent(option.direction)}`}
+                  className={
+                    isActive
+                      ? "inline-flex rounded-full bg-orbit-pine px-4 py-2 text-sm font-medium text-orbit-mist"
+                      : "inline-flex rounded-full border border-orbit-pine/10 px-4 py-2 text-sm font-medium text-orbit-ink/75 transition hover:border-orbit-pine/30 hover:text-orbit-ink"
+                  }
+                >
+                  {option.label}
+                </a>
+              );
+            })}
+          </div>
         </div>
+
+        <form action="/compare" method="get" className="mt-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm leading-6 text-orbit-ink/70">
+              Current sort: <span className="font-medium text-orbit-ink">{humanize(sortBy)}</span> ({direction}).
+            </p>
+            <SubmitButton>Compare Selected Portfolios</SubmitButton>
+          </div>
+
+          {workspaceSummary?.items.length ? (
+            <div className="space-y-4">
+              {workspaceSummary.items.map((item) => (
+                <div
+                  key={item.portfolio.portfolio_id}
+                  className="rounded-[24px] border border-orbit-pine/10 bg-white/75 p-5 shadow-panel backdrop-blur"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <input
+                          type="checkbox"
+                          name="portfolioId"
+                          value={item.portfolio.portfolio_id}
+                          className="h-4 w-4 rounded border-orbit-pine/30 text-orbit-pine focus:ring-orbit-gold/35"
+                        />
+                        <StatusBadge label={humanize(item.portfolio.portfolio_status)} tone="warning" />
+                        <StatusBadge
+                          label={item.latest_final_recommendation ?? "Not reviewed"}
+                          tone={recommendationTone(item.latest_final_recommendation)}
+                        />
+                        {item.active_artifact_source ? (
+                          <StatusBadge label={`${item.active_artifact_source} artifacts`} />
+                        ) : null}
+                      </div>
+                      <div>
+                        <div className="text-2xl font-semibold text-orbit-ink">{item.portfolio.portfolio_name}</div>
+                        <p className="mt-2 text-sm leading-6 text-orbit-ink/70">
+                          {item.portfolio.owner} · submitted {formatDate(item.portfolio.submitted_at)} · updated{" "}
+                          {formatDate(item.latest_updated_at)}
+                        </p>
+                      </div>
+                      <p className="font-mono text-xs leading-6 text-orbit-ink/65">
+                        {item.latest_lineage
+                          ? `${item.latest_lineage.review_run_id}${item.latest_lineage.debate_id ? ` -> ${item.latest_lineage.debate_id}` : ""}${item.latest_lineage.resynthesis_id ? ` -> ${item.latest_lineage.resynthesis_id}` : ""}`
+                          : "No review lineage has been created yet."}
+                      </p>
+                    </div>
+                    <div className="grid gap-3 text-sm text-orbit-ink/75 md:grid-cols-2 xl:grid-cols-3">
+                      <div className="rounded-2xl border border-orbit-pine/10 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Weighted Score</div>
+                        <div className="mt-2 text-xl font-semibold text-orbit-ink">
+                          {formatScore(item.latest_weighted_composite_score)}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orbit-pine/10 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Structured Evidence</div>
+                        <div className="mt-2 text-xl font-semibold text-orbit-ink">
+                          {item.agent_review_count} agents
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orbit-pine/10 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Conflict State</div>
+                        <div className="mt-2 text-xl font-semibold text-orbit-ink">
+                          {item.conflict_count} conflicts
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orbit-pine/10 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Recheck Requests</div>
+                        <div className="mt-2 text-xl font-semibold text-orbit-ink">
+                          {item.score_change_required_count}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orbit-pine/10 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Review Cycles</div>
+                        <div className="mt-2 text-xl font-semibold text-orbit-ink">
+                          {item.review_run_count}/{item.debate_count}/{item.resynthesis_count}
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-orbit-ink/60">reviews / debates / re-syntheses</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <ActionLink href={`/portfolios/${item.portfolio.portfolio_id}`}>Portfolio Detail</ActionLink>
+                        <ActionLink href={`/portfolios/${item.portfolio.portfolio_id}/history`} tone="muted">
+                          Review History
+                        </ActionLink>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-orbit-ink/70">
+              No portfolios are stored yet. Submit an idea above to create the first entry in the M9 comparison
+              workspace.
+            </p>
+          )}
+        </form>
       </ShellCard>
     </PageFrame>
   );

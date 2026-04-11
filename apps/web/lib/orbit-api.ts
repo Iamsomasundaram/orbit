@@ -176,6 +176,49 @@ export type ArtifactInspectionPayload = {
   } | null;
 };
 
+export type PortfolioWorkspaceEntry = {
+  portfolio: PortfolioRecord;
+  latest_review_status: string | null;
+  latest_final_recommendation: string | null;
+  latest_weighted_composite_score: number | null;
+  active_artifact_source: "original" | "resynthesized" | null;
+  agent_review_count: number;
+  conflict_count: number;
+  score_change_required_count: number;
+  review_run_count: number;
+  debate_count: number;
+  resynthesis_count: number;
+  latest_updated_at: string;
+  latest_lineage: {
+    portfolio_id: string;
+    review_run_id: string;
+    debate_id: string | null;
+    resynthesis_id: string | null;
+  } | null;
+  recommendation_rank: number | null;
+};
+
+export type PortfolioWorkspaceSummaryPayload = {
+  sort_by: string;
+  direction: "asc" | "desc";
+  items: PortfolioWorkspaceEntry[];
+};
+
+export type PortfolioComparisonPayload = {
+  requested_portfolio_ids: string[];
+  items: PortfolioWorkspaceEntry[];
+};
+
+export type PortfolioRankingEntry = PortfolioWorkspaceEntry & {
+  rank: number;
+};
+
+export type PortfolioRankingPayload = {
+  sort_by: string;
+  direction: "asc" | "desc";
+  items: PortfolioRankingEntry[];
+};
+
 type ApiErrorPayload = {
   detail?: string;
 };

@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 
 from orbit_worker.persistence import PersistenceSchemaCatalog, SqlAlchemyPersistenceRepository
 
@@ -44,6 +44,17 @@ from .resyntheses import (
     ResynthesisSummary,
 )
 from .persistence import PersistenceDdlResponse, persistence_ddl_response, persistence_schema_catalog
+from .workspace import (
+    PortfolioComparisonResponse,
+    PortfolioRankingResponse,
+    PortfolioWorkspaceNotFoundError,
+    PortfolioWorkspaceService,
+    PortfolioWorkspaceSummaryResponse,
+    PortfolioWorkspaceValidationError,
+    PortfolioWorkspaceRankingField,
+    PortfolioWorkspaceSortField,
+    SortDirection,
+)
 
 settings = get_settings()
 
@@ -68,6 +79,7 @@ async def lifespan(app: FastAPI):
         resyntheses=resynthesis_service,
     )
     app.state.review_history_service = ReviewHistoryService(repository=repository)
+    app.state.portfolio_workspace_service = PortfolioWorkspaceService(repository=repository)
     try:
         yield
     finally:
@@ -99,6 +111,10 @@ def resynthesis_service(request: Request) -> ResynthesisService:
 
 def review_history_service(request: Request) -> ReviewHistoryService:
     return request.app.state.review_history_service
+
+
+def portfolio_workspace_service(request: Request) -> PortfolioWorkspaceService:
+    return request.app.state.portfolio_workspace_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -151,6 +167,37 @@ def submit_portfolio(
 @app.get("/api/v1/portfolios", response_model=PortfolioListResponse)
 def list_portfolios(request: Request) -> PortfolioListResponse:
     return portfolio_service(request).list_portfolios()
+
+
+@app.get("/api/v1/portfolios/summary", response_model=PortfolioWorkspaceSummaryResponse)
+def portfolio_workspace_summary(
+    request: Request,
+    sort_by: PortfolioWorkspaceSortField = Query(default="latest_updated_at"),
+    direction: SortDirection = Query(default="desc"),
+) -> PortfolioWorkspaceSummaryResponse:
+    return portfolio_workspace_service(request).list_summary(sort_by=sort_by, direction=direction)
+
+
+@app.get("/api/v1/portfolios/compare", response_model=PortfolioComparisonResponse)
+def compare_portfolios(
+    request: Request,
+    portfolio_id: list[str] = Query(default_factory=list),
+) -> PortfolioComparisonResponse:
+    try:
+        return portfolio_workspace_service(request).compare(portfolio_id)
+    except PortfolioWorkspaceValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PortfolioWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/portfolios/ranking", response_model=PortfolioRankingResponse)
+def rank_portfolios(
+    request: Request,
+    sort_by: PortfolioWorkspaceRankingField = Query(default="weighted_composite_score"),
+    direction: SortDirection = Query(default="desc"),
+) -> PortfolioRankingResponse:
+    return portfolio_workspace_service(request).rank(sort_by=sort_by, direction=direction)
 
 
 @app.get("/api/v1/portfolios/{portfolio_id}", response_model=PortfolioDetail)

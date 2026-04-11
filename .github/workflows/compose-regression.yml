@@ -1,0 +1,31 @@
+name: Compose Regression
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  worker-regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build migration and worker services
+        run: docker compose build migrate worker worker-parity
+
+      - name: Apply migrations
+        run: docker compose run --rm migrate
+
+      - name: Run worker test suite
+        run: docker compose run --rm worker /app/.venv/bin/pytest apps/worker/tests -q
+
+      - name: Run archived baseline parity validation
+        run: docker compose --profile baseline run --rm worker-parity
+
+      - name: Tear down Docker Compose
+        if: always()
+        run: docker compose down --remove-orphans --volumes

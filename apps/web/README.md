@@ -1,10 +1,11 @@
 # Web App
 
-Milestone 8 turns the Next.js shell into the first practical ORBIT interaction surface.
+Milestone 9 turns the Next.js shell into a thin ORBIT workspace for multi-portfolio submission, comparison, ranking, and lineage inspection.
 
 Current capability:
 
-- landing page for JSON product-idea submission
+- landing page for JSON product-idea submission, ranking, and comparison selection
+- side-by-side comparison page for multiple persisted portfolios
 - portfolio detail page with latest review result visibility
 - portfolio history page with lineage-aware review, debate, and artifact links
 - web-side POST handlers that forward submission and review triggers to the FastAPI backend
@@ -15,6 +16,7 @@ Current capability:
 Entry points:
 
 - `apps/web/app/page.tsx`
+- `apps/web/app/compare/page.tsx`
 - `apps/web/app/portfolios/[portfolioId]/page.tsx`
 - `apps/web/app/portfolios/[portfolioId]/history/page.tsx`
 - `apps/web/app/api/portfolios/route.ts`
