@@ -59,7 +59,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 9" />
+              <StatusBadge label="Milestone 10" />
               <StatusBadge label={`${portfolioIds.length} selected`} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -83,7 +83,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <ShellCard>
           <SectionEyebrow>No Portfolios Selected</SectionEyebrow>
           <p className="mt-4 text-sm leading-6 text-orbit-ink/70">
-            Select one or more portfolios from the Milestone 9 workspace to compare their latest committee outcomes.
+            Select one or more portfolios from the Milestone 10 workspace to compare their latest committee outcomes.
           </p>
         </ShellCard>
       ) : null}

@@ -90,20 +90,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <StatusBadge label={apiInfo?.reference_runtime_stage ?? "archived-baseline"} tone="success" />
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              Compare multiple ORBIT portfolios, prioritize the strongest ideas, and inspect the latest committee
+              Run a parallel llm-backed ORBIT committee, compare portfolio outcomes, and inspect the latest committee
               lineage from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 9 expands ORBIT from single-portfolio execution into a multi-portfolio decision surface:
-              persisted submission, deterministic ranking, side-by-side comparison, and direct links back to the
-              approved history and artifact APIs.
+              Milestone 10 adds provider-backed committee reasoning with parallel agent fan-out while preserving the
+              approved deterministic fallback, persisted governance flow, and multi-portfolio workspace from Milestone 9.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
             <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime Direction</div>
-            <div className="mt-2 text-2xl font-semibold">Multi-Portfolio Decisions</div>
+            <div className="mt-2 text-2xl font-semibold">Parallel LLM Committee</div>
             <div className="mt-1 text-sm text-orbit-mist/70">
-              {apiInfo?.runtime_direction ?? "multi-portfolio-comparison-and-prioritization"}
+              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine"}
             </div>
           </div>
         </div>
@@ -139,7 +138,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <MetricCard
           label="Parity"
           value={apiInfo?.reference_runtime_stage ?? "archived-baseline"}
-          detail={`The Docker Compose baseline profile still validates Python output against the archived artifact set from ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`}
+          detail={`The Docker Compose baseline profile still validates deterministic Python output against the archived artifact set from ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`}
         />
       </section>
 

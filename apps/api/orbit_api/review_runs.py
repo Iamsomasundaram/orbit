@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from orbit_worker.committee_engine import CommitteeRuntimeOptions
 from orbit_worker.persistence import (
     AgentReviewRecord,
     AuditEventRecord,
@@ -83,8 +84,16 @@ def bundle_to_detail(bundle: ReviewPersistenceBundle) -> ReviewRunDetail:
 
 
 class ReviewRunService:
-    def __init__(self, repository: PersistenceRepository) -> None:
+    def __init__(
+        self,
+        repository: PersistenceRepository,
+        *,
+        runtime_options: CommitteeRuntimeOptions | None = None,
+        llm_provider: object | None = None,
+    ) -> None:
         self._repository = repository
+        self._runtime_options = runtime_options or CommitteeRuntimeOptions()
+        self._llm_provider = llm_provider
 
     def start_review(self, portfolio_id: str) -> ReviewRunSummary:
         portfolio_bundle = self._repository.get_portfolio_bundle(portfolio_id)
@@ -97,6 +106,8 @@ class ReviewRunService:
         result = run_review_pipeline_for_portfolio(
             portfolio_bundle.canonical_portfolio.canonical_payload,
             run_id=run_id,
+            runtime_options=self._runtime_options,
+            llm_provider=self._llm_provider,
         )
         review_bundle = build_review_persistence_bundle(
             run_id,

@@ -41,3 +41,6 @@ redis-data/
 
 # Local portfolio submissions
 .orbit-data/
+
+# Local API keys
+key.txt

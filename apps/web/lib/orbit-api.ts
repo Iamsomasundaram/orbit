@@ -9,11 +9,15 @@ export type HealthPayload = {
 export type InfoPayload = {
   service: string;
   environment: string;
+  milestone: string;
+  runtime_mode: string;
   active_backend: string;
   reference_runtime: string;
   reference_runtime_stage: string;
   reference_runtime_archival_target_milestone: string;
   llm_provider: string;
+  openai_model: string;
+  llm_max_concurrency: number;
   persistence_schema_version: string;
   persistence_tables: number;
   runtime_direction: string;

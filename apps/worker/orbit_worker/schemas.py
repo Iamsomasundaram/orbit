@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from .domain import AGENT_REGISTRY, PORTFOLIO_SECTIONS, RECOMMENDATION_RANK, SCORE_DIMENSIONS, SEVERITY_RANK
+from .llm_specs import LLM_AGENT_REGISTRY
 
 
 class OrbitModel(BaseModel):
@@ -226,7 +227,8 @@ def validate_dimension_score(score: Any) -> DimensionScore:
 
 def validate_agent_review(review: Any) -> AgentReview:
     model = AgentReview.model_validate(review)
-    if not any(agent.id == model.agent_id for agent in AGENT_REGISTRY):
+    known_agent_ids = {agent.id for agent in AGENT_REGISTRY} | {agent.id for agent in LLM_AGENT_REGISTRY}
+    if model.agent_id not in known_agent_ids:
         raise ValueError(f"Unknown agent_id {model.agent_id}.")
     if model.recommendation not in RECOMMENDATION_RANK:
         raise ValueError(f"Unsupported recommendation {model.recommendation}.")

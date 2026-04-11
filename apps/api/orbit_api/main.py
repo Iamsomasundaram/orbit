@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 
 from orbit_worker.persistence import PersistenceSchemaCatalog, SqlAlchemyPersistenceRepository
+from orbit_worker.committee_engine import CommitteeRuntimeOptions
 
 from .config import get_settings
 from .debates import (
@@ -63,7 +64,8 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     repository = SqlAlchemyPersistenceRepository(settings.database_url)
     repository.assert_schema_ready()
-    review_run_service = ReviewRunService(repository=repository)
+    runtime_options = CommitteeRuntimeOptions.from_settings(settings)
+    review_run_service = ReviewRunService(repository=repository, runtime_options=runtime_options)
     debate_service = DebateService(repository=repository)
     resynthesis_service = ResynthesisService(repository=repository)
     app.state.portfolio_ingestion_service = PortfolioIngestionService(

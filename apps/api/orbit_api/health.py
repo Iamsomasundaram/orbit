@@ -40,10 +40,12 @@ class ServiceInfo(BaseModel):
     status: Literal["ok"]
     milestone: str
     runtime_direction: str
+    runtime_mode: str
     active_backend: str
     reference_runtime: str
     reference_runtime_stage: str
     reference_runtime_archival_target_milestone: str
+    llm_max_concurrency: int
     persistence_schema_version: str
     persistence_tables: int
     environment: str
@@ -108,11 +110,13 @@ def service_info(settings: Settings) -> ServiceInfo:
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
-        runtime_direction="multi-portfolio-comparison-and-prioritization",
+        runtime_direction="llm-backed-parallel-committee-engine",
+        runtime_mode=settings.llm_runtime_mode,
         active_backend="python",
         reference_runtime="js-baseline-only",
         reference_runtime_stage=settings.js_baseline_archival_stage,
         reference_runtime_archival_target_milestone=settings.js_baseline_archival_target_milestone,
+        llm_max_concurrency=settings.llm_max_concurrency,
         persistence_schema_version=catalog.schema_version,
         persistence_tables=len(catalog.tables),
         environment=settings.orbit_env,

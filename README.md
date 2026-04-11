@@ -21,6 +21,7 @@ Current status:
 - Milestone 7.1 archives the executable JS baseline path, preserves parity against the committed baseline artifacts, and keeps the Python runtime as the only active backend direction.
 - Milestone 8 adds the first practical interactive workflow: JSON idea submission, persisted canonicalization, synchronous review execution, automatic bounded debate and re-synthesis when required, and minimal UI pages for portfolio detail and history inspection.
 - Milestone 9 adds a multi-portfolio decision workspace with persisted summary, deterministic ranking, side-by-side comparison, safer bounded identity for JSON idea submission, and Compose-based regression automation.
+- Milestone 10 adds the first llm-backed committee engine with parallel agent fan-out, provider abstraction, deterministic fallback mode, and local OpenAI validation through Docker Compose.
 
 Primary references:
 
@@ -39,6 +40,7 @@ Primary references:
 - `docs/milestone-7.1/README.md`
 - `docs/milestone-8/README.md`
 - `docs/milestone-9/README.md`
+- `docs/milestone-10/README.md`
 
 Platform commands:
 
@@ -47,6 +49,8 @@ Platform commands:
 - `docker compose ps`
 - `docker compose down --remove-orphans`
 - `docker compose exec worker /app/.venv/bin/pytest apps/worker/tests -q`
+- `LLM_RUNTIME_MODE=deterministic`
+- `LLM_RUNTIME_MODE=llm`
 - `POST http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios/{portfolio_id}`
@@ -66,6 +70,7 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}/artifacts`
 - `docker compose --profile baseline run --rm worker-parity`
+- `key.txt` -> local-only OpenAI API key file consumed through `OPENAI_API_KEY_FILE=/workspace/key.txt`
 
 Repository layout:
 

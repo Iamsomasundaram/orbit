@@ -42,10 +42,15 @@ class WorkerInfo(BaseModel):
     service: str
     status: Literal["ok"]
     milestone: str
+    runtime_mode: str
     active_backend: str
     reference_runtime: str
     baseline_archival_stage: str
     baseline_archival_target_milestone: str
+    llm_provider: str
+    llm_model: str
+    llm_max_concurrency: int
+    llm_request_timeout_seconds: int
     persistence_schema_version: str
     persistence_tables: int
     persistence_boundary: str
@@ -83,10 +88,15 @@ def worker_info() -> WorkerInfo:
         service=settings.service_name,
         status="ok",
         milestone=settings.milestone,
+        runtime_mode=settings.llm_runtime_mode,
         active_backend="python",
         reference_runtime="js-baseline-only",
         baseline_archival_stage=settings.js_baseline_archival_stage,
         baseline_archival_target_milestone=settings.js_baseline_archival_target_milestone,
+        llm_provider=settings.llm_provider,
+        llm_model=settings.openai_model,
+        llm_max_concurrency=settings.llm_max_concurrency,
+        llm_request_timeout_seconds=settings.llm_request_timeout_seconds,
         persistence_schema_version=catalog.schema_version,
         persistence_tables=len(catalog.tables),
         persistence_boundary="alembic-migrated-sqlalchemy+repository-protocol",

@@ -7,6 +7,13 @@ def severity_rank(value: str) -> int:
     return {"critical": 5, "major": 4, "moderate": 3, "minor": 2, "informational": 1}.get(value, 0)
 
 
+def review_runtime(reviews: list[AgentReview]) -> tuple[str, str]:
+    if not reviews:
+        return "unknown", "unknown"
+    metadata = reviews[0].review_metadata
+    return metadata.model_provider, metadata.prompt_contract_version
+
+
 def build_markdown(portfolio: CanonicalPortfolio, scorecard: Scorecard, report: CommitteeReport) -> str:
     score_rows = "\n".join(
         f"| {entry.dimension} | {entry.score:.2f} | {entry.confidence:.2f} | {entry.evidence_completeness:.2f} |"
@@ -69,12 +76,30 @@ def build_committee_report(
         for finding in review.findings
     ]
     top_findings.sort(key=lambda finding: (-severity_rank(finding["severity"]), finding["title"]))
-    executive_summary = (
-        f"{portfolio.portfolio_name} completes the Milestone 0.5 thin-slice review with {len(reviews)} specialist reviews, "
-        f"{len(conflicts)} structured conflicts, and a final recommendation of {scorecard.final_recommendation}. "
-        "The committee sees strong business and product potential, but it still requires explicit integration, resilience, "
-        "and governance conditions before broader rollout."
-    )
+    model_provider, prompt_contract_version = review_runtime(reviews)
+    if model_provider == "deterministic-thin-slice":
+        executive_summary = (
+            f"{portfolio.portfolio_name} completes the Milestone 0.5 thin-slice review with {len(reviews)} specialist reviews, "
+            f"{len(conflicts)} structured conflicts, and a final recommendation of {scorecard.final_recommendation}. "
+            "The committee sees strong business and product potential, but it still requires explicit integration, resilience, "
+            "and governance conditions before broader rollout."
+        )
+        audit_notes = [
+            "Thin slice executed with deterministic structured reviewer logic for all 15 agents.",
+            f"Conflict detector v1 evaluated {len(conflicts)} structured conflict records.",
+            "Scorecard recommendation follows the Milestone 0 override rules for governance blockers.",
+        ]
+    else:
+        executive_summary = (
+            f"{portfolio.portfolio_name} completed an ORBIT llm-backed committee review with {len(reviews)} parallel specialist agents, "
+            f"{len(conflicts)} structured conflicts, and a final recommendation of {scorecard.final_recommendation}. "
+            "The committee outcome remains bounded by deterministic conflict detection, score aggregation, and governance overrides."
+        )
+        audit_notes = [
+            f"Parallel llm committee execution completed under prompt contract {prompt_contract_version}.",
+            f"Structured conflict detection evaluated {len(conflicts)} persisted reviewer artifacts after llm fan-out.",
+            "Deterministic score aggregation and governance overrides remained the final committee control surface.",
+        ]
     report = validate_committee_report(
         {
             "portfolio_id": portfolio.portfolio_id,
@@ -83,11 +108,7 @@ def build_committee_report(
             "top_findings": top_findings[:8],
             "top_conflicts": [conflict.model_dump(mode="json") for conflict in conflicts[:5]],
             "conditions": scorecard.conditions,
-            "audit_notes": [
-                "Thin slice executed with deterministic structured reviewer logic for all 15 agents.",
-                f"Conflict detector v1 evaluated {len(conflicts)} structured conflict records.",
-                "Scorecard recommendation follows the Milestone 0 override rules for governance blockers.",
-            ],
+            "audit_notes": audit_notes,
             "markdown": "",
         }
     )

@@ -6,10 +6,10 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from .committee_engine import CommitteeRuntimeOptions, run_committee_reviews
 from .conflicts import detect_conflicts
 from .ingestion import ingest_portfolio_document
 from .reporting import build_committee_report
-from .reviewer import run_specialist_reviews
 from .schemas import CanonicalPortfolio
 from .scorecard import build_committee_scorecard
 
@@ -32,9 +32,15 @@ def run_review_pipeline_for_portfolio(
     canonical_portfolio: CanonicalPortfolio,
     output_dir: str | None = None,
     run_id: str | None = None,
+    runtime_options: CommitteeRuntimeOptions | None = None,
+    llm_provider: object | None = None,
 ) -> dict[str, Any]:
     resolved_run_id = run_id or f"thin-slice-{canonical_portfolio.portfolio_id}"
-    agent_reviews = run_specialist_reviews(canonical_portfolio)
+    agent_reviews = run_committee_reviews(
+        canonical_portfolio,
+        runtime_options=runtime_options,
+        llm_provider=llm_provider,
+    )
     conflicts = detect_conflicts(agent_reviews)
     scorecard = build_committee_scorecard(canonical_portfolio, resolved_run_id, agent_reviews, conflicts)
     committee_report = build_committee_report(canonical_portfolio, resolved_run_id, agent_reviews, conflicts, scorecard)
@@ -59,6 +65,16 @@ def run_review_pipeline_for_portfolio(
     }
 
 
-def run_review_pipeline(input_path: str, output_dir: str | None = None) -> dict[str, Any]:
+def run_review_pipeline(
+    input_path: str,
+    output_dir: str | None = None,
+    runtime_options: CommitteeRuntimeOptions | None = None,
+    llm_provider: object | None = None,
+) -> dict[str, Any]:
     canonical_portfolio = ingest_portfolio_document(input_path)
-    return run_review_pipeline_for_portfolio(canonical_portfolio, output_dir=output_dir)
+    return run_review_pipeline_for_portfolio(
+        canonical_portfolio,
+        output_dir=output_dir,
+        runtime_options=runtime_options,
+        llm_provider=llm_provider,
+    )
