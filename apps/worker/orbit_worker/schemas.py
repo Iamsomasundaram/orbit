@@ -79,6 +79,10 @@ class ReviewMetadata(OrbitModel):
     output_tokens: int = Field(default=0, ge=0)
     total_tokens: int = Field(default=0, ge=0)
     estimated_cost_usd: float = Field(default=0.0, ge=0)
+    activation_tier: str = "specialist"
+    activation_status: str = "executed"
+    activation_reason: str = ""
+    routing_strategy_version: str | None = None
 
 
 class AgentReview(OrbitModel):

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     orbit_env: str = Field(default="local", alias="ORBIT_ENV")
     service_name: str = "orbit-worker"
-    milestone: str = "12.2"
+    milestone: str = "13"
     worker_internal_port: int = Field(default=8002, alias="WORKER_INTERNAL_PORT")
     postgres_host: str = Field(default="postgres", alias="POSTGRES_HOST")
     postgres_internal_port: int = Field(default=5432, alias="POSTGRES_INTERNAL_PORT")
@@ -19,10 +19,10 @@ class Settings(BaseSettings):
     redis_internal_port: int = Field(default=6379, alias="REDIS_INTERNAL_PORT")
     database_url: str = Field(default="postgresql+psycopg://orbit:orbit@postgres:5432/orbit", alias="DATABASE_URL")
     redis_url: str = Field(default="redis://redis:6379/0", alias="REDIS_URL")
-    llm_runtime_mode: str = Field(default="deterministic", alias="LLM_RUNTIME_MODE")
+    llm_runtime_mode: str = Field(default="llm", alias="LLM_RUNTIME_MODE")
     llm_provider: str = Field(default="openai", alias="LLM_PROVIDER")
     llm_max_concurrency: int = Field(default=6, alias="LLM_MAX_CONCURRENCY")
-    llm_request_timeout_seconds: int = Field(default=25, alias="LLM_REQUEST_TIMEOUT_SECONDS")
+    llm_request_timeout_seconds: int = Field(default=45, alias="LLM_REQUEST_TIMEOUT_SECONDS")
     llm_max_output_tokens: int = Field(default=700, alias="LLM_MAX_OUTPUT_TOKENS")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_api_key_file: str = Field(default="/workspace/key.txt", alias="OPENAI_API_KEY_FILE")

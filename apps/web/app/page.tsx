@@ -91,9 +91,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               discussion from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 12.2 hardens the platform with reliable submission and review actions, browser automation,
-              deterministic fallback safety, richer telemetry, and clearer conflict and audit surfaces across the
-              existing ORBIT workspace.
+              Milestone 13 makes the llm committee the default runtime, executes fast Tier-1 screening agents first,
+              activates specialists only when the evidence requires them, and keeps deterministic fallback and
+              boardroom playback fully observable across the existing ORBIT workspace.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
@@ -336,8 +336,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12.2
-              comparison and boardroom playback workspace.
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 13
+              adaptive committee workspace.
             </p>
           )}
         </form>

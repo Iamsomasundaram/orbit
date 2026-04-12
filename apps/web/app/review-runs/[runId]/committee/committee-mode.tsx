@@ -24,7 +24,7 @@ type CommitteeModeProps = {
 };
 
 type Tone = "default" | "success" | "warning" | "danger";
-type PlaybackSpeed = "1x" | "2x" | "5x" | "instant";
+type PlaybackSpeed = "0.5x" | "1x" | "2x" | "5x" | "instant";
 type CommitteeStance = "support" | "neutral" | "oppose";
 
 const PHASE_ORDER = [
@@ -36,6 +36,7 @@ const PHASE_ORDER = [
 ] as const;
 
 const PLAYBACK_SPEEDS: Array<{ value: PlaybackSpeed; label: string; detail: string }> = [
+  { value: "0.5x", label: "0.5x", detail: "Deliberate playback" },
   { value: "1x", label: "1x", detail: "Default pacing" },
   { value: "2x", label: "2x", detail: "Faster reveal" },
   { value: "5x", label: "5x", detail: "Rapid playback" },
@@ -130,6 +131,13 @@ function stanceTone(stance: CommitteeStance): Tone {
   return "danger";
 }
 
+function activationTone(status: string): Tone {
+  if (status === "passive_observer") {
+    return "default";
+  }
+  return "warning";
+}
+
 function avatarLabel(role: string): string {
   const words = role.split(/[^A-Za-z]+/).filter(Boolean);
   if (words.length === 0) {
@@ -207,6 +215,9 @@ function playbackDelay(entry: DeliberationEntryPayload, playbackSpeed: PlaybackS
     baseDelay = 850;
   }
 
+  if (playbackSpeed === "0.5x") {
+    return Math.max(baseDelay * 2, 240);
+  }
   const divisor = playbackSpeed === "2x" ? 2 : playbackSpeed === "5x" ? 5 : 1;
   return Math.max(Math.round(baseDelay / divisor), 120);
 }
@@ -402,7 +413,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.2" />
+              <StatusBadge label="Milestone 13" />
               <StatusBadge label="Committee Mode" tone="warning" />
               <StatusBadge label={summary.active_artifact_source} />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -413,9 +424,9 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                 Watch the ORBIT committee unfold like a live investment boardroom.
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-mist/78">
-                Committee Mode replays the persisted deliberation timeline with consistent agent identities, conflict
-                stance callouts, runtime telemetry, and controllable playback speed, while preserving the same bounded
-                committee record underneath.
+                Committee Mode replays the persisted deliberation timeline with adaptive routing telemetry, consistent
+                agent identities, passive-observer visibility, conflict stance callouts, and controllable playback
+                speed, while preserving the same bounded committee record underneath.
               </p>
             </div>
           </div>
@@ -437,7 +448,12 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Runtime Mode</div>
               <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.effective_runtime_mode}</div>
-              <div className="mt-2 text-sm text-orbit-mist/72">{timeline.runtime_metadata.prompt_contract_version}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                {timeline.runtime_metadata.prompt_contract_version}
+                {timeline.runtime_metadata.routing_strategy_version
+                  ? ` / ${timeline.runtime_metadata.routing_strategy_version}`
+                  : ""}
+              </div>
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Provider / Model</div>
@@ -455,7 +471,9 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Agents Executed</div>
               <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.agent_count}</div>
               <div className="mt-2 text-sm text-orbit-mist/72">
-                Aggregate duration {formatDurationMs(timeline.runtime_metadata.total_duration_ms)}
+                Core {timeline.runtime_metadata.core_executed_count} / specialists{" "}
+                {timeline.runtime_metadata.activated_specialist_count} / passive{" "}
+                {timeline.runtime_metadata.passive_observer_count}
               </div>
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
@@ -473,6 +491,19 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                 Deterministic runs remain zero-token and zero-cost. Playback itself does not trigger new model usage.
               </div>
             </div>
+            {timeline.runtime_metadata.routing_signals.length ? (
+              <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4 md:col-span-2">
+                <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Adaptive Routing Signals</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {timeline.runtime_metadata.routing_signals.map((signal) => (
+                    <StatusBadge key={signal} label={humanize(signal)} tone="warning" />
+                  ))}
+                </div>
+                <div className="mt-3 text-sm text-orbit-mist/72">
+                  Aggregate duration {formatDurationMs(timeline.runtime_metadata.total_duration_ms)}
+                </div>
+              </div>
+            ) : null}
             {timeline.runtime_metadata.fallback_applied ? (
               <div className="rounded-[24px] border border-amber-200 bg-amber-100/20 px-4 py-4 md:col-span-2">
                 <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Fallback Safety</div>
@@ -531,9 +562,12 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <StatusBadge label={recommendation} tone={recommendationTone(recommendation)} />
+                    <StatusBadge label={agent.activation_tier} tone="warning" />
+                    <StatusBadge label={humanize(agent.activation_status)} tone={activationTone(agent.activation_status)} />
                     <StatusBadge label={`${formatInteger(agent.total_tokens)} tokens`} />
                   </div>
                   <p className="mt-3 text-sm leading-6 text-orbit-ink/78">{openingStatement}</p>
+                  <p className="mt-3 text-xs leading-5 text-orbit-ink/58">{agent.activation_reason || "No adaptive routing note was persisted for this agent."}</p>
                 </div>
               );
             })}
@@ -685,7 +719,19 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                         </div>
                       </div>
                     ) : null}
+                    {currentAgentTelemetry ? (
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge label={currentAgentTelemetry.activation_tier} tone="warning" />
+                        <StatusBadge
+                          label={humanize(currentAgentTelemetry.activation_status)}
+                          tone={activationTone(currentAgentTelemetry.activation_status)}
+                        />
+                      </div>
+                    ) : null}
                     <p className="text-base leading-7 text-orbit-mist/88">{currentEntry.statement_text}</p>
+                    {currentAgentTelemetry?.activation_reason ? (
+                      <p className="text-sm leading-6 text-orbit-mist/72">{currentAgentTelemetry.activation_reason}</p>
+                    ) : null}
                   </div>
                 );
               })()

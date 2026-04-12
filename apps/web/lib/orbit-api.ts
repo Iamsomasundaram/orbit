@@ -106,6 +106,10 @@ export type ReviewMetadataPayload = {
   output_tokens: number;
   total_tokens: number;
   estimated_cost_usd: number;
+  activation_tier: string;
+  activation_status: string;
+  activation_reason: string;
+  routing_strategy_version: string | null;
 };
 
 export type ConflictRecordPayload = {
@@ -297,6 +301,9 @@ export type AgentRuntimeTelemetryPayload = {
   agent_id: string;
   agent_role: string;
   recommendation: string;
+  activation_tier: string;
+  activation_status: string;
+  activation_reason: string;
   model_provider: string;
   model_name: string;
   duration_ms: number;
@@ -307,6 +314,7 @@ export type AgentRuntimeTelemetryPayload = {
 };
 
 export type CommitteeRuntimeMetadataPayload = {
+  routing_strategy_version: string | null;
   requested_runtime_mode: string;
   effective_runtime_mode: string;
   requested_provider: string;
@@ -321,6 +329,10 @@ export type CommitteeRuntimeMetadataPayload = {
   total_output_tokens: number;
   total_tokens: number;
   estimated_cost_usd: number;
+  core_executed_count: number;
+  activated_specialist_count: number;
+  passive_observer_count: number;
+  routing_signals: string[];
   fallback_applied: boolean;
   fallback_reason: string | null;
   fallback_category: string | null;

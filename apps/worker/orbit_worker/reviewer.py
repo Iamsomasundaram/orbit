@@ -226,6 +226,10 @@ def build_agent_review(agent: Any, portfolio: CanonicalPortfolio, analysis: dict
                 "output_tokens": 0,
                 "total_tokens": 0,
                 "estimated_cost_usd": 0.0,
+                "activation_tier": "specialist",
+                "activation_status": "executed",
+                "activation_reason": "Full deterministic committee execution retained for archived-baseline compatibility.",
+                "routing_strategy_version": "deterministic-full-committee-v1",
             },
         }
     )

@@ -32,6 +32,9 @@ class AgentRuntimeTelemetry(OrbitModel):
     agent_id: str
     agent_role: str
     recommendation: str
+    activation_tier: str
+    activation_status: str
+    activation_reason: str
     model_provider: str
     model_name: str
     duration_ms: int
@@ -42,6 +45,7 @@ class AgentRuntimeTelemetry(OrbitModel):
 
 
 class CommitteeRuntimeMetadata(OrbitModel):
+    routing_strategy_version: str | None = None
     requested_runtime_mode: str
     effective_runtime_mode: str
     requested_provider: str
@@ -56,6 +60,10 @@ class CommitteeRuntimeMetadata(OrbitModel):
     total_output_tokens: int
     total_tokens: int
     estimated_cost_usd: float
+    core_executed_count: int
+    activated_specialist_count: int
+    passive_observer_count: int
+    routing_signals: list[str]
     fallback_applied: bool = False
     fallback_reason: str | None = None
     fallback_category: str | None = None
@@ -117,6 +125,7 @@ def _runtime_mode(model_provider: str) -> str:
 def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
     if not review_bundle.agent_reviews:
         return CommitteeRuntimeMetadata(
+            routing_strategy_version=None,
             requested_runtime_mode="deterministic",
             effective_runtime_mode="deterministic",
             requested_provider="deterministic-thin-slice",
@@ -131,6 +140,10 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
             total_output_tokens=0,
             total_tokens=0,
             estimated_cost_usd=0.0,
+            core_executed_count=0,
+            activated_specialist_count=0,
+            passive_observer_count=0,
+            routing_signals=[],
             fallback_applied=False,
             fallback_reason=None,
             fallback_category=None,
@@ -142,6 +155,9 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
             agent_id=record.agent_id,
             agent_role=record.review_payload.agent_name,
             recommendation=record.review_payload.recommendation,
+            activation_tier=record.review_payload.review_metadata.activation_tier,
+            activation_status=record.review_payload.review_metadata.activation_status,
+            activation_reason=record.review_payload.review_metadata.activation_reason,
             model_provider=record.review_payload.review_metadata.model_provider,
             model_name=record.review_payload.review_metadata.model_name,
             duration_ms=record.review_payload.review_metadata.duration_ms,
@@ -165,6 +181,8 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
     requested_runtime_mode = effective_runtime_mode
     requested_provider = first.model_provider
     requested_model_name = first.model_name
+    routing_strategy_version = review_bundle.agent_reviews[0].review_payload.review_metadata.routing_strategy_version
+    routing_signals: list[str] = []
     fallback_applied = False
     fallback_reason = None
     fallback_category = None
@@ -178,6 +196,9 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
         requested_model_name = str(
             created_event.event_payload.get("requested_model_name", first.model_name)
         )
+        routing_strategy_version = str(
+            created_event.event_payload.get("routing_strategy_version", routing_strategy_version or "")
+        ).strip() or routing_strategy_version
     if fallback_event is not None:
         fallback_applied = True
         fallback_reason = str(fallback_event.event_payload.get("fallback_reason", "")).strip() or None
@@ -191,7 +212,29 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
         requested_model_name = str(
             fallback_event.event_payload.get("requested_model_name", requested_model_name)
         )
+    completed_event = next(
+        (event for event in review_bundle.audit_events if event.action == "review_run.completed"),
+        None,
+    )
+    if completed_event is not None:
+        completed_routing_signals = completed_event.event_payload.get("routing_signals", [])
+        if isinstance(completed_routing_signals, list):
+            routing_signals = [str(signal) for signal in completed_routing_signals if str(signal).strip()]
+        routing_strategy_version = str(
+            completed_event.event_payload.get("routing_strategy_version", routing_strategy_version or "")
+        ).strip() or routing_strategy_version
+
+    core_executed_count = len(
+        [agent for agent in agents if agent.activation_tier == "core" and agent.activation_status == "executed"]
+    )
+    activated_specialist_count = len(
+        [agent for agent in agents if agent.activation_tier == "specialist" and agent.activation_status == "executed"]
+    )
+    passive_observer_count = len(
+        [agent for agent in agents if agent.activation_status == "passive_observer"]
+    )
     return CommitteeRuntimeMetadata(
+        routing_strategy_version=routing_strategy_version,
         requested_runtime_mode=requested_runtime_mode,
         effective_runtime_mode=effective_runtime_mode,
         requested_provider=requested_provider,
@@ -206,6 +249,10 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
         total_output_tokens=sum(agent.output_tokens for agent in agents),
         total_tokens=sum(agent.total_tokens for agent in agents),
         estimated_cost_usd=round(sum(agent.estimated_cost_usd for agent in agents), 8),
+        core_executed_count=core_executed_count,
+        activated_specialist_count=activated_specialist_count,
+        passive_observer_count=passive_observer_count,
+        routing_signals=routing_signals,
         fallback_applied=fallback_applied,
         fallback_reason=fallback_reason,
         fallback_category=fallback_category,

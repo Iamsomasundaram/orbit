@@ -12,7 +12,7 @@ async function createPortfolioThroughUi(page: Page, portfolioName: string) {
   await page.getByTestId("portfolio-owner-input").fill("Automation Owner");
   await page
     .getByTestId("portfolio-description-input")
-    .fill("Automation-created portfolio for Milestone 12.2 browser validation.");
+    .fill("Automation-created portfolio for Milestone 13 browser validation.");
   await page.getByTestId("portfolio-tags-input").fill("automation, browser");
   await page.getByTestId("portfolio-create-submit").click();
 
@@ -51,6 +51,8 @@ test("portfolio creation, review, telemetry, committee playback, and deliberatio
   await expect(page.getByTestId("committee-mode-page")).toBeVisible();
   await expect(page.getByText("Committee Runtime Metadata")).toBeVisible();
 
+  await page.getByTestId("committee-speed-0.5x").click();
+  await expect(page.getByTestId("committee-speed-current")).toContainText("Deliberate playback");
   await page.getByTestId("committee-speed-5x").click();
   await expect(page.getByTestId("committee-speed-current")).toContainText("Rapid playback");
 

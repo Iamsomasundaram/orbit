@@ -49,7 +49,7 @@ export default async function ReviewRunPage({ params }: ReviewRunPageProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.2" />
+              <StatusBadge label="Milestone 13" />
               <StatusBadge label={detail.review_run.review_status} tone="warning" />
               <StatusBadge
                 label={artifacts.active_scorecard.final_recommendation}
@@ -109,12 +109,12 @@ export default async function ReviewRunPage({ params }: ReviewRunPageProps) {
         <MetricCard
           label="Runtime Mode"
           value={timeline.runtime_metadata.effective_runtime_mode}
-          detail={`Requested ${timeline.runtime_metadata.requested_runtime_mode}`}
+          detail={`Requested ${timeline.runtime_metadata.requested_runtime_mode} via ${timeline.runtime_metadata.requested_provider}`}
         />
         <MetricCard
           label="Tokens"
           value={formatInteger(timeline.runtime_metadata.total_tokens)}
-          detail={`Estimated cost ${formatCostUsd(timeline.runtime_metadata.estimated_cost_usd)}`}
+          detail={`Core ${timeline.runtime_metadata.core_executed_count} / specialists ${timeline.runtime_metadata.activated_specialist_count} / passive ${timeline.runtime_metadata.passive_observer_count}`}
         />
       </section>
 
@@ -142,7 +142,7 @@ export default async function ReviewRunPage({ params }: ReviewRunPageProps) {
                 {formatInteger(timeline.runtime_metadata.total_duration_ms)} ms
               </div>
               <div className="mt-2 text-sm text-orbit-mist/72">
-                {timeline.runtime_metadata.agent_count} agents executed
+                {timeline.runtime_metadata.agent_count} persisted agents
               </div>
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
@@ -154,6 +154,22 @@ export default async function ReviewRunPage({ params }: ReviewRunPageProps) {
                 in {formatInteger(timeline.runtime_metadata.total_input_tokens)} / out{" "}
                 {formatInteger(timeline.runtime_metadata.total_output_tokens)}
               </div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4 md:col-span-2">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Adaptive Routing</div>
+              <div className="mt-2 text-xl font-semibold">
+                {timeline.runtime_metadata.routing_strategy_version ?? "legacy routing"}
+              </div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                Core {timeline.runtime_metadata.core_executed_count}, specialists {timeline.runtime_metadata.activated_specialist_count}, passive observers {timeline.runtime_metadata.passive_observer_count}, estimated cost {formatCostUsd(timeline.runtime_metadata.estimated_cost_usd)}
+              </div>
+              {timeline.runtime_metadata.routing_signals.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {timeline.runtime_metadata.routing_signals.map((signal) => (
+                    <StatusBadge key={signal} label={signal.replaceAll("_", " ")} tone="warning" />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </ShellCard>

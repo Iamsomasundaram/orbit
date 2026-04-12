@@ -9,6 +9,8 @@ on:
 jobs:
   worker-regression:
     runs-on: ubuntu-latest
+    env:
+      LLM_RUNTIME_MODE: deterministic
 
     steps:
       - name: Checkout repository

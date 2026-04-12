@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,6 +45,7 @@ class LLMCommitteeAgentSpec:
     focus_sections: list[str]
     default_assumption_topic: str
     default_open_question: str
+    activation_tier: Literal["core", "specialist"] = "specialist"
 
 
 LLM_AGENT_REGISTRY = [
@@ -57,6 +58,7 @@ LLM_AGENT_REGISTRY = [
         ["problem_discovery", "product_vision", "product_requirements", "mvp_roadmap"],
         "product_scope",
         "Which product boundaries must remain fixed for the first pilot to stay strategic and credible?",
+        "core",
     ),
     LLMCommitteeAgentSpec(
         "market_opportunity_agent",
@@ -67,6 +69,7 @@ LLM_AGENT_REGISTRY = [
         ["problem_discovery", "competitive_landscape", "business_requirements", "post_launch_strategy"],
         "market_entry",
         "Which buyer segment is most credible for the first revenue-bearing launch?",
+        "core",
     ),
     LLMCommitteeAgentSpec(
         "customer_value_agent",
@@ -97,6 +100,7 @@ LLM_AGENT_REGISTRY = [
         ["business_requirements", "mvp_roadmap", "success_metrics", "post_launch_strategy"],
         "cost_structure",
         "Which cost assumption is most likely to undermine the portfolio if left unvalidated?",
+        "core",
     ),
     LLMCommitteeAgentSpec(
         "competitive_landscape_agent",
@@ -127,6 +131,7 @@ LLM_AGENT_REGISTRY = [
         ["architecture_system_design", "operational_resilience", "mvp_roadmap"],
         "integration_scope",
         "Which architectural boundary must stay fixed to preserve delivery credibility?",
+        "core",
     ),
     LLMCommitteeAgentSpec(
         "ai_systems_agent",
@@ -177,6 +182,7 @@ LLM_AGENT_REGISTRY = [
         ["ai_agents_ethical_framework", "operational_resilience", "post_launch_strategy"],
         "governance_model",
         "Which governance decision right is not yet explicit enough for safe launch approval?",
+        "core",
     ),
     LLMCommitteeAgentSpec(
         "implementation_feasibility_agent",

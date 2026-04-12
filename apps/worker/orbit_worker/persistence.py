@@ -858,6 +858,7 @@ def build_audit_event_records(
                 "effective_runtime_mode": execution_value("effective_runtime_mode", "deterministic"),
                 "requested_provider": execution_value("requested_provider", "deterministic-thin-slice"),
                 "requested_model_name": execution_value("requested_model_name", "deterministic-thin-slice-v1"),
+                "routing_strategy_version": execution_value("routing_strategy_version", None),
             },
             created_at=timestamp,
         ),
@@ -872,6 +873,11 @@ def build_audit_event_records(
             event_payload={
                 "final_recommendation": scorecard.final_recommendation,
                 "weighted_composite_score": scorecard.weighted_composite_score,
+                "routing_strategy_version": execution_value("routing_strategy_version", None),
+                "core_agent_ids": execution_value("core_agent_ids", []),
+                "activated_specialist_ids": execution_value("activated_specialist_ids", []),
+                "passive_specialist_ids": execution_value("passive_specialist_ids", []),
+                "routing_signals": execution_value("routing_signals", []),
             },
             created_at=timestamp,
         ),
@@ -1134,6 +1140,11 @@ def build_review_persistence_bundle(
             "fallback_applied": False,
             "fallback_reason": None,
             "failure_category": None,
+            "routing_strategy_version": first_metadata.routing_strategy_version,
+            "core_agent_ids": [],
+            "activated_specialist_ids": [],
+            "passive_specialist_ids": [],
+            "routing_signals": [],
         }
     review_run = build_review_run_record(run_id, canonical_portfolio, agent_reviews, conflicts, scorecard, committee_report, timestamp)
     return ReviewPersistenceBundle(

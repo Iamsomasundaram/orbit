@@ -14,7 +14,7 @@ from orbit_api.deliberations import DeliberationService  # noqa: E402
 from orbit_api.review_runs import ReviewRunService  # noqa: E402
 from orbit_api.review_workflow import ReviewWorkflowService  # noqa: E402
 from orbit_api.resyntheses import ResynthesisService  # noqa: E402
-from orbit_worker.committee_engine import CommitteeRuntimeOptions  # noqa: E402
+from orbit_worker.committee_engine import CORE_AGENT_IDS, CommitteeRuntimeOptions  # noqa: E402
 from orbit_worker.ingestion import ingest_portfolio_document  # noqa: E402
 from orbit_worker.llm_specs import LLMCommitteeResponse, LLM_AGENT_REGISTRY  # noqa: E402
 from orbit_worker.llm_provider import InferenceTelemetry  # noqa: E402
@@ -30,6 +30,7 @@ class MockParallelLLMProvider:
     def __init__(self) -> None:
         self.active_requests = 0
         self.max_active_requests = 0
+        self.started_agent_ids: list[str] = []
 
     async def infer_structured(
         self,
@@ -46,6 +47,7 @@ class MockParallelLLMProvider:
         end = user_prompt.index("\n", start)
         agent_name = user_prompt[start:end].strip()
         spec = next(item for item in LLM_AGENT_REGISTRY if item.name == agent_name)
+        self.started_agent_ids.append(spec.id)
 
         self.active_requests += 1
         self.max_active_requests = max(self.max_active_requests, self.active_requests)
@@ -331,10 +333,22 @@ def test_llm_review_workflow_runs_parallel_agents_and_triggers_resynthesis() -> 
     review_bundle = repository.get_review_run_bundle(summary.review_run.run_id)
     assert review_bundle is not None
     assert len(review_bundle.agent_reviews) == 15
-    assert review_bundle.review_run.prompt_contract_version == "m10-llm-v1"
+    assert review_bundle.review_run.prompt_contract_version == "m13-llm-adaptive-v1"
+    active_reviews = [
+        record for record in review_bundle.agent_reviews if record.review_payload.review_metadata.activation_status == "executed"
+    ]
+    passive_reviews = [
+        record for record in review_bundle.agent_reviews if record.review_payload.review_metadata.activation_status == "passive_observer"
+    ]
+    assert len(active_reviews) < 15
+    assert len(passive_reviews) > 0
+    assert set(provider.started_agent_ids[: len(CORE_AGENT_IDS)]) == set(CORE_AGENT_IDS)
+    assert set(provider.started_agent_ids) == {record.agent_id for record in active_reviews}
     assert all(record.review_payload.review_metadata.model_provider == provider.provider_name for record in review_bundle.agent_reviews)
-    assert all(record.review_payload.review_metadata.total_tokens == 300 for record in review_bundle.agent_reviews)
-    assert all(record.review_payload.review_metadata.estimated_cost_usd > 0 for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.review_metadata.total_tokens == 300 for record in active_reviews)
+    assert all(record.review_payload.review_metadata.estimated_cost_usd > 0 for record in active_reviews)
+    assert all(record.review_payload.review_metadata.total_tokens == 0 for record in passive_reviews)
+    assert all(record.review_payload.review_metadata.estimated_cost_usd == 0 for record in passive_reviews)
 
 
 def test_llm_deliberation_runtime_metadata_exposes_agent_token_telemetry() -> None:
@@ -372,12 +386,25 @@ def test_llm_deliberation_runtime_metadata_exposes_agent_token_telemetry() -> No
     assert detail.runtime_metadata.model_provider == provider.provider_name
     assert detail.runtime_metadata.model_name == provider.model_name
     assert detail.runtime_metadata.agent_count == 15
-    assert detail.runtime_metadata.total_tokens == 4500
-    assert detail.runtime_metadata.total_input_tokens == 3300
-    assert detail.runtime_metadata.total_output_tokens == 1200
+    assert detail.runtime_metadata.core_executed_count == len(CORE_AGENT_IDS)
+    assert detail.runtime_metadata.activated_specialist_count > 0
+    assert detail.runtime_metadata.passive_observer_count > 0
+    assert detail.runtime_metadata.total_tokens == 300 * (
+        detail.runtime_metadata.core_executed_count + detail.runtime_metadata.activated_specialist_count
+    )
+    assert detail.runtime_metadata.total_input_tokens == 220 * (
+        detail.runtime_metadata.core_executed_count + detail.runtime_metadata.activated_specialist_count
+    )
+    assert detail.runtime_metadata.total_output_tokens == 80 * (
+        detail.runtime_metadata.core_executed_count + detail.runtime_metadata.activated_specialist_count
+    )
     assert detail.runtime_metadata.estimated_cost_usd > 0
     assert len(detail.runtime_metadata.agents) == 15
-    assert detail.runtime_metadata.agents[0].total_tokens == 300
+    assert detail.runtime_metadata.routing_strategy_version == "m13-adaptive-v1"
+    assert detail.runtime_metadata.routing_signals
+    assert any(agent.activation_status == "passive_observer" for agent in detail.runtime_metadata.agents)
+    assert any(agent.total_tokens == 0 for agent in detail.runtime_metadata.agents)
+    assert any(agent.total_tokens == 300 for agent in detail.runtime_metadata.agents)
     assert detail.runtime_metadata.requested_runtime_mode == "llm"
     assert detail.runtime_metadata.effective_runtime_mode == "llm"
     assert detail.runtime_metadata.fallback_applied is False

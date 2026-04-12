@@ -29,7 +29,16 @@ def normalize_agent_reviews_for_baseline(agent_reviews: list[dict]) -> list[dict
     for review in agent_reviews:
         copy = json.loads(json.dumps(review))
         review_metadata = copy.get("review_metadata") or {}
-        for field in ("input_tokens", "output_tokens", "total_tokens", "estimated_cost_usd"):
+        for field in (
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "estimated_cost_usd",
+            "activation_tier",
+            "activation_status",
+            "activation_reason",
+            "routing_strategy_version",
+        ):
             review_metadata.pop(field, None)
         normalized.append(copy)
     return normalized

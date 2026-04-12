@@ -26,6 +26,7 @@ Current status:
 - Milestone 12 adds Committee Mode, a live-feel boardroom playback experience that stages the persisted deliberation timeline with phased reveal, conflict spotlights, moderator synthesis, and final verdict playback without adding new llm calls.
 - Milestone 12.1 improves Committee Mode usability and observability with persistent agent identity treatment, stance-aware conflict visualization, playback speed control, and committee token telemetry surfaced from existing runtime metadata.
 - Milestone 12.2 hardens the platform with Playwright browser automation, reliable client-side submission and review actions, deeper runtime telemetry, deterministic llm fallback safety, markdown-ingestion safeguards, conflict metadata enrichment, audit-boundary cleanup, and indexed history/query paths.
+- Milestone 13 makes llm execution the default committee runtime, adds adaptive Tier-1 and Tier-2 routing with passive observers for inactive specialists, expands routing telemetry, and preserves deterministic fallback plus Committee Mode playback compatibility.
 
 Primary references:
 
@@ -49,6 +50,7 @@ Primary references:
 - `docs/milestone-12/README.md`
 - `docs/milestone-12.1/README.md`
 - `docs/milestone-12.2/README.md`
+- `docs/milestone-13/README.md`
 
 Platform commands:
 
@@ -57,7 +59,8 @@ Platform commands:
 - `docker compose ps`
 - `docker compose down --remove-orphans`
 - `docker compose exec worker /app/.venv/bin/pytest apps/worker/tests -q`
-- `LLM_RUNTIME_MODE=deterministic`
+- default runtime: `LLM_RUNTIME_MODE=llm`
+- fallback or parity runtime: `LLM_RUNTIME_MODE=deterministic`
 - `LLM_RUNTIME_MODE=llm`
 - `POST http://localhost:5001/api/v1/portfolios`
 - `GET http://localhost:5001/api/v1/portfolios`

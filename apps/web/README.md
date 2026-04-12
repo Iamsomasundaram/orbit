@@ -1,6 +1,6 @@
 # Web App
 
-Milestone 12.2 keeps the existing workspace shell and hardens it with reliable client-side submission and review actions, a review-run detail page with runtime telemetry and fallback visibility, stronger Committee Mode observability, and Playwright browser automation coverage.
+Milestone 13 keeps the existing workspace shell and extends it for adaptive committee execution with llm-first runtime defaults, tiered specialist activation telemetry, passive-observer visibility, slower or faster Committee Mode playback, and existing browser automation coverage.
 
 Current capability:
 
@@ -9,10 +9,10 @@ Current capability:
 - side-by-side comparison page for multiple persisted portfolios
 - portfolio detail page with latest review result visibility
 - portfolio history page with lineage-aware review, debate, and artifact links
-- review-run detail page with active artifact state, telemetry, fallback banner, conflict metadata, and review-scope audit events
-- review-run Committee Mode page with staged playback, phase rail, conflict spotlight, final verdict reveal, playback speed controls, and telemetry-aware agent identity cards
+- review-run detail page with active artifact state, adaptive routing telemetry, fallback banner, conflict metadata, and review-scope audit events
+- review-run Committee Mode page with staged playback, phase rail, conflict spotlight, final verdict reveal, `0.5x` to `instant` playback controls, passive-observer visibility, and telemetry-aware agent identity cards
 - review-run static deliberation page with ordered committee statements and phase summaries
-- runtime copy and health metadata aligned to the Milestone 12.2 hardening milestone
+- runtime copy and health metadata aligned to the Milestone 13 adaptive architecture milestone
 - web-side POST handlers that forward submission and review triggers to the FastAPI backend with JSON-aware responses for reliable client interaction
 - liveness and readiness endpoints for Compose health checks
 - typed runtime config for internal and public API base URLs

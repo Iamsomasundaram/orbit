@@ -67,7 +67,7 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.2" />
+              <StatusBadge label="Milestone 13" />
               <StatusBadge label={humanize(portfolio.portfolio.portfolio_status)} tone="warning" />
             </div>
             <div className="space-y-3">
