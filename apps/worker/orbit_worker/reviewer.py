@@ -222,6 +222,10 @@ def build_agent_review(agent: Any, portfolio: CanonicalPortfolio, analysis: dict
                 "model_provider": "deterministic-thin-slice",
                 "model_name": "heuristic-reviewer",
                 "duration_ms": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_cost_usd": 0.0,
             },
         }
     )

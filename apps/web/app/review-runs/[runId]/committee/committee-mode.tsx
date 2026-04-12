@@ -3,10 +3,13 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
 
 import {
+  type AgentRuntimeTelemetryPayload,
   type DeliberationEntryPayload,
   type ReviewRunDeliberationPayload,
   type ReviewRunDeliberationSummaryPayload,
+  formatCostUsd,
   formatDate,
+  formatInteger,
   formatScore,
   humanize,
   publicApiHref,
@@ -20,6 +23,8 @@ type CommitteeModeProps = {
 };
 
 type Tone = "default" | "success" | "warning" | "danger";
+type PlaybackSpeed = "1x" | "2x" | "5x" | "instant";
+type CommitteeStance = "support" | "neutral" | "oppose";
 
 const PHASE_ORDER = [
   "opening_statements",
@@ -28,6 +33,13 @@ const PHASE_ORDER = [
   "moderator_synthesis",
   "final_verdict",
 ] as const;
+
+const PLAYBACK_SPEEDS: Array<{ value: PlaybackSpeed; label: string; detail: string }> = [
+  { value: "1x", label: "1x", detail: "Default pacing" },
+  { value: "2x", label: "2x", detail: "Faster reveal" },
+  { value: "5x", label: "5x", detail: "Rapid playback" },
+  { value: "instant", label: "Instant", detail: "Minimal delay" },
+];
 
 const ROLE_ALIAS: Record<string, string> = {
   "Business Owner": "Product Strategy Agent",
@@ -94,6 +106,29 @@ function parseStance(statementText: string): string | null {
   return null;
 }
 
+function committeeStance(recommendation: string | null | undefined): CommitteeStance | null {
+  if (!recommendation) {
+    return null;
+  }
+  if (recommendation === "Strong Proceed" || recommendation === "Proceed with Conditions") {
+    return "support";
+  }
+  if (recommendation === "Pilot Only") {
+    return "neutral";
+  }
+  return "oppose";
+}
+
+function stanceTone(stance: CommitteeStance): Tone {
+  if (stance === "support") {
+    return "success";
+  }
+  if (stance === "neutral") {
+    return "warning";
+  }
+  return "danger";
+}
+
 function avatarLabel(role: string): string {
   const words = role.split(/[^A-Za-z]+/).filter(Boolean);
   if (words.length === 0) {
@@ -155,23 +190,24 @@ function speakerProfile(agentRole: string): SpeakerProfile {
   };
 }
 
-function playbackDelay(entry: DeliberationEntryPayload, skipDelays: boolean): number {
-  if (skipDelays) {
-    return 65;
+function playbackDelay(entry: DeliberationEntryPayload, playbackSpeed: PlaybackSpeed): number {
+  if (playbackSpeed === "instant") {
+    return 45;
   }
+
+  let baseDelay = 700;
   if (entry.phase === "final_verdict") {
-    return 1500;
+    baseDelay = 1500;
+  } else if (entry.phase === "moderator_synthesis") {
+    baseDelay = 1200;
+  } else if (entry.phase === "conflict_identification") {
+    baseDelay = 900;
+  } else if (entry.phase === "conflict_discussion") {
+    baseDelay = 850;
   }
-  if (entry.phase === "moderator_synthesis") {
-    return 1200;
-  }
-  if (entry.phase === "conflict_identification") {
-    return 900;
-  }
-  if (entry.phase === "conflict_discussion") {
-    return 850;
-  }
-  return 700;
+
+  const divisor = playbackSpeed === "2x" ? 2 : playbackSpeed === "5x" ? 5 : 1;
+  return Math.max(Math.round(baseDelay / divisor), 120);
 }
 
 function phaseVisibleCount(entries: DeliberationEntryPayload[], phase: string): number {
@@ -228,27 +264,45 @@ function buildConflictSpotlights(entries: DeliberationEntryPayload[]): ConflictS
   });
 }
 
+function formatDurationMs(durationMs: number): string {
+  return `${formatInteger(durationMs)} ms`;
+}
+
+function agentTelemetryForEntry(
+  agents: AgentRuntimeTelemetryPayload[],
+  entry: DeliberationEntryPayload | null,
+): AgentRuntimeTelemetryPayload | null {
+  if (!entry) {
+    return null;
+  }
+  return agents.find((agent) => agent.agent_id === entry.agent_id) ?? agents.find((agent) => agent.agent_role === entry.agent_role) ?? null;
+}
+
 export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [skipDelays, setSkipDelays] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>("1x");
   const deferredVisibleCount = useDeferredValue(visibleCount);
   const revealedEntries = timeline.entries.slice(0, deferredVisibleCount);
   const currentEntry = revealedEntries.length ? revealedEntries[revealedEntries.length - 1] : null;
+  const currentAgentTelemetry = agentTelemetryForEntry(timeline.runtime_metadata.agents, currentEntry);
   const visibleConflictSpotlights = buildConflictSpotlights(revealedEntries);
   const activeSpotlight =
     currentEntry?.conflict_reference != null
       ? visibleConflictSpotlights.find((spotlight) => spotlight.conflictReference === currentEntry.conflict_reference) ?? null
       : visibleConflictSpotlights[0] ?? null;
 
+  const openingStatementByRole: Record<string, DeliberationEntryPayload> = {};
   const stanceByRole: Record<string, string> = {};
   for (const entry of timeline.entries) {
-    if (entry.statement_type !== "opening_statement") {
-      continue;
+    if (entry.statement_type === "opening_statement" && openingStatementByRole[entry.agent_role] == null) {
+      openingStatementByRole[entry.agent_role] = entry;
     }
-    const stance = parseStance(entry.statement_text);
-    if (stance) {
-      stanceByRole[entry.agent_role] = stance;
+    if (entry.statement_type === "opening_statement") {
+      const stance = parseStance(entry.statement_text);
+      if (stance) {
+        stanceByRole[entry.agent_role] = stance;
+      }
     }
   }
 
@@ -269,10 +323,10 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
           }
           return current + 1;
         }),
-      playbackDelay(scheduledEntry, skipDelays),
+      playbackDelay(scheduledEntry, playbackSpeed),
     );
     return () => window.clearTimeout(timer);
-  }, [isPlaying, skipDelays, timeline.entries, visibleCount]);
+  }, [isPlaying, playbackSpeed, timeline.entries, visibleCount]);
 
   const playbackLabel =
     visibleCount === 0
@@ -325,6 +379,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
   }
 
   const verdictVisible = revealedEntries.some((entry) => entry.phase === "final_verdict");
+  const currentPhase = currentEntry?.phase ?? summary.phase_summaries[0]?.phase ?? "opening_statements";
 
   return (
     <PageFrame>
@@ -332,7 +387,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12" />
+              <StatusBadge label="Milestone 12.1" />
               <StatusBadge label="Committee Mode" tone="warning" />
               <StatusBadge label={summary.active_artifact_source} />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -340,11 +395,12 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             <div className="space-y-3">
               <p className="text-sm uppercase tracking-[0.24em] text-orbit-moss">Boardroom Experience</p>
               <h1 className="max-w-4xl text-4xl font-semibold tracking-tight md:text-5xl">
-                Replay the ORBIT committee like a live boardroom session.
+                Watch the ORBIT committee unfold like a live investment boardroom.
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-mist/78">
-                Committee Mode stages the persisted deliberation timeline entry by entry, reveals conflict spotlights
-                as they occur, and holds back the final verdict until the boardroom sequence reaches its last phase.
+                Committee Mode replays the persisted deliberation timeline with consistent agent identities, conflict
+                stance callouts, runtime telemetry, and controllable playback speed, while preserving the same bounded
+                committee record underneath.
               </p>
             </div>
           </div>
@@ -359,6 +415,100 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         </div>
       </section>
 
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <ShellCard className="bg-orbit-pine text-orbit-mist">
+          <SectionEyebrow>Committee Runtime Metadata</SectionEyebrow>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Runtime Mode</div>
+              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.runtime_mode}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">{timeline.runtime_metadata.prompt_contract_version}</div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Provider / Model</div>
+              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.model_provider}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">{timeline.runtime_metadata.model_name}</div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Agents Executed</div>
+              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.agent_count}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                Aggregate duration {formatDurationMs(timeline.runtime_metadata.total_duration_ms)}
+              </div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Total Tokens</div>
+              <div className="mt-2 text-xl font-semibold">{formatInteger(timeline.runtime_metadata.total_tokens)}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                in {formatInteger(timeline.runtime_metadata.total_input_tokens)} / out{" "}
+                {formatInteger(timeline.runtime_metadata.total_output_tokens)}
+              </div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4 md:col-span-2">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Estimated Cost</div>
+              <div className="mt-2 text-2xl font-semibold">{formatCostUsd(timeline.runtime_metadata.estimated_cost_usd)}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                Deterministic runs remain zero-token and zero-cost. Playback itself does not trigger new model usage.
+              </div>
+            </div>
+          </div>
+        </ShellCard>
+
+        <ShellCard>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <SectionEyebrow>Agent Identity Lineup</SectionEyebrow>
+              <p className="max-w-3xl text-sm leading-6 text-orbit-ink/72">
+                The same 15 committee agents remain visible throughout playback. Each card keeps the agent identity,
+                stance, reasoning snapshot, and token footprint in one place.
+              </p>
+            </div>
+            <StatusBadge label={`${timeline.runtime_metadata.agents.length} agents`} />
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {timeline.runtime_metadata.agents.map((agent) => {
+              const profile = speakerProfile(agent.agent_role);
+              const recommendation = stanceByRole[agent.agent_role] ?? agent.recommendation;
+              const stance = committeeStance(recommendation);
+              const openingStatement = openingStatementByRole[agent.agent_role]?.statement_text ?? "No opening statement was persisted.";
+              const isCurrentSpeaker =
+                currentEntry != null && (currentEntry.agent_id === agent.agent_id || currentEntry.agent_role === agent.agent_role);
+
+              return (
+                <div
+                  key={agent.agent_id}
+                  className={
+                    isCurrentSpeaker
+                      ? `rounded-[24px] border-2 px-4 py-4 shadow-panel ${profile.panelClass}`
+                      : `rounded-[24px] border px-4 py-4 ${profile.panelClass}`
+                  }
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-sm font-semibold ${profile.avatarClass}`}>
+                      {profile.avatar}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold text-orbit-ink">{profile.displayRole}</div>
+                        {stance ? <StatusBadge label={stance} tone={stanceTone(stance)} /> : null}
+                      </div>
+                      {profile.sourceRole ? (
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-orbit-ink/55">{profile.sourceRole}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <StatusBadge label={recommendation} tone={recommendationTone(recommendation)} />
+                    <StatusBadge label={`${formatInteger(agent.total_tokens)} tokens`} />
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-orbit-ink/78">{openingStatement}</p>
+                </div>
+              );
+            })}
+          </div>
+        </ShellCard>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Playback Progress"
@@ -367,7 +517,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         />
         <MetricCard
           label="Current Phase"
-          value={humanize((currentEntry?.phase ?? summary.phase_summaries[0].phase) || "opening_statements")}
+          value={humanize(currentPhase)}
           detail={currentEntry ? `Latest visible statement recorded ${formatDate(currentEntry.created_at)}.` : "Playback has not started yet."}
         />
         <MetricCard
@@ -389,8 +539,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
               <div className="space-y-3">
                 <SectionEyebrow>Playback Controls</SectionEyebrow>
                 <p className="max-w-2xl text-sm leading-6 text-orbit-ink/72">
-                  Start, pause, resume, skip by phase, or jump straight to the verdict. Committee Mode uses only the
-                  already persisted deliberation entries.
+                  Start, pause, resume, skip by phase, or jump straight to the verdict. Committee Mode runs entirely
+                  on the persisted deliberation dataset already attached to this review run.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -424,19 +574,27 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                 </button>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-orbit-pine/10 pt-4 text-sm">
-              <button
-                type="button"
-                onClick={() => setSkipDelays((current) => !current)}
-                className={
-                  skipDelays
-                    ? "inline-flex rounded-full border border-orbit-gold/50 bg-orbit-gold/10 px-4 py-2 font-medium text-orbit-ink"
-                    : "inline-flex rounded-full border border-orbit-pine/10 px-4 py-2 font-medium text-orbit-ink/75"
-                }
-              >
-                {skipDelays ? "Skip Delays On" : "Skip Delays Off"}
-              </button>
-              <span className="text-orbit-ink/60">No new LLM calls are made during playback.</span>
+            <div className="mt-5 flex flex-col gap-3 border-t border-orbit-pine/10 pt-4 text-sm lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-orbit-ink/75">Playback speed</span>
+                {PLAYBACK_SPEEDS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPlaybackSpeed(option.value)}
+                    className={
+                      playbackSpeed === option.value
+                        ? "inline-flex rounded-full border border-orbit-gold/50 bg-orbit-gold/10 px-4 py-2 font-medium text-orbit-ink"
+                        : "inline-flex rounded-full border border-orbit-pine/10 px-4 py-2 font-medium text-orbit-ink/75 transition hover:border-orbit-pine/30 hover:text-orbit-ink"
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-orbit-ink/60">
+                Selected speed: {PLAYBACK_SPEEDS.find((option) => option.value === playbackSpeed)?.detail}
+              </span>
             </div>
           </ShellCard>
 
@@ -445,7 +603,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             {currentEntry ? (
               (() => {
                 const profile = speakerProfile(currentEntry.agent_role);
-                const stance = stanceByRole[currentEntry.agent_role] ?? parseStance(currentEntry.statement_text);
+                const recommendation = stanceByRole[currentEntry.agent_role] ?? parseStance(currentEntry.statement_text);
+                const stance = committeeStance(recommendation);
                 return (
                   <div className="mt-5 space-y-4">
                     <div className="flex flex-wrap items-center gap-4">
@@ -455,15 +614,40 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                       <div>
                         <div className="text-xs uppercase tracking-[0.22em] text-orbit-moss">Now speaking</div>
                         <div className="mt-1 text-2xl font-semibold">{profile.displayRole}</div>
-                        {profile.sourceRole ? <div className="mt-1 text-sm text-orbit-mist/70">Source persona: {profile.sourceRole}</div> : null}
+                        {profile.sourceRole ? (
+                          <div className="mt-1 text-sm text-orbit-mist/70">Source persona: {profile.sourceRole}</div>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-3">
                       <StatusBadge label={humanize(currentEntry.statement_type)} />
                       <StatusBadge label={humanize(currentEntry.phase)} tone="warning" />
-                      {stance ? <StatusBadge label={stance} tone={recommendationTone(stance)} /> : null}
-                      {currentEntry.conflict_reference ? <StatusBadge label={currentEntry.conflict_reference} tone="danger" /> : null}
+                      {recommendation ? (
+                        <StatusBadge label={recommendation} tone={recommendationTone(recommendation)} />
+                      ) : null}
+                      {stance ? <StatusBadge label={stance} tone={stanceTone(stance)} /> : null}
+                      {currentEntry.conflict_reference ? (
+                        <StatusBadge label={currentEntry.conflict_reference} tone="danger" />
+                      ) : null}
                     </div>
+                    {currentAgentTelemetry ? (
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                          <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Runtime</div>
+                          <div className="mt-2 font-semibold">{formatDurationMs(currentAgentTelemetry.duration_ms)}</div>
+                        </div>
+                        <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                          <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Tokens</div>
+                          <div className="mt-2 font-semibold">{formatInteger(currentAgentTelemetry.total_tokens)}</div>
+                        </div>
+                        <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                          <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Estimated Cost</div>
+                          <div className="mt-2 font-semibold">
+                            {formatCostUsd(currentAgentTelemetry.estimated_cost_usd)}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     <p className="text-base leading-7 text-orbit-mist/88">{currentEntry.statement_text}</p>
                   </div>
                 );
@@ -514,7 +698,9 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                       <div className="space-y-3">
                         {phaseEntries.map((entry) => {
                           const profile = speakerProfile(entry.agent_role);
-                          const stance = stanceByRole[entry.agent_role] ?? parseStance(entry.statement_text);
+                          const recommendation = stanceByRole[entry.agent_role] ?? parseStance(entry.statement_text);
+                          const stance = committeeStance(recommendation);
+                          const telemetry = agentTelemetryForEntry(timeline.runtime_metadata.agents, entry);
                           return (
                             <div key={entry.deliberation_entry_row_id} className={`committee-entry-reveal rounded-[24px] border px-4 py-4 shadow-panel ${profile.panelClass}`}>
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -531,7 +717,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                                   <div className="flex flex-wrap items-center gap-3">
                                     <StatusBadge label={`#${entry.sequence_number}`} />
                                     <StatusBadge label={humanize(entry.statement_type)} />
-                                    {stance ? <StatusBadge label={stance} tone={recommendationTone(stance)} /> : null}
+                                    {recommendation ? <StatusBadge label={recommendation} tone={recommendationTone(recommendation)} /> : null}
+                                    {stance ? <StatusBadge label={stance} tone={stanceTone(stance)} /> : null}
                                     {entry.conflict_reference ? <StatusBadge label={entry.conflict_reference} tone="danger" /> : null}
                                   </div>
                                   <p className="text-sm leading-6 text-orbit-ink/80">{entry.statement_text}</p>
@@ -539,6 +726,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                                 <div className="text-sm leading-6 text-orbit-ink/60">
                                   <div>Recorded {formatDate(entry.created_at)}</div>
                                   <div>{entry.agent_id ? `Agent ${entry.agent_id}` : "System-generated"}</div>
+                                  {telemetry ? <div>{formatInteger(telemetry.total_tokens)} tokens</div> : null}
                                 </div>
                               </div>
                             </div>
@@ -592,8 +780,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
               <div className="space-y-3">
                 <SectionEyebrow>Conflict Spotlight</SectionEyebrow>
                 <p className="max-w-2xl text-sm leading-6 text-orbit-ink/70">
-                  Conflicts become visible as the boardroom reaches them. Each spotlight links the disagreement,
-                  participant arguments, and moderator resolution into one inspection panel.
+                  Conflicts become visible as the boardroom reaches them. Each spotlight shows the disagreement topic,
+                  the agents involved, the side each agent is taking, and the moderator interpretation.
                 </p>
               </div>
               {activeSpotlight ? <StatusBadge label={activeSpotlight.conflictReference} tone="danger" /> : null}
@@ -602,29 +790,41 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             {activeSpotlight ? (
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-orbit-gold/35 bg-orbit-gold/10 px-4 py-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-orbit-pine/70">Conflict topic</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-orbit-pine/70">Conflict Topic</div>
                   <p className="mt-3 text-sm leading-6 text-orbit-ink/80">
                     {activeSpotlight.identification?.statement_text ?? "Conflict identification has not been revealed yet."}
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {Array.from(new Set(activeSpotlight.discussion.map((entry) => speakerProfile(entry.agent_role).displayRole))).map((role) => (
+                      <StatusBadge key={role} label={role} />
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-3">
+                  <div className="text-xs uppercase tracking-[0.2em] text-orbit-pine/70">Agent Positions</div>
                   {activeSpotlight.discussion.length ? (
-                    activeSpotlight.discussion.map((entry) => {
-                      const profile = speakerProfile(entry.agent_role);
-                      const stance = stanceByRole[entry.agent_role] ?? parseStance(entry.statement_text);
-                      return (
-                        <div key={entry.deliberation_entry_row_id} className={`rounded-[24px] border px-4 py-4 ${profile.panelClass}`}>
-                          <div className="flex flex-wrap items-center gap-3">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold ${profile.avatarClass}`}>
-                              {profile.avatar}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {activeSpotlight.discussion.map((entry) => {
+                        const profile = speakerProfile(entry.agent_role);
+                        const recommendation = stanceByRole[entry.agent_role] ?? parseStance(entry.statement_text);
+                        const stance = committeeStance(recommendation);
+                        return (
+                          <div key={entry.deliberation_entry_row_id} className={`rounded-[24px] border px-4 py-4 ${profile.panelClass}`}>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold ${profile.avatarClass}`}>
+                                {profile.avatar}
+                              </div>
+                              <div className="text-sm font-semibold text-orbit-ink">{profile.displayRole}</div>
                             </div>
-                            <div className="text-sm font-semibold text-orbit-ink">{profile.displayRole}</div>
-                            {stance ? <StatusBadge label={stance} tone={recommendationTone(stance)} /> : null}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {stance ? <StatusBadge label={stance} tone={stanceTone(stance)} /> : null}
+                              {recommendation ? <StatusBadge label={recommendation} tone={recommendationTone(recommendation)} /> : null}
+                            </div>
+                            <p className="mt-3 text-sm leading-6 text-orbit-ink/80">{entry.statement_text}</p>
                           </div>
-                          <p className="mt-3 text-sm leading-6 text-orbit-ink/80">{entry.statement_text}</p>
-                        </div>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="rounded-[24px] border border-dashed border-orbit-pine/15 bg-orbit-mist/35 px-4 py-4 text-sm leading-6 text-orbit-ink/65">
                       Participant arguments for this conflict will appear once playback reaches the conflict discussion phase.
@@ -632,7 +832,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   )}
                 </div>
                 <div className="rounded-[24px] border border-slate-200 bg-slate-100/70 px-4 py-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-600">Moderator synthesis</div>
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-600">Moderator Interpretation</div>
                   <p className="mt-3 text-sm leading-6 text-orbit-ink/80">
                     {activeSpotlight.moderator?.statement_text ?? "Moderator synthesis has not been revealed yet."}
                   </p>

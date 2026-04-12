@@ -194,6 +194,33 @@ export type DeliberationEntryPayload = {
   created_at: string;
 };
 
+export type AgentRuntimeTelemetryPayload = {
+  agent_id: string;
+  agent_role: string;
+  recommendation: string;
+  model_provider: string;
+  model_name: string;
+  duration_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+};
+
+export type CommitteeRuntimeMetadataPayload = {
+  runtime_mode: string;
+  model_provider: string;
+  model_name: string;
+  prompt_contract_version: string;
+  agent_count: number;
+  total_duration_ms: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+  agents: AgentRuntimeTelemetryPayload[];
+};
+
 export type ReviewRunDeliberationPayload = {
   review_run_id: string;
   portfolio_id: string;
@@ -207,6 +234,7 @@ export type ReviewRunDeliberationPayload = {
   final_recommendation: string;
   weighted_composite_score: number;
   entry_count: number;
+  runtime_metadata: CommitteeRuntimeMetadataPayload;
   entries: DeliberationEntryPayload[];
 };
 
@@ -350,6 +378,20 @@ export function formatDate(value: string | null | undefined): string {
 
 export function formatScore(value: number | null | undefined): string {
   return typeof value === "number" ? value.toFixed(2) : "Not available";
+}
+
+export function formatInteger(value: number | null | undefined): string {
+  return typeof value === "number" ? new Intl.NumberFormat("en-IN").format(value) : "Not available";
+}
+
+export function formatCostUsd(value: number | null | undefined): string {
+  if (typeof value !== "number") {
+    return "Not available";
+  }
+  if (value === 0) {
+    return "$0.000000";
+  }
+  return `$${value.toFixed(6)}`;
 }
 
 export function humanize(value: string): string {

@@ -57,6 +57,10 @@ def test_deliberation_is_materialized_after_review_run_even_before_debate() -> N
     assert len([entry for entry in detail.entries if entry.phase == "conflict_discussion"]) == 1
     assert len([entry for entry in detail.entries if entry.phase == "moderator_synthesis"]) == 1
     assert len([entry for entry in detail.entries if entry.phase == "final_verdict"]) == 1
+    assert detail.runtime_metadata.runtime_mode == "deterministic"
+    assert detail.runtime_metadata.agent_count == 15
+    assert detail.runtime_metadata.total_tokens == 0
+    assert detail.runtime_metadata.estimated_cost_usd == 0
 
 
 def test_deliberation_summary_reflects_completed_workflow_with_bounded_debate() -> None:

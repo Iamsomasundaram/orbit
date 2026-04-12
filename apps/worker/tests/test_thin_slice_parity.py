@@ -24,6 +24,17 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def normalize_agent_reviews_for_baseline(agent_reviews: list[dict]) -> list[dict]:
+    normalized: list[dict] = []
+    for review in agent_reviews:
+        copy = json.loads(json.dumps(review))
+        review_metadata = copy.get("review_metadata") or {}
+        for field in ("input_tokens", "output_tokens", "total_tokens", "estimated_cost_usd"):
+            review_metadata.pop(field, None)
+        normalized.append(copy)
+    return normalized
+
+
 def test_archived_baseline_artifacts_match_manifest() -> None:
     discovered = {
         str(path.relative_to(ROOT)).replace("\\", "/"): sha256_file(path)
@@ -46,8 +57,20 @@ def test_python_thin_slice_matches_js_baseline(case: dict[str, str], tmp_path: P
     assert len(result["agent_reviews"]) == 15
     assert len(result["conflicts"]) >= 1
 
+    generated_reviews = read_json(output_dir / "agent-reviews.json")
+    baseline_reviews = read_json(baseline_dir / "agent-reviews.json")
+
+    for review in generated_reviews:
+        review_metadata = review.get("review_metadata") or {}
+        assert review_metadata.get("input_tokens", 0) == 0
+        assert review_metadata.get("output_tokens", 0) == 0
+        assert review_metadata.get("total_tokens", 0) == 0
+        assert review_metadata.get("estimated_cost_usd", 0) == 0
+
     assert read_json(output_dir / "canonical-portfolio.json") == read_json(baseline_dir / "canonical-portfolio.json")
-    assert read_json(output_dir / "agent-reviews.json") == read_json(baseline_dir / "agent-reviews.json")
+    assert normalize_agent_reviews_for_baseline(generated_reviews) == normalize_agent_reviews_for_baseline(
+        baseline_reviews
+    )
     assert read_json(output_dir / "conflicts.json") == read_json(baseline_dir / "conflicts.json")
     assert read_json(output_dir / "scorecard.json") == read_json(baseline_dir / "scorecard.json")
     assert read_json(output_dir / "committee-report.json") == read_json(baseline_dir / "committee-report.json")

@@ -1,6 +1,6 @@
 # Web App
 
-Milestone 12 keeps the existing workspace shell and adds Committee Mode, a live-feel boardroom playback page backed by persisted timeline records.
+Milestone 12.1 keeps the existing workspace shell and improves Committee Mode with stronger agent identity, conflict stance visualization, playback speed controls, and committee runtime telemetry backed by persisted timeline records.
 
 Current capability:
 
@@ -8,9 +8,9 @@ Current capability:
 - side-by-side comparison page for multiple persisted portfolios
 - portfolio detail page with latest review result visibility
 - portfolio history page with lineage-aware review, debate, and artifact links
-- review-run Committee Mode page with staged playback, phase rail, conflict spotlight, and final verdict reveal
+- review-run Committee Mode page with staged playback, phase rail, conflict spotlight, final verdict reveal, playback speed controls, and telemetry-aware agent identity cards
 - review-run static deliberation page with ordered committee statements and phase summaries
-- runtime copy and health metadata aligned to the Milestone 12 boardroom playback experience
+- runtime copy and health metadata aligned to the Milestone 12.1 boardroom playback experience
 - web-side POST handlers that forward submission and review triggers to the FastAPI backend
 - liveness and readiness endpoints for Compose health checks
 - typed runtime config for internal and public API base URLs

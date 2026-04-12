@@ -377,7 +377,7 @@ class AgentInferenceService:
     ) -> AgentReview:
         fallback_refs = [f"portfolio.{section}" for section in spec.focus_sections]
         async with semaphore:
-            response, duration_ms = await self._provider.infer_structured(
+            response, telemetry = await self._provider.infer_structured(
                 system_prompt=_system_prompt(spec),
                 user_prompt=_user_prompt(spec, portfolio, shared_context),
                 response_model=LLMCommitteeResponse,
@@ -434,7 +434,11 @@ class AgentInferenceService:
                     "prompt_contract_version": "m10-llm-v1",
                     "model_provider": self._provider.provider_name,
                     "model_name": self._provider.model_name,
-                    "duration_ms": duration_ms,
+                    "duration_ms": telemetry.duration_ms,
+                    "input_tokens": telemetry.input_tokens,
+                    "output_tokens": telemetry.output_tokens,
+                    "total_tokens": telemetry.total_tokens,
+                    "estimated_cost_usd": telemetry.estimated_cost_usd,
                 },
             }
         )

@@ -94,16 +94,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               discussion from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 12 turns the persisted deliberation timeline into Committee Mode: a client-side staged reveal
-              of the boardroom sequence with conflict spotlights, moderator synthesis, and final verdict playback,
-              while preserving the approved deterministic fallback, governance flow, and multi-portfolio workspace.
+              Milestone 12.1 sharpens Committee Mode with agent identity cards, conflict stance visualization,
+              playback speed control, and token telemetry, while preserving the approved deterministic fallback,
+              governance flow, and multi-portfolio workspace.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
             <div className="text-xs uppercase tracking-[0.24em] text-orbit-moss">Runtime Direction</div>
             <div className="mt-2 text-2xl font-semibold">Parallel LLM Committee</div>
             <div className="mt-1 text-sm text-orbit-mist/70">
-              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine-with-boardroom-playback"}
+              {apiInfo?.runtime_direction ?? "llm-backed-parallel-committee-engine-with-observable-boardroom-playback"}
             </div>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12.1
               comparison and boardroom playback workspace.
             </p>
           )}

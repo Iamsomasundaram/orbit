@@ -10,12 +10,14 @@ if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
 from orbit_api.debates import DebateService  # noqa: E402
+from orbit_api.deliberations import DeliberationService  # noqa: E402
 from orbit_api.review_runs import ReviewRunService  # noqa: E402
 from orbit_api.review_workflow import ReviewWorkflowService  # noqa: E402
 from orbit_api.resyntheses import ResynthesisService  # noqa: E402
 from orbit_worker.committee_engine import CommitteeRuntimeOptions  # noqa: E402
 from orbit_worker.ingestion import ingest_portfolio_document  # noqa: E402
 from orbit_worker.llm_specs import LLMCommitteeResponse, LLM_AGENT_REGISTRY  # noqa: E402
+from orbit_worker.llm_provider import InferenceTelemetry  # noqa: E402
 from orbit_worker.persistence import InMemoryPersistenceRepository, build_portfolio_ingestion_bundle  # noqa: E402
 
 INPUT_PATH = ROOT / "tests" / "fixtures" / "source-documents" / "procurepilot-thin-slice.md"
@@ -50,7 +52,13 @@ class MockParallelLLMProvider:
         try:
             await asyncio.sleep(0.05)
             payload = self._payload_for_spec(spec.id, spec.owned_dimensions)
-            return response_model.model_validate(payload), 50
+            return response_model.model_validate(payload), InferenceTelemetry(
+                duration_ms=50,
+                input_tokens=220,
+                output_tokens=80,
+                total_tokens=300,
+                estimated_cost_usd=0.000081,
+            )
         finally:
             self.active_requests -= 1
 
@@ -308,3 +316,48 @@ def test_llm_review_workflow_runs_parallel_agents_and_triggers_resynthesis() -> 
     assert len(review_bundle.agent_reviews) == 15
     assert review_bundle.review_run.prompt_contract_version == "m10-llm-v1"
     assert all(record.review_payload.review_metadata.model_provider == provider.provider_name for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.review_metadata.total_tokens == 300 for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.review_metadata.estimated_cost_usd > 0 for record in review_bundle.agent_reviews)
+
+
+def test_llm_deliberation_runtime_metadata_exposes_agent_token_telemetry() -> None:
+    repository = InMemoryPersistenceRepository()
+    canonical_portfolio = ingest_portfolio_document(INPUT_PATH)
+    repository.save_portfolio_bundle(build_portfolio_ingestion_bundle(canonical_portfolio))
+
+    provider = MockParallelLLMProvider()
+    runtime_options = CommitteeRuntimeOptions(
+        runtime_mode="llm",
+        llm_provider="openai",
+        openai_model=provider.model_name,
+        llm_max_concurrency=8,
+        llm_request_timeout_seconds=10,
+        llm_max_output_tokens=600,
+    )
+
+    deliberation_service = DeliberationService(repository=repository)
+    workflow_service = ReviewWorkflowService(
+        review_runs=ReviewRunService(
+            repository=repository,
+            runtime_options=runtime_options,
+            llm_provider=provider,
+            deliberation_refresher=deliberation_service.refresh_review_run,
+        ),
+        debates=DebateService(repository=repository, deliberation_refresher=deliberation_service.refresh_review_run),
+        resyntheses=ResynthesisService(repository=repository, deliberation_refresher=deliberation_service.refresh_review_run),
+    )
+
+    summary = workflow_service.start_review(canonical_portfolio.portfolio_id)
+    detail = deliberation_service.get_review_run_deliberation(summary.review_run.run_id)
+
+    assert detail is not None
+    assert detail.runtime_metadata.runtime_mode == "llm"
+    assert detail.runtime_metadata.model_provider == provider.provider_name
+    assert detail.runtime_metadata.model_name == provider.model_name
+    assert detail.runtime_metadata.agent_count == 15
+    assert detail.runtime_metadata.total_tokens == 4500
+    assert detail.runtime_metadata.total_input_tokens == 3300
+    assert detail.runtime_metadata.total_output_tokens == 1200
+    assert detail.runtime_metadata.estimated_cost_usd > 0
+    assert len(detail.runtime_metadata.agents) == 15
+    assert detail.runtime_metadata.agents[0].total_tokens == 300

@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ORBIT Milestone 12",
-  description: "Parallel llm-backed ORBIT committee execution with live-feel boardroom playback, persisted deliberation timelines, deterministic fallback, and multi-portfolio workspace support.",
+  title: "ORBIT Milestone 12.1",
+  description: "Parallel llm-backed ORBIT committee execution with telemetry-aware Committee Mode, persisted deliberation timelines, deterministic fallback, and multi-portfolio workspace support.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

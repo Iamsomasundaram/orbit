@@ -27,6 +27,33 @@ class DeliberationPhaseSummary(OrbitModel):
     conflict_references: list[str]
 
 
+class AgentRuntimeTelemetry(OrbitModel):
+    agent_id: str
+    agent_role: str
+    recommendation: str
+    model_provider: str
+    model_name: str
+    duration_ms: int
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    estimated_cost_usd: float
+
+
+class CommitteeRuntimeMetadata(OrbitModel):
+    runtime_mode: str
+    model_provider: str
+    model_name: str
+    prompt_contract_version: str
+    agent_count: int
+    total_duration_ms: int
+    total_input_tokens: int
+    total_output_tokens: int
+    total_tokens: int
+    estimated_cost_usd: float
+    agents: list[AgentRuntimeTelemetry]
+
+
 class ReviewRunDeliberationDetail(OrbitModel):
     review_run_id: str
     portfolio_id: str
@@ -35,6 +62,7 @@ class ReviewRunDeliberationDetail(OrbitModel):
     final_recommendation: str
     weighted_composite_score: float
     entry_count: int
+    runtime_metadata: CommitteeRuntimeMetadata
     entries: list[DeliberationEntryRecord]
 
 
@@ -73,6 +101,57 @@ def _phase_summary(entries: list[DeliberationEntryRecord], phase: str) -> Delibe
     )
 
 
+def _runtime_mode(model_provider: str) -> str:
+    return "deterministic" if model_provider == "deterministic-thin-slice" else "llm"
+
+
+def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
+    if not review_bundle.agent_reviews:
+        return CommitteeRuntimeMetadata(
+            runtime_mode="deterministic",
+            model_provider="unknown",
+            model_name="unknown",
+            prompt_contract_version=review_bundle.review_run.prompt_contract_version,
+            agent_count=0,
+            total_duration_ms=0,
+            total_input_tokens=0,
+            total_output_tokens=0,
+            total_tokens=0,
+            estimated_cost_usd=0.0,
+            agents=[],
+        )
+
+    agents = [
+        AgentRuntimeTelemetry(
+            agent_id=record.agent_id,
+            agent_role=record.review_payload.agent_name,
+            recommendation=record.review_payload.recommendation,
+            model_provider=record.review_payload.review_metadata.model_provider,
+            model_name=record.review_payload.review_metadata.model_name,
+            duration_ms=record.review_payload.review_metadata.duration_ms,
+            input_tokens=record.review_payload.review_metadata.input_tokens,
+            output_tokens=record.review_payload.review_metadata.output_tokens,
+            total_tokens=record.review_payload.review_metadata.total_tokens,
+            estimated_cost_usd=record.review_payload.review_metadata.estimated_cost_usd,
+        )
+        for record in review_bundle.agent_reviews
+    ]
+    first = agents[0]
+    return CommitteeRuntimeMetadata(
+        runtime_mode=_runtime_mode(first.model_provider),
+        model_provider=first.model_provider,
+        model_name=first.model_name,
+        prompt_contract_version=review_bundle.review_run.prompt_contract_version,
+        agent_count=len(agents),
+        total_duration_ms=sum(agent.duration_ms for agent in agents),
+        total_input_tokens=sum(agent.input_tokens for agent in agents),
+        total_output_tokens=sum(agent.output_tokens for agent in agents),
+        total_tokens=sum(agent.total_tokens for agent in agents),
+        estimated_cost_usd=round(sum(agent.estimated_cost_usd for agent in agents), 8),
+        agents=agents,
+    )
+
+
 class DeliberationService:
     def __init__(self, repository: PersistenceRepository) -> None:
         self._repository = repository
@@ -100,6 +179,9 @@ class DeliberationService:
         bundle = self._repository.get_deliberation_bundle(run_id)
         if bundle is None:
             return None
+        review_bundle = self._repository.get_review_run_bundle(run_id)
+        if review_bundle is None:
+            return None
         artifacts = self._history.get_review_run_artifacts(run_id)
         if artifacts is None:
             return None
@@ -111,6 +193,7 @@ class DeliberationService:
             final_recommendation=artifacts.active_scorecard.final_recommendation,
             weighted_composite_score=artifacts.active_scorecard.weighted_composite_score,
             entry_count=len(bundle.entries),
+            runtime_metadata=_runtime_metadata(review_bundle),
             entries=bundle.entries,
         )
 

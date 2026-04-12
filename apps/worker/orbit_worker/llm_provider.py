@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TypeVar
 
@@ -20,6 +21,15 @@ class UnsupportedLLMProviderError(LLMProviderError):
     pass
 
 
+@dataclass(frozen=True)
+class InferenceTelemetry:
+    duration_ms: int
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+
+
 class StructuredLLMProvider(Protocol):
     provider_name: str
     model_name: str
@@ -32,7 +42,7 @@ class StructuredLLMProvider(Protocol):
         response_model: type[T],
         timeout_seconds: int,
         max_output_tokens: int,
-    ) -> tuple[T, int]: ...
+    ) -> tuple[T, InferenceTelemetry]: ...
 
 
 def resolve_api_key(explicit_api_key: str, api_key_file: str) -> str:
@@ -65,6 +75,25 @@ def _response_output_text(response: object) -> str:
     return "".join(collected)
 
 
+def _openai_usage_tokens(response: object) -> tuple[int, int, int]:
+    usage = getattr(response, "usage", None)
+    input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+    output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+    total_tokens = int(getattr(usage, "total_tokens", input_tokens + output_tokens) or (input_tokens + output_tokens))
+    return input_tokens, output_tokens, total_tokens
+
+
+def _openai_estimated_cost_usd(model_name: str, input_tokens: int, output_tokens: int) -> float:
+    # Default rates follow the official gpt-4o-mini model page.
+    if model_name.startswith("gpt-4o-mini"):
+        input_rate_per_million = 0.15
+        output_rate_per_million = 0.60
+    else:
+        return 0.0
+    estimated_cost = ((input_tokens / 1_000_000) * input_rate_per_million) + ((output_tokens / 1_000_000) * output_rate_per_million)
+    return round(estimated_cost, 8)
+
+
 class OpenAIResponsesProvider:
     provider_name = "openai"
 
@@ -84,7 +113,7 @@ class OpenAIResponsesProvider:
         response_model: type[T],
         timeout_seconds: int,
         max_output_tokens: int,
-    ) -> tuple[T, int]:
+    ) -> tuple[T, InferenceTelemetry]:
         started = time.perf_counter()
         request_kwargs = {
             "model": self.model_name,
@@ -106,17 +135,25 @@ class OpenAIResponsesProvider:
 
         parsed = getattr(response, "output_parsed", None)
         duration_ms = int((time.perf_counter() - started) * 1000)
+        input_tokens, output_tokens, total_tokens = _openai_usage_tokens(response)
+        telemetry = InferenceTelemetry(
+            duration_ms=duration_ms,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=_openai_estimated_cost_usd(self.model_name, input_tokens, output_tokens),
+        )
         if isinstance(parsed, response_model):
-            return parsed, duration_ms
+            return parsed, telemetry
         if parsed is not None:
-            return response_model.model_validate(parsed), duration_ms
+            return response_model.model_validate(parsed), telemetry
 
         output_text = _response_output_text(response)
         if output_text.strip():
             try:
-                return response_model.model_validate_json(output_text), duration_ms
+                return response_model.model_validate_json(output_text), telemetry
             except Exception:
-                return response_model.model_validate(json.loads(output_text)), duration_ms
+                return response_model.model_validate(json.loads(output_text)), telemetry
 
         raise LLMProviderError("OpenAI response did not contain a structured payload.")
 
@@ -135,7 +172,7 @@ class AnthropicPlaceholderProvider:
         response_model: type[T],
         timeout_seconds: int,
         max_output_tokens: int,
-    ) -> tuple[T, int]:
+    ) -> tuple[T, InferenceTelemetry]:
         raise UnsupportedLLMProviderError("Anthropic provider support is reserved for a later milestone.")
 
 
@@ -153,5 +190,5 @@ class LocalPlaceholderProvider:
         response_model: type[T],
         timeout_seconds: int,
         max_output_tokens: int,
-    ) -> tuple[T, int]:
+    ) -> tuple[T, InferenceTelemetry]:
         raise UnsupportedLLMProviderError("Local provider support is reserved for a later milestone.")

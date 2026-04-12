@@ -75,6 +75,10 @@ class ReviewMetadata(OrbitModel):
     model_provider: str
     model_name: str
     duration_ms: int
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    total_tokens: int = Field(default=0, ge=0)
+    estimated_cost_usd: float = Field(default=0.0, ge=0)
 
 
 class AgentReview(OrbitModel):

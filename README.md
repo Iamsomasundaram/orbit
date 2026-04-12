@@ -24,6 +24,7 @@ Current status:
 - Milestone 10 adds the first llm-backed committee engine with parallel agent fan-out, provider abstraction, deterministic fallback mode, and local OpenAI validation through Docker Compose.
 - Milestone 11 adds persisted committee deliberation timelines, review-run deliberation APIs, and a thin replay-style UI for ordered reasoning inspection without adding new llm calls.
 - Milestone 12 adds Committee Mode, a live-feel boardroom playback experience that stages the persisted deliberation timeline with phased reveal, conflict spotlights, moderator synthesis, and final verdict playback without adding new llm calls.
+- Milestone 12.1 improves Committee Mode usability and observability with persistent agent identity treatment, stance-aware conflict visualization, playback speed control, and committee token telemetry surfaced from existing runtime metadata.
 
 Primary references:
 
@@ -45,6 +46,7 @@ Primary references:
 - `docs/milestone-10/README.md`
 - `docs/milestone-11/README.md`
 - `docs/milestone-12/README.md`
+- `docs/milestone-12.1/README.md`
 
 Platform commands:
 
