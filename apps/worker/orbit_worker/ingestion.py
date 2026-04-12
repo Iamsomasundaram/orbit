@@ -6,9 +6,19 @@ from pathlib import Path
 from .domain import PORTFOLIO_SECTIONS, SECTION_TITLE_TO_KEY
 from .schemas import CanonicalPortfolio, validate_canonical_portfolio
 
+MAX_PORTFOLIO_ID_LENGTH = 96
+
 
 def slugify(value: str) -> str:
     return re.sub(r"(^-|-$)", "", re.sub(r"[^a-z0-9]+", "-", value.lower()))
+
+
+def bounded_portfolio_id(value: str | None, fallback: str) -> str:
+    candidate = slugify(value or "")
+    if not candidate:
+        candidate = slugify(fallback) or "portfolio"
+    bounded = candidate[:MAX_PORTFOLIO_ID_LENGTH].strip("-")
+    return bounded or "portfolio"
 
 
 def parse_metadata(lines: list[str]) -> dict[str, str]:
@@ -58,7 +68,7 @@ def parse_markdown(markdown: str, source_path: str) -> CanonicalPortfolio:
         sections[key] = build_section_payload(title, normalized[start:end])
 
     canonical = {
-        "portfolio_id": metadata.get("portfolio_id") or slugify(portfolio_title),
+        "portfolio_id": bounded_portfolio_id(metadata.get("portfolio_id"), portfolio_title),
         "portfolio_name": metadata.get("portfolio_name") or re.sub(r"\s+Portfolio$", "", portfolio_title, flags=re.IGNORECASE),
         "portfolio_type": metadata.get("portfolio_type") or "product",
         "owner": metadata.get("owner") or "Unknown Owner",

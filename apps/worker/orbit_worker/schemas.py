@@ -100,7 +100,10 @@ class ConflictRecord(OrbitModel):
     conflict_type: str
     topic: str
     participants: list[str]
+    conflicting_agents: list[str] = Field(default_factory=list)
     severity: str
+    conflict_category: str | None = None
+    conflict_reason: str | None = None
     trigger_reason: str
     supporting_artifacts: list[str]
     debate_required: bool

@@ -18,7 +18,7 @@ from orbit_worker.persistence import (
     SourceDocumentRecord,
     build_portfolio_ingestion_bundle,
 )
-from orbit_worker.schemas import OrbitModel
+from orbit_worker.schemas import CanonicalPortfolio, OrbitModel
 
 
 class PortfolioDocumentSubmission(OrbitModel):
@@ -237,6 +237,26 @@ def bundle_to_detail(bundle: PortfolioIngestionBundle) -> PortfolioDetail:
     )
 
 
+def rebind_source_document(
+    canonical_portfolio: CanonicalPortfolio,
+    target_path: Path,
+) -> CanonicalPortfolio:
+    rebound_documents = []
+    for index, document in enumerate(canonical_portfolio.source_documents):
+        if index == 0:
+            rebound_documents.append(
+                document.model_copy(
+                    update={
+                        "title": target_path.name,
+                        "path": str(target_path),
+                    }
+                )
+            )
+            continue
+        rebound_documents.append(document)
+    return canonical_portfolio.model_copy(update={"source_documents": rebound_documents})
+
+
 class PortfolioIngestionService:
     def __init__(self, repository: PersistenceRepository, storage_root: Path) -> None:
         self._repository = repository
@@ -251,10 +271,10 @@ class PortfolioIngestionService:
             raise InvalidPortfolioDocumentError("Milestone 3 only accepts markdown portfolio documents.")
 
         provisional_filename = sanitize_filename(submission.document_title)
-        provisional_portfolio = parse_markdown(normalized_content, provisional_filename)
-        target_directory = (self._storage_root / provisional_portfolio.portfolio_id).resolve()
+        canonical_portfolio = parse_markdown(normalized_content, provisional_filename)
+        target_directory = (self._storage_root / canonical_portfolio.portfolio_id).resolve()
         target_path = target_directory / provisional_filename
-        canonical_portfolio = parse_markdown(normalized_content, str(target_path))
+        canonical_portfolio = rebind_source_document(canonical_portfolio, target_path)
         bundle = build_portfolio_ingestion_bundle(
             canonical_portfolio,
             source_contents_by_document_id={"source-markdown-001": f"{normalized_content}\n".encode("utf-8")},
@@ -263,7 +283,7 @@ class PortfolioIngestionService:
             self._repository.save_portfolio_bundle(bundle)
         except PortfolioConflictError as exc:
             raise PortfolioAlreadyExistsError(
-                f"Portfolio '{provisional_portfolio.portfolio_id}' already exists in the ingestion store."
+                f"Portfolio '{canonical_portfolio.portfolio_id}' already exists in the ingestion store."
             ) from exc
 
         target_directory.mkdir(parents=True, exist_ok=True)

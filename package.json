@@ -9,6 +9,7 @@
     "platform:up": "docker compose up -d --build postgres redis api worker web",
     "platform:down": "docker compose down --remove-orphans",
     "platform:ps": "docker compose ps",
-    "baseline:parity": "docker compose --profile baseline run --rm worker-parity"
+    "baseline:parity": "docker compose --profile baseline run --rm worker-parity",
+    "browser:test": "docker compose run --rm browser-tests"
   }
 }

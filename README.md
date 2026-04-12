@@ -25,6 +25,7 @@ Current status:
 - Milestone 11 adds persisted committee deliberation timelines, review-run deliberation APIs, and a thin replay-style UI for ordered reasoning inspection without adding new llm calls.
 - Milestone 12 adds Committee Mode, a live-feel boardroom playback experience that stages the persisted deliberation timeline with phased reveal, conflict spotlights, moderator synthesis, and final verdict playback without adding new llm calls.
 - Milestone 12.1 improves Committee Mode usability and observability with persistent agent identity treatment, stance-aware conflict visualization, playback speed control, and committee token telemetry surfaced from existing runtime metadata.
+- Milestone 12.2 hardens the platform with Playwright browser automation, reliable client-side submission and review actions, deeper runtime telemetry, deterministic llm fallback safety, markdown-ingestion safeguards, conflict metadata enrichment, audit-boundary cleanup, and indexed history/query paths.
 
 Primary references:
 
@@ -47,6 +48,7 @@ Primary references:
 - `docs/milestone-11/README.md`
 - `docs/milestone-12/README.md`
 - `docs/milestone-12.1/README.md`
+- `docs/milestone-12.2/README.md`
 
 Platform commands:
 
@@ -79,12 +81,13 @@ Platform commands:
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}`
 - `GET http://localhost:5001/api/v1/re-syntheses/{resynthesis_id}/artifacts`
 - `docker compose --profile baseline run --rm worker-parity`
+- `docker compose run --rm browser-tests`
 - `key.txt` -> local-only OpenAI API key file consumed through `OPENAI_API_KEY_FILE=/workspace/key.txt`
 
 Repository layout:
 
 - `apps/api` -> FastAPI control plane, health surface, and portfolio submission APIs
-- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, static deliberation inspection, Committee Mode playback, and local health endpoints
+- `apps/web` -> Next.js workspace for idea submission, multi-portfolio ranking/comparison, detail, history inspection, review-run telemetry, static deliberation inspection, Committee Mode playback, browser automation coverage, and local health endpoints
 - `apps/worker` -> primary Python backend execution runtime, parity tests, persistence contracts, and deliberation materialization
 - `packages/orbit-evals` -> evaluation placeholder package retained in the active workspace
 - `archive/js-baseline` -> archived JS baseline source preserved outside the active runtime path

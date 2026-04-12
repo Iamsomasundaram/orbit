@@ -38,6 +38,7 @@ def test_debate_service_persists_bounded_resolution_for_review_run() -> None:
     assert len(detail.conflicts) == 5
     assert len(detail.conflict_resolutions) == 5
     assert {event.action for event in detail.audit_events} == {
+        "debate_session.created",
         "debate_session.completed",
         "conflict_resolution.recorded",
     }

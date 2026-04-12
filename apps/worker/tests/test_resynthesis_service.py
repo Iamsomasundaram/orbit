@@ -54,7 +54,10 @@ def test_resynthesis_service_reuses_original_artifacts_when_no_recheck_is_requir
     assert detail.active_scorecard.final_recommendation == "Proceed with Conditions"
     assert detail.active_scorecard.weighted_composite_score == 3.61
     assert detail.active_committee_report.markdown == detail.original_committee_report.markdown
-    assert {event.action for event in detail.audit_events} == {"resynthesis.completed"}
+    assert {event.action for event in detail.audit_events} == {
+        "resynthesis.created",
+        "resynthesis.completed",
+    }
 
 
 def test_resynthesis_service_persists_rechecked_artifacts_when_resolution_requires_it() -> None:
@@ -93,6 +96,7 @@ def test_resynthesis_service_persists_rechecked_artifacts_when_resolution_requir
     assert detail.active_scorecard.weighted_composite_score < detail.original_scorecard.weighted_composite_score
     assert "Normalize risk handling expectations for security_and_compliance before broader rollout." in detail.active_scorecard.scorecard_payload.conditions
     assert {event.action for event in detail.audit_events} == {
+        "resynthesis.created",
         "resynthesis.completed",
         "scorecard.rechecked",
         "committee_report.resynthesized",

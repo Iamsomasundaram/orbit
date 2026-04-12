@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from orbit_worker.deliberation import PHASE_ORDER, build_deliberation_entries
 from orbit_worker.persistence import (
+    ConflictPersistenceRecord,
     DeliberationEntryRecord,
     PersistenceRepository,
     build_deliberation_persistence_bundle,
@@ -41,6 +42,10 @@ class AgentRuntimeTelemetry(OrbitModel):
 
 
 class CommitteeRuntimeMetadata(OrbitModel):
+    requested_runtime_mode: str
+    effective_runtime_mode: str
+    requested_provider: str
+    requested_model_name: str
     runtime_mode: str
     model_provider: str
     model_name: str
@@ -51,6 +56,9 @@ class CommitteeRuntimeMetadata(OrbitModel):
     total_output_tokens: int
     total_tokens: int
     estimated_cost_usd: float
+    fallback_applied: bool = False
+    fallback_reason: str | None = None
+    fallback_category: str | None = None
     agents: list[AgentRuntimeTelemetry]
 
 
@@ -63,6 +71,7 @@ class ReviewRunDeliberationDetail(OrbitModel):
     weighted_composite_score: float
     entry_count: int
     runtime_metadata: CommitteeRuntimeMetadata
+    conflicts: list[ConflictPersistenceRecord]
     entries: list[DeliberationEntryRecord]
 
 
@@ -108,6 +117,10 @@ def _runtime_mode(model_provider: str) -> str:
 def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
     if not review_bundle.agent_reviews:
         return CommitteeRuntimeMetadata(
+            requested_runtime_mode="deterministic",
+            effective_runtime_mode="deterministic",
+            requested_provider="deterministic-thin-slice",
+            requested_model_name="deterministic-thin-slice-v1",
             runtime_mode="deterministic",
             model_provider="unknown",
             model_name="unknown",
@@ -118,6 +131,9 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
             total_output_tokens=0,
             total_tokens=0,
             estimated_cost_usd=0.0,
+            fallback_applied=False,
+            fallback_reason=None,
+            fallback_category=None,
             agents=[],
         )
 
@@ -137,8 +153,50 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
         for record in review_bundle.agent_reviews
     ]
     first = agents[0]
+    effective_runtime_mode = _runtime_mode(first.model_provider)
+    fallback_event = next(
+        (event for event in review_bundle.audit_events if event.action == "review_run.runtime_fallback"),
+        None,
+    )
+    created_event = next(
+        (event for event in review_bundle.audit_events if event.action == "review_run.created"),
+        None,
+    )
+    requested_runtime_mode = effective_runtime_mode
+    requested_provider = first.model_provider
+    requested_model_name = first.model_name
+    fallback_applied = False
+    fallback_reason = None
+    fallback_category = None
+    if created_event is not None:
+        requested_runtime_mode = str(
+            created_event.event_payload.get("requested_runtime_mode", effective_runtime_mode)
+        )
+        requested_provider = str(
+            created_event.event_payload.get("requested_provider", first.model_provider)
+        )
+        requested_model_name = str(
+            created_event.event_payload.get("requested_model_name", first.model_name)
+        )
+    if fallback_event is not None:
+        fallback_applied = True
+        fallback_reason = str(fallback_event.event_payload.get("fallback_reason", "")).strip() or None
+        fallback_category = str(fallback_event.event_payload.get("failure_category", "")).strip() or None
+        requested_runtime_mode = str(
+            fallback_event.event_payload.get("requested_runtime_mode", requested_runtime_mode)
+        )
+        requested_provider = str(
+            fallback_event.event_payload.get("requested_provider", requested_provider)
+        )
+        requested_model_name = str(
+            fallback_event.event_payload.get("requested_model_name", requested_model_name)
+        )
     return CommitteeRuntimeMetadata(
-        runtime_mode=_runtime_mode(first.model_provider),
+        requested_runtime_mode=requested_runtime_mode,
+        effective_runtime_mode=effective_runtime_mode,
+        requested_provider=requested_provider,
+        requested_model_name=requested_model_name,
+        runtime_mode=effective_runtime_mode,
         model_provider=first.model_provider,
         model_name=first.model_name,
         prompt_contract_version=review_bundle.review_run.prompt_contract_version,
@@ -148,6 +206,9 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
         total_output_tokens=sum(agent.output_tokens for agent in agents),
         total_tokens=sum(agent.total_tokens for agent in agents),
         estimated_cost_usd=round(sum(agent.estimated_cost_usd for agent in agents), 8),
+        fallback_applied=fallback_applied,
+        fallback_reason=fallback_reason,
+        fallback_category=fallback_category,
         agents=agents,
     )
 
@@ -194,6 +255,7 @@ class DeliberationService:
             weighted_composite_score=artifacts.active_scorecard.weighted_composite_score,
             entry_count=len(bundle.entries),
             runtime_metadata=_runtime_metadata(review_bundle),
+            conflicts=review_bundle.conflicts,
             entries=bundle.entries,
         )
 

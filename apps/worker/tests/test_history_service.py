@@ -124,6 +124,7 @@ def test_review_run_artifacts_show_original_state_before_follow_up_sessions() ->
     assert detail.resynthesized_scorecard is None
     assert detail.resynthesized_committee_report is None
     assert {event.action for event in detail.review_audit_events} == {
+        "review_run.created",
         "review_run.completed",
         "committee_report.materialized",
     }
@@ -152,6 +153,7 @@ def test_debate_artifacts_link_review_and_pending_resynthesis_state() -> None:
     assert detail.resynthesized_scorecard is None
     assert len(detail.conflict_resolutions) == 5
     assert {event.action for event in detail.debate_audit_events} == {
+        "debate_session.created",
         "debate_session.completed",
         "conflict_resolution.recorded",
     }
@@ -179,7 +181,10 @@ def test_resynthesis_artifacts_preserve_original_active_state_when_no_recheck_is
     assert detail.active_scorecard.final_recommendation == "Proceed with Conditions"
     assert detail.resynthesized_scorecard is None
     assert detail.resynthesized_committee_report is None
-    assert {event.action for event in detail.resynthesis_audit_events} == {"resynthesis.completed"}
+    assert {event.action for event in detail.resynthesis_audit_events} == {
+        "resynthesis.created",
+        "resynthesis.completed",
+    }
 
 
 def test_resynthesis_artifacts_switch_active_lineage_when_recheck_is_required() -> None:
@@ -220,6 +225,7 @@ def test_resynthesis_artifacts_switch_active_lineage_when_recheck_is_required() 
     assert detail.resynthesized_committee_report is not None
     assert detail.active_scorecard.final_recommendation == "Pilot Only"
     assert {event.action for event in detail.resynthesis_audit_events} == {
+        "resynthesis.created",
         "resynthesis.completed",
         "scorecard.rechecked",
         "committee_report.resynthesized",

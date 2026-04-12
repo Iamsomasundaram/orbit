@@ -46,7 +46,7 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.1" />
+              <StatusBadge label="Milestone 12.2" />
               <StatusBadge label="Static Timeline" />
               <StatusBadge label={summary.active_artifact_source} tone="warning" />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -57,13 +57,14 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
                 Review Timeline {timeline.review_run_id}
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-ink/75">
-                This is the static inspection view for the ORBIT committee reasoning. Milestone 12.1 keeps this audit
+                This is the static inspection view for the ORBIT committee reasoning. Milestone 12.2 keeps this audit
                 view intact while Committee Mode adds stronger agent identity treatment, stance visualization, playback
                 speed control, and committee runtime telemetry. No additional LLM calls are issued here.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            <ActionLink href={`/review-runs/${timeline.review_run_id}`}>Review Run Detail</ActionLink>
             <ActionLink href={`/review-runs/${timeline.review_run_id}/committee`}>Committee Mode</ActionLink>
             <ActionLink href={`/portfolios/${timeline.portfolio_id}`}>Portfolio Detail</ActionLink>
             <ActionLink href={`/portfolios/${timeline.portfolio_id}/history?runId=${timeline.review_run_id}`} tone="muted">

@@ -59,7 +59,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.1" />
+              <StatusBadge label="Milestone 12.2" />
               <StatusBadge label={`${portfolioIds.length} selected`} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -69,7 +69,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-ink/75">
                 This page reads the latest active committee state for each selected portfolio and links back to the
-                approved detail, history, artifact inspection APIs, and the new Committee Mode playback page.
+                approved detail, history, artifact inspection APIs, and the hardened Committee Mode playback page.
               </p>
             </div>
           </div>
@@ -83,7 +83,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <ShellCard>
           <SectionEyebrow>No Portfolios Selected</SectionEyebrow>
           <p className="mt-4 text-sm leading-6 text-orbit-ink/70">
-            Select one or more portfolios from the Milestone 12.1 workspace to compare their latest committee outcomes.
+            Select one or more portfolios from the Milestone 12.2 workspace to compare their latest committee outcomes.
           </p>
         </ShellCard>
       ) : null}
@@ -142,9 +142,9 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
             />
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-2">
+          <section className="grid gap-4 xl:grid-cols-2" data-testid="portfolio-comparison-grid">
             {comparison.items.map((item) => (
-              <ShellCard key={item.portfolio.portfolio_id}>
+              <ShellCard key={item.portfolio.portfolio_id} data-testid={`comparison-card-${item.portfolio.portfolio_id}`}>
                 <div className="space-y-5">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">

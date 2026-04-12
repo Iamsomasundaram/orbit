@@ -9,7 +9,8 @@ import {
   publicApiHref,
 } from "@/lib/orbit-api";
 
-import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBadge, SubmitButton } from "@/app/orbit-ui";
+import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBadge } from "@/app/orbit-ui";
+import { PortfolioReviewAction } from "@/app/portfolio-review-action";
 
 type HistoryPageProps = {
   params: Promise<{ portfolioId: string }>;
@@ -41,7 +42,7 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.1" />
+              <StatusBadge label="Milestone 12.2" />
               <StatusBadge label={`${history.review_run_count} review ${history.review_run_count === 1 ? "run" : "runs"}`} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -56,9 +57,7 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <form action={`/api/portfolios/${portfolioId}/review-runs`} method="post">
-              <SubmitButton>Run ORBIT Review</SubmitButton>
-            </form>
+            <PortfolioReviewAction portfolioId={portfolioId} redirectTo={`/portfolios/${portfolioId}/history`} />
             <ActionLink href={`/portfolios/${portfolioId}`} tone="muted">
               Portfolio Detail
             </ActionLink>
@@ -157,6 +156,7 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
                     </p>
                   </div>
                   <div className="grid gap-3 text-sm text-orbit-ink/75 md:grid-cols-2">
+                    <ActionLink href={`/review-runs/${item.review_run.run_id}`}>Review Run Detail</ActionLink>
                     <a className="rounded-2xl border border-orbit-pine/10 px-4 py-3 hover:border-orbit-pine/30" href={publicApiHref(`/api/v1/review-runs/${item.review_run.run_id}/artifacts`)} target="_blank" rel="noreferrer">
                       Review artifacts
                     </a>

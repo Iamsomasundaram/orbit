@@ -1,15 +1,12 @@
 import {
   ActionLink,
-  FieldLabel,
-  Input,
   MetricCard,
   PageFrame,
   SectionEyebrow,
   ShellCard,
   StatusBadge,
-  SubmitButton,
-  TextArea,
 } from "@/app/orbit-ui";
+import { HomeSubmissionCard } from "@/app/home-submission-card";
 import { getRuntimeConfig } from "@/lib/config";
 import {
   type HealthPayload,
@@ -94,9 +91,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               discussion from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 12.1 sharpens Committee Mode with agent identity cards, conflict stance visualization,
-              playback speed control, and token telemetry, while preserving the approved deterministic fallback,
-              governance flow, and multi-portfolio workspace.
+              Milestone 12.2 hardens the platform with reliable submission and review actions, browser automation,
+              deterministic fallback safety, richer telemetry, and clearer conflict and audit surfaces across the
+              existing ORBIT workspace.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
@@ -144,40 +141,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <ShellCard>
-          <SectionEyebrow>Submit a New Idea</SectionEyebrow>
-          <form action="/api/portfolios" method="post" className="mt-5 space-y-5">
-            <div>
-              <FieldLabel htmlFor="portfolio_name">Idea name</FieldLabel>
-              <Input id="portfolio_name" name="portfolio_name" placeholder="ProcurePilot" required />
-            </div>
-            <div>
-              <FieldLabel htmlFor="owner">Owner</FieldLabel>
-              <Input id="owner" name="owner" placeholder="Somasundaram P" required />
-            </div>
-            <div>
-              <FieldLabel htmlFor="description">Idea description</FieldLabel>
-              <TextArea
-                id="description"
-                name="description"
-                required
-                rows={8}
-                placeholder="Describe the user problem, proposed workflow, and why ORBIT should review this idea now."
-              />
-            </div>
-            <div>
-              <FieldLabel htmlFor="tags">Optional tags</FieldLabel>
-              <Input id="tags" name="tags" placeholder="ai-saas, procurement, workflow" />
-            </div>
-            <div className="flex flex-col gap-3 border-t border-orbit-pine/10 pt-4 text-sm text-orbit-ink/70 md:flex-row md:items-center md:justify-between">
-              <span>
-                New idea submissions use a bounded portfolio identity strategy while preserving the approved
-                canonicalization path.
-              </span>
-              <SubmitButton>Create Portfolio</SubmitButton>
-            </div>
-          </form>
-        </ShellCard>
+        <HomeSubmissionCard />
 
         <ShellCard className="bg-orbit-pine text-orbit-mist">
           <SectionEyebrow>Priority Snapshot</SectionEyebrow>
@@ -273,7 +237,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <p className="text-sm leading-6 text-orbit-ink/70">
               Current sort: <span className="font-medium text-orbit-ink">{humanize(sortBy)}</span> ({direction}).
             </p>
-            <SubmitButton>Compare Selected Portfolios</SubmitButton>
+            <button
+              type="submit"
+              className="inline-flex rounded-full bg-orbit-ink px-5 py-3 text-sm font-semibold text-orbit-mist transition hover:bg-orbit-pine"
+              data-testid="compare-selected-submit"
+            >
+              Compare Selected Portfolios
+            </button>
           </div>
 
           {workspaceSummary?.items.length ? (
@@ -282,6 +252,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <div
                   key={item.portfolio.portfolio_id}
                   className="rounded-[24px] border border-orbit-pine/10 bg-white/75 p-5 shadow-panel backdrop-blur"
+                  data-testid={`workspace-card-${item.portfolio.portfolio_id}`}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-3">
@@ -291,6 +262,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                           name="portfolioId"
                           value={item.portfolio.portfolio_id}
                           className="h-4 w-4 rounded border-orbit-pine/30 text-orbit-pine focus:ring-orbit-gold/35"
+                          data-testid={`compare-checkbox-${item.portfolio.portfolio_id}`}
                         />
                         <StatusBadge label={humanize(item.portfolio.portfolio_status)} tone="warning" />
                         <StatusBadge
@@ -364,7 +336,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12.1
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 12.2
               comparison and boardroom playback workspace.
             </p>
           )}

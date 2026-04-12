@@ -24,6 +24,8 @@ def create_conflict(
     topic: str,
     participants: Iterable[str],
     severity: str,
+    conflict_category: str,
+    conflict_reason: str,
     trigger_reason: str,
     routing_reason: str,
 ) -> ConflictRecord:
@@ -34,7 +36,10 @@ def create_conflict(
             "conflict_type": conflict_type,
             "topic": topic,
             "participants": participant_list,
+            "conflicting_agents": participant_list,
             "severity": severity,
+            "conflict_category": conflict_category,
+            "conflict_reason": conflict_reason,
             "trigger_reason": trigger_reason,
             "supporting_artifacts": [f"agent_review.{participant}" for participant in participant_list],
             "debate_required": severity == "high",
@@ -111,6 +116,8 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 "rollout_timing",
                 recommendation_participants,
                 "high",
+                "recommendation",
+                "Committee members disagree materially on the rollout recommendation and timing.",
                 f"{len(recommendation_participants)} reviewers are separated by at least two recommendation tiers on rollout timing.",
                 "Recommendation polarity differs enough to alter rollout guidance.",
             )
@@ -125,6 +132,8 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 topic,
                 cluster["participants"],
                 "medium",
+                "assumption",
+                f"Agents are using incompatible assumptions for {topic}.",
                 f"Assumption topic {topic} contains incompatible values including {'; '.join(cluster['examples'])}.",
                 "Different assumptions could distort committee synthesis.",
             )
@@ -139,6 +148,8 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 dimension,
                 cluster["participants"],
                 "high",
+                "scoring",
+                f"Agent score contributions for {dimension} diverge beyond the bounded committee threshold.",
                 f"Maximum score delta {cluster['max_delta']:.2f} exceeds the 1.50 threshold on {dimension}.",
                 "Committee scoring could shift materially after reconciliation.",
             )
@@ -153,6 +164,8 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 dimension,
                 cluster["participants"],
                 "high",
+                "evidence",
+                f"Agents disagree on whether the evidence for {dimension} is complete enough to support the score.",
                 f"Maximum completeness delta {cluster['max_delta']:.2f} exceeds the 0.35 threshold on {dimension}.",
                 "Evidence sufficiency differs materially across reviewers.",
             )
@@ -167,6 +180,8 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 category,
                 cluster["participants"],
                 "medium",
+                "risk",
+                f"Agents assign materially different risk severity to the {category} category.",
                 f"Maximum severity delta {cluster['max_delta']} exceeds the structured threshold on {category}.",
                 "Risk handling guidance differs enough to require committee attention.",
             )

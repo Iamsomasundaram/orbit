@@ -11,6 +11,8 @@ build/
 coverage/
 .turbo/
 .orbit-artifacts/
+playwright-report/
+test-results/
 
 # Python
 __pycache__/

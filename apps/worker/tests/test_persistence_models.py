@@ -309,14 +309,15 @@ def test_in_memory_repository_round_trip_and_audit_listing() -> None:
     assert stored_deliberation.entries[-1].statement_text.startswith("Final verdict:")
 
     portfolio_events = repository.list_audit_events(portfolio_id=result["canonical_portfolio"].portfolio_id)
-    assert len(portfolio_events) == 13
+    assert len(portfolio_events) == 14
     assert {event.action for event in portfolio_events} == {
-        "portfolio.registered",
-        "canonical_portfolio.materialized",
+        "review_run.created",
         "review_run.completed",
         "committee_report.materialized",
+        "debate_session.created",
         "debate_session.completed",
         "conflict_resolution.recorded",
+        "resynthesis.created",
         "resynthesis.completed",
         "scorecard.rechecked",
         "committee_report.resynthesized",
@@ -338,11 +339,16 @@ def test_persistence_schema_catalog_and_ddl_cover_expected_tables() -> None:
     assert "CREATE INDEX ix_agent_reviews_agent_id" in ddl
     assert "CREATE INDEX ix_conflicts_run_id" in ddl
     assert "CREATE INDEX ix_review_runs_portfolio_id" in ddl
+    assert "CREATE INDEX ix_review_runs_portfolio_id_created_at" in ddl
     assert "CREATE INDEX ix_debate_sessions_run_id" in ddl
+    assert "CREATE INDEX ix_debate_sessions_run_id_created_at" in ddl
     assert "CREATE INDEX ix_conflict_resolutions_debate_id" in ddl
     assert "CREATE INDEX ix_resynthesis_sessions_debate_id" in ddl
+    assert "CREATE INDEX ix_resynthesis_sessions_debate_id_created_at" in ddl
     assert "CREATE INDEX ix_resynthesized_scorecards_run_id" in ddl
     assert "CREATE INDEX ix_deliberation_entries_run_id" in ddl
     assert "CREATE INDEX ix_audit_events_portfolio_id" in ddl
     assert "CREATE INDEX ix_audit_events_run_id" in ddl
+    assert "CREATE INDEX ix_audit_events_portfolio_id_created_at_event_id" in ddl
+    assert "CREATE INDEX ix_audit_events_run_id_created_at_event_id" in ddl
 

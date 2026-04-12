@@ -144,3 +144,87 @@ def test_idea_submission_parses_markdown_once(tmp_path: Path, monkeypatch: pytes
     )
 
     assert parse_calls == 1
+
+
+def test_markdown_submission_parses_document_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repository = InMemoryPersistenceRepository()
+    service = PortfolioIngestionService(repository=repository, storage_root=tmp_path / "submissions")
+    parse_calls = 0
+
+    from orbit_api import portfolios as portfolio_module  # noqa: WPS433
+
+    original_parse_markdown = portfolio_module.parse_markdown
+
+    def counting_parse_markdown(markdown: str, source_path: str):
+        nonlocal parse_calls
+        parse_calls += 1
+        return original_parse_markdown(markdown, source_path)
+
+    monkeypatch.setattr(portfolio_module, "parse_markdown", counting_parse_markdown)
+
+    service.submit_document(
+        PortfolioDocumentSubmission(
+            document_title="procurepilot-thin-slice.md",
+            content=INPUT_PATH.read_text(encoding="utf-8"),
+        )
+    )
+
+    assert parse_calls == 1
+
+
+def test_markdown_submission_normalizes_unbounded_portfolio_ids(tmp_path: Path) -> None:
+    repository = InMemoryPersistenceRepository()
+    service = PortfolioIngestionService(repository=repository, storage_root=tmp_path / "submissions")
+    markdown = """
+# Orbit Hardening Portfolio
+
+Portfolio ID: Portfolio ID With Spaces / Unsafe Symbols / and EXTRA LENGTH 123456789012345678901234567890
+Portfolio Name: Orbit Hardening
+Portfolio Type: product
+Owner: Studio Delta
+Submitted At: 2026-04-12
+
+## Problem Discovery
+The portfolio tests markdown identity normalization.
+
+## Product Vision
+The product vision is intentionally simple for bounded validation.
+
+## Competitive Landscape
+Comparable tools exist.
+
+## Business Requirements
+Business requirements are early.
+
+## Product Requirements
+Product requirements are bounded.
+
+## Architecture & System Design
+Architecture remains thin.
+
+## AI Agents & Ethical Framework
+AI usage is reviewed.
+
+## Operational Resilience
+Operational posture is minimal.
+
+## MVP Roadmap
+Roadmap stays scoped.
+
+## Success Metrics
+Metrics are early.
+
+## Post Launch Strategy
+Expansion is deferred.
+""".strip()
+
+    detail = service.submit_document(
+        PortfolioDocumentSubmission(
+            document_title="orbit-hardening.md",
+            content=markdown,
+        )
+    )
+
+    assert detail.portfolio.portfolio_id == "portfolio-id-with-spaces-unsafe-symbols-and-extra-length-123456789012345678901234567890"
+    assert len(detail.portfolio.portfolio_id) <= 96
+    assert Path(detail.source_documents[0].path).parent.name == detail.portfolio.portfolio_id

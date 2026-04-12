@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 export function PageFrame({ children }: { children: ReactNode }) {
   return <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10 md:px-10">{children}</main>;
@@ -8,11 +8,19 @@ export function PageFrame({ children }: { children: ReactNode }) {
 export function ShellCard({
   children,
   className = "",
+  ...props
 }: {
   children: ReactNode;
   className?: string;
-}) {
-  return <section className={`rounded-[28px] border border-orbit-pine/10 bg-white/78 p-6 shadow-panel backdrop-blur ${className}`}>{children}</section>;
+} & HTMLAttributes<HTMLElement>) {
+  return (
+    <section
+      className={`rounded-[28px] border border-orbit-pine/10 bg-white/78 p-6 shadow-panel backdrop-blur ${className}`}
+      {...props}
+    >
+      {children}
+    </section>
+  );
 }
 
 export function SectionEyebrow({ children }: { children: ReactNode }) {

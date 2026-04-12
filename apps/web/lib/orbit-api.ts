@@ -97,6 +97,95 @@ export type ReviewRunSummary = {
   completed_at: string | null;
 };
 
+export type ReviewMetadataPayload = {
+  prompt_contract_version: string;
+  model_provider: string;
+  model_name: string;
+  duration_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+};
+
+export type ConflictRecordPayload = {
+  conflict_id: string;
+  conflict_type: string;
+  topic: string;
+  participants: string[];
+  conflicting_agents: string[];
+  severity: string;
+  conflict_category: string | null;
+  conflict_reason: string | null;
+  trigger_reason: string;
+  supporting_artifacts: string[];
+  debate_required: boolean;
+  routing_reason: string;
+  status: string;
+};
+
+export type ConflictPersistencePayload = {
+  conflict_row_id: string;
+  run_id: string;
+  portfolio_id: string;
+  conflict_id: string;
+  conflict_type: string;
+  topic: string;
+  severity: string;
+  conflict_payload_hash: string;
+  conflict_payload: ConflictRecordPayload;
+  created_at: string;
+};
+
+export type ReviewRunDetailPayload = {
+  portfolio: PortfolioRecord;
+  canonical_portfolio: CanonicalPortfolioRecord;
+  review_run: {
+    run_id: string;
+    portfolio_id: string;
+    review_status: string;
+    active_backend: string;
+    reference_runtime: string;
+    prompt_contract_version: string;
+    artifact_bundle_hash: string;
+    started_at: string;
+    completed_at: string | null;
+    created_at: string;
+  };
+  agent_reviews: Array<{
+    agent_review_row_id: string;
+    run_id: string;
+    portfolio_id: string;
+    agent_id: string;
+    recommendation: string;
+    findings_count: number;
+    dimension_count: number;
+    review_payload_hash: string;
+    review_payload: {
+      agent_name: string;
+      recommendation: string;
+      review_metadata: ReviewMetadataPayload;
+    };
+    created_at: string;
+  }>;
+  conflicts: ConflictPersistencePayload[];
+  scorecard: {
+    run_id: string;
+    portfolio_id: string;
+    final_recommendation: string;
+    weighted_composite_score: number;
+    created_at: string;
+  };
+  committee_report: {
+    run_id: string;
+    portfolio_id: string;
+    final_recommendation: string;
+    markdown: string;
+    created_at: string;
+  };
+  audit_events: Array<{ event_id: string; action: string; created_at: string; event_payload: Record<string, unknown> }>;
+};
+
 export type DebateSummary = {
   debate_id: string;
   run_id: string;
@@ -154,9 +243,16 @@ export type PortfolioHistoryPayload = {
 export type ArtifactInspectionPayload = {
   anchor_type: "review_run" | "debate" | "resynthesis";
   anchor_id: string;
+  lineage: {
+    portfolio_id: string;
+    review_run_id: string;
+    debate_id: string | null;
+    resynthesis_id: string | null;
+  };
   artifact_selection: ArtifactSelectionState;
   agent_review_count: number;
   conflict_count: number;
+  portfolio: PortfolioRecord;
   active_scorecard: {
     final_recommendation: string;
     weighted_composite_score: number;
@@ -178,6 +274,9 @@ export type ArtifactInspectionPayload = {
     active_artifact_source: string;
     score_change_required_count: number;
   } | null;
+  review_audit_events: Array<{ event_id: string; action: string; created_at: string; event_payload: Record<string, unknown> }>;
+  debate_audit_events: Array<{ event_id: string; action: string; created_at: string; event_payload: Record<string, unknown> }>;
+  resynthesis_audit_events: Array<{ event_id: string; action: string; created_at: string; event_payload: Record<string, unknown> }>;
 };
 
 export type DeliberationEntryPayload = {
@@ -208,6 +307,10 @@ export type AgentRuntimeTelemetryPayload = {
 };
 
 export type CommitteeRuntimeMetadataPayload = {
+  requested_runtime_mode: string;
+  effective_runtime_mode: string;
+  requested_provider: string;
+  requested_model_name: string;
   runtime_mode: string;
   model_provider: string;
   model_name: string;
@@ -218,6 +321,9 @@ export type CommitteeRuntimeMetadataPayload = {
   total_output_tokens: number;
   total_tokens: number;
   estimated_cost_usd: number;
+  fallback_applied: boolean;
+  fallback_reason: string | null;
+  fallback_category: string | null;
   agents: AgentRuntimeTelemetryPayload[];
 };
 
@@ -235,6 +341,7 @@ export type ReviewRunDeliberationPayload = {
   weighted_composite_score: number;
   entry_count: number;
   runtime_metadata: CommitteeRuntimeMetadataPayload;
+  conflicts: ConflictPersistencePayload[];
   entries: DeliberationEntryPayload[];
 };
 

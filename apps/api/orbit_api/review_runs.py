@@ -119,6 +119,7 @@ class ReviewRunService:
             result["conflicts"],
             result["scorecard"],
             result["committee_report"],
+            execution_metadata=result.get("execution"),
         )
         self._repository.save_review_bundle(review_bundle)
         if self._deliberation_refresher is not None:

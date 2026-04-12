@@ -277,6 +277,23 @@ class MockParallelLLMProvider:
         return default_score
 
 
+class FailingLLMProvider:
+    provider_name = "mock-openai"
+    model_name = "gpt-4o-mini-mock"
+
+    async def infer_structured(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        response_model,
+        timeout_seconds: int,
+        max_output_tokens: int,
+    ):
+        del system_prompt, user_prompt, response_model, timeout_seconds, max_output_tokens
+        raise RuntimeError("provider timeout while requesting tokens")
+
+
 def test_llm_review_workflow_runs_parallel_agents_and_triggers_resynthesis() -> None:
     repository = InMemoryPersistenceRepository()
     canonical_portfolio = ingest_portfolio_document(INPUT_PATH)
@@ -361,3 +378,53 @@ def test_llm_deliberation_runtime_metadata_exposes_agent_token_telemetry() -> No
     assert detail.runtime_metadata.estimated_cost_usd > 0
     assert len(detail.runtime_metadata.agents) == 15
     assert detail.runtime_metadata.agents[0].total_tokens == 300
+    assert detail.runtime_metadata.requested_runtime_mode == "llm"
+    assert detail.runtime_metadata.effective_runtime_mode == "llm"
+    assert detail.runtime_metadata.fallback_applied is False
+
+
+def test_llm_review_workflow_falls_back_to_deterministic_runtime_when_provider_fails() -> None:
+    repository = InMemoryPersistenceRepository()
+    canonical_portfolio = ingest_portfolio_document(INPUT_PATH)
+    repository.save_portfolio_bundle(build_portfolio_ingestion_bundle(canonical_portfolio))
+
+    runtime_options = CommitteeRuntimeOptions(
+        runtime_mode="llm",
+        llm_provider="openai",
+        openai_model="gpt-4o-mini-mock",
+        llm_max_concurrency=8,
+        llm_request_timeout_seconds=1,
+        llm_max_output_tokens=600,
+    )
+
+    deliberation_service = DeliberationService(repository=repository)
+    workflow_service = ReviewWorkflowService(
+        review_runs=ReviewRunService(
+            repository=repository,
+            runtime_options=runtime_options,
+            llm_provider=FailingLLMProvider(),
+            deliberation_refresher=deliberation_service.refresh_review_run,
+        ),
+        debates=DebateService(repository=repository, deliberation_refresher=deliberation_service.refresh_review_run),
+        resyntheses=ResynthesisService(repository=repository, deliberation_refresher=deliberation_service.refresh_review_run),
+    )
+
+    summary = workflow_service.start_review(canonical_portfolio.portfolio_id)
+    detail = deliberation_service.get_review_run_deliberation(summary.review_run.run_id)
+    review_bundle = repository.get_review_run_bundle(summary.review_run.run_id)
+
+    assert detail is not None
+    assert review_bundle is not None
+    assert detail.runtime_metadata.requested_runtime_mode == "llm"
+    assert detail.runtime_metadata.effective_runtime_mode == "deterministic"
+    assert detail.runtime_metadata.runtime_mode == "deterministic"
+    assert detail.runtime_metadata.fallback_applied is True
+    assert detail.runtime_metadata.fallback_category == "unknown"
+    assert detail.runtime_metadata.total_tokens == 0
+    assert detail.runtime_metadata.estimated_cost_usd == 0.0
+    assert all(record.review_payload.review_metadata.model_provider == "deterministic-thin-slice" for record in review_bundle.agent_reviews)
+    assert {event.action for event in review_bundle.audit_events} >= {
+        "review_run.created",
+        "review_run.runtime_fallback",
+        "review_run.completed",
+    }

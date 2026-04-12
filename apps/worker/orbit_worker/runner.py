@@ -36,11 +36,12 @@ def run_review_pipeline_for_portfolio(
     llm_provider: object | None = None,
 ) -> dict[str, Any]:
     resolved_run_id = run_id or f"thin-slice-{canonical_portfolio.portfolio_id}"
-    agent_reviews = run_committee_reviews(
+    execution = run_committee_reviews(
         canonical_portfolio,
         runtime_options=runtime_options,
         llm_provider=llm_provider,
     )
+    agent_reviews = execution.agent_reviews
     conflicts = detect_conflicts(agent_reviews)
     scorecard = build_committee_scorecard(canonical_portfolio, resolved_run_id, agent_reviews, conflicts)
     committee_report = build_committee_report(canonical_portfolio, resolved_run_id, agent_reviews, conflicts, scorecard)
@@ -59,6 +60,7 @@ def run_review_pipeline_for_portfolio(
         "run_id": resolved_run_id,
         "canonical_portfolio": canonical_portfolio,
         "agent_reviews": agent_reviews,
+        "execution": execution,
         "conflicts": conflicts,
         "scorecard": scorecard,
         "committee_report": committee_report,

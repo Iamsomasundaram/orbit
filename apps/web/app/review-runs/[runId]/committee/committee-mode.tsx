@@ -4,6 +4,7 @@ import { startTransition, useDeferredValue, useEffect, useState } from "react";
 
 import {
   type AgentRuntimeTelemetryPayload,
+  type ConflictPersistencePayload,
   type DeliberationEntryPayload,
   type ReviewRunDeliberationPayload,
   type ReviewRunDeliberationSummaryPayload,
@@ -278,6 +279,16 @@ function agentTelemetryForEntry(
   return agents.find((agent) => agent.agent_id === entry.agent_id) ?? agents.find((agent) => agent.agent_role === entry.agent_role) ?? null;
 }
 
+function conflictMetadataForReference(
+  conflicts: ConflictPersistencePayload[],
+  conflictReference: string | null | undefined,
+): ConflictPersistencePayload | null {
+  if (!conflictReference) {
+    return null;
+  }
+  return conflicts.find((conflict) => conflict.conflict_id === conflictReference) ?? null;
+}
+
 export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -291,6 +302,10 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
     currentEntry?.conflict_reference != null
       ? visibleConflictSpotlights.find((spotlight) => spotlight.conflictReference === currentEntry.conflict_reference) ?? null
       : visibleConflictSpotlights[0] ?? null;
+  const activeConflictMetadata = conflictMetadataForReference(
+    timeline.conflicts,
+    activeSpotlight?.conflictReference,
+  );
 
   const openingStatementByRole: Record<string, DeliberationEntryPayload> = {};
   const stanceByRole: Record<string, string> = {};
@@ -383,11 +398,11 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
 
   return (
     <PageFrame>
-      <section className="rounded-[36px] border border-orbit-pine/10 bg-orbit-ink px-8 py-9 text-orbit-mist shadow-panel md:px-10">
+      <section className="rounded-[36px] border border-orbit-pine/10 bg-orbit-ink px-8 py-9 text-orbit-mist shadow-panel md:px-10" data-testid="committee-mode-page">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.1" />
+              <StatusBadge label="Milestone 12.2" />
               <StatusBadge label="Committee Mode" tone="warning" />
               <StatusBadge label={summary.active_artifact_source} />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -421,13 +436,20 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Runtime Mode</div>
-              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.runtime_mode}</div>
+              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.effective_runtime_mode}</div>
               <div className="mt-2 text-sm text-orbit-mist/72">{timeline.runtime_metadata.prompt_contract_version}</div>
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Provider / Model</div>
               <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.model_provider}</div>
               <div className="mt-2 text-sm text-orbit-mist/72">{timeline.runtime_metadata.model_name}</div>
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Requested Runtime</div>
+              <div className="mt-2 text-xl font-semibold">{timeline.runtime_metadata.requested_runtime_mode}</div>
+              <div className="mt-2 text-sm text-orbit-mist/72">
+                {timeline.runtime_metadata.requested_provider} / {timeline.runtime_metadata.requested_model_name}
+              </div>
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Agents Executed</div>
@@ -451,6 +473,16 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                 Deterministic runs remain zero-token and zero-cost. Playback itself does not trigger new model usage.
               </div>
             </div>
+            {timeline.runtime_metadata.fallback_applied ? (
+              <div className="rounded-[24px] border border-amber-200 bg-amber-100/20 px-4 py-4 md:col-span-2">
+                <div className="text-xs uppercase tracking-[0.2em] text-orbit-moss">Fallback Safety</div>
+                <div className="mt-2 text-xl font-semibold">Deterministic fallback applied</div>
+                <div className="mt-2 text-sm text-orbit-mist/80">
+                  {timeline.runtime_metadata.fallback_category ?? "llm failure"}:{" "}
+                  {timeline.runtime_metadata.fallback_reason ?? "The review completed in deterministic mode after an llm runtime failure."}
+                </div>
+              </div>
+            ) : null}
           </div>
         </ShellCard>
 
@@ -534,7 +566,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
-          <ShellCard>
+          <ShellCard data-testid="committee-playback-controls">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
                 <SectionEyebrow>Playback Controls</SectionEyebrow>
@@ -548,6 +580,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   type="button"
                   onClick={handleTogglePlayback}
                   className="inline-flex rounded-full bg-orbit-ink px-5 py-3 text-sm font-semibold text-orbit-mist transition hover:bg-orbit-pine"
+                  data-testid="committee-playback-toggle"
                 >
                   {playbackLabel}
                 </button>
@@ -555,6 +588,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   type="button"
                   onClick={handleSkipPhase}
                   className="inline-flex rounded-full border border-orbit-pine/15 px-5 py-3 text-sm font-semibold text-orbit-ink transition hover:border-orbit-pine/35"
+                  data-testid="committee-skip-phase"
                 >
                   Skip to Next Phase
                 </button>
@@ -562,6 +596,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   type="button"
                   onClick={handleJumpToVerdict}
                   className="inline-flex rounded-full border border-orbit-pine/15 px-5 py-3 text-sm font-semibold text-orbit-ink transition hover:border-orbit-pine/35"
+                  data-testid="committee-jump-verdict"
                 >
                   Jump to Final Verdict
                 </button>
@@ -569,6 +604,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   type="button"
                   onClick={handleReset}
                   className="inline-flex rounded-full border border-orbit-pine/15 px-5 py-3 text-sm font-semibold text-orbit-ink transition hover:border-orbit-pine/35"
+                  data-testid="committee-reset"
                 >
                   Reset
                 </button>
@@ -581,18 +617,19 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setPlaybackSpeed(option.value)}
+                    onClick={() => startTransition(() => setPlaybackSpeed(option.value))}
                     className={
                       playbackSpeed === option.value
                         ? "inline-flex rounded-full border border-orbit-gold/50 bg-orbit-gold/10 px-4 py-2 font-medium text-orbit-ink"
                         : "inline-flex rounded-full border border-orbit-pine/10 px-4 py-2 font-medium text-orbit-ink/75 transition hover:border-orbit-pine/30 hover:text-orbit-ink"
                     }
+                    data-testid={`committee-speed-${option.value}`}
                   >
                     {option.label}
                   </button>
                 ))}
               </div>
-              <span className="text-orbit-ink/60">
+              <span className="text-orbit-ink/60" data-testid="committee-speed-current">
                 Selected speed: {PLAYBACK_SPEEDS.find((option) => option.value === playbackSpeed)?.detail}
               </span>
             </div>
@@ -659,7 +696,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             )}
           </ShellCard>
 
-          <ShellCard>
+          <ShellCard data-testid="committee-transcript">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
                 <SectionEyebrow>Revealed Transcript</SectionEyebrow>
@@ -742,7 +779,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         </div>
 
         <div className="space-y-6">
-          <ShellCard>
+          <ShellCard data-testid="committee-phase-rail">
             <SectionEyebrow>Phase Rail</SectionEyebrow>
             <div className="mt-5 space-y-3">
               {summary.phase_summaries.map((phase) => {
@@ -775,7 +812,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             </div>
           </ShellCard>
 
-          <ShellCard className={activeSpotlight ? "committee-spotlight-ring" : ""}>
+          <ShellCard className={activeSpotlight ? "committee-spotlight-ring" : ""} data-testid="committee-conflict-spotlight">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
                 <SectionEyebrow>Conflict Spotlight</SectionEyebrow>
@@ -794,10 +831,22 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                   <p className="mt-3 text-sm leading-6 text-orbit-ink/80">
                     {activeSpotlight.identification?.statement_text ?? "Conflict identification has not been revealed yet."}
                   </p>
+                  {activeConflictMetadata ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {activeConflictMetadata.conflict_payload.conflict_category ? (
+                        <StatusBadge label={activeConflictMetadata.conflict_payload.conflict_category} tone="warning" />
+                      ) : null}
+                      {activeConflictMetadata.conflict_payload.conflict_reason ? (
+                        <StatusBadge label={activeConflictMetadata.conflict_payload.conflict_reason} />
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {Array.from(new Set(activeSpotlight.discussion.map((entry) => speakerProfile(entry.agent_role).displayRole))).map((role) => (
-                      <StatusBadge key={role} label={role} />
-                    ))}
+                    {(activeConflictMetadata?.conflict_payload.conflicting_agents.length
+                      ? activeConflictMetadata.conflict_payload.conflicting_agents
+                      : Array.from(new Set(activeSpotlight.discussion.map((entry) => speakerProfile(entry.agent_role).displayRole)))).map((role) => (
+                        <StatusBadge key={role} label={role} />
+                      ))}
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -845,7 +894,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
             )}
           </ShellCard>
 
-          <ShellCard className={verdictVisible ? "border-emerald-200 bg-emerald-50/80" : "bg-white/82"}>
+          <ShellCard className={verdictVisible ? "border-emerald-200 bg-emerald-50/80" : "bg-white/82"} data-testid="committee-final-verdict">
             <SectionEyebrow>Final Verdict Reveal</SectionEyebrow>
             {verdictVisible ? (
               <div className="mt-5 space-y-4">

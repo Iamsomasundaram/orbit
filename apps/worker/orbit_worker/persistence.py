@@ -15,14 +15,19 @@ from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
 from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, DeliberationEntry, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
 
-PERSISTENCE_SCHEMA_VERSION = "m6-v1"
+PERSISTENCE_SCHEMA_VERSION = "m12.2-v1"
 SOURCE_OF_TRUTH_MODULE = "orbit_worker.schemas"
 REFERENCE_RUNTIME_MODE = "js-baseline-only"
 ACTIVE_BACKEND = "python"
 SYSTEM_ACTOR_ID = "orbit-platform"
 SYSTEM_ACTOR_NAME = "ORBIT Platform"
-DEBATE_AUDIT_ACTIONS = ("debate_session.completed", "conflict_resolution.recorded")
+DEBATE_AUDIT_ACTIONS = (
+    "debate_session.created",
+    "debate_session.completed",
+    "conflict_resolution.recorded",
+)
 RESYNTHESIS_AUDIT_ACTIONS = (
+    "resynthesis.created",
     "resynthesis.completed",
     "scorecard.rechecked",
     "committee_report.resynthesized",
@@ -828,36 +833,31 @@ def build_audit_event_records(
     review_run: ReviewRunRecord,
     scorecard: Scorecard,
     committee_report: CommitteeReport,
+    execution_metadata: Any | None = None,
     now: datetime | None = None,
 ) -> list[AuditEventRecord]:
     timestamp = now or datetime.now(timezone.utc)
     actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
-    return [
+    def execution_value(key: str, default: Any) -> Any:
+        if isinstance(execution_metadata, dict):
+            return execution_metadata.get(key, default)
+        return getattr(execution_metadata, key, default)
+
+    events = [
         AuditEventRecord(
-            event_id=_audit_event_id(review_run.run_id, "portfolio.registered", canonical_portfolio.portfolio_id),
+            event_id=_audit_event_id(review_run.run_id, "review_run.created", review_run.run_id),
             portfolio_id=canonical_portfolio.portfolio_id,
             run_id=review_run.run_id,
             actor=actor,
-            action="portfolio.registered",
-            entity_type="portfolio",
-            entity_id=canonical_portfolio.portfolio_id,
+            action="review_run.created",
+            entity_type="review_run",
+            entity_id=review_run.run_id,
             event_payload={
-                "portfolio_name": canonical_portfolio.portfolio_name,
-                "portfolio_type": canonical_portfolio.portfolio_type,
-            },
-            created_at=timestamp,
-        ),
-        AuditEventRecord(
-            event_id=_audit_event_id(review_run.run_id, "canonical_portfolio.materialized", canonical_portfolio.portfolio_id),
-            portfolio_id=canonical_portfolio.portfolio_id,
-            run_id=review_run.run_id,
-            actor=actor,
-            action="canonical_portfolio.materialized",
-            entity_type="canonical_portfolio",
-            entity_id=canonical_portfolio.portfolio_id,
-            event_payload={
-                "schema_version": PERSISTENCE_SCHEMA_VERSION,
-                "section_count": len(canonical_portfolio.sections),
+                "portfolio_id": canonical_portfolio.portfolio_id,
+                "requested_runtime_mode": execution_value("requested_runtime_mode", "deterministic"),
+                "effective_runtime_mode": execution_value("effective_runtime_mode", "deterministic"),
+                "requested_provider": execution_value("requested_provider", "deterministic-thin-slice"),
+                "requested_model_name": execution_value("requested_model_name", "deterministic-thin-slice-v1"),
             },
             created_at=timestamp,
         ),
@@ -890,6 +890,29 @@ def build_audit_event_records(
             created_at=timestamp,
         ),
     ]
+    if execution_value("fallback_applied", False):
+        events.insert(
+            1,
+            AuditEventRecord(
+                event_id=_audit_event_id(review_run.run_id, "review_run.runtime_fallback", review_run.run_id),
+                portfolio_id=canonical_portfolio.portfolio_id,
+                run_id=review_run.run_id,
+                actor=actor,
+                action="review_run.runtime_fallback",
+                entity_type="review_run",
+                entity_id=review_run.run_id,
+                event_payload={
+                    "requested_runtime_mode": execution_value("requested_runtime_mode", "llm"),
+                    "effective_runtime_mode": execution_value("effective_runtime_mode", "deterministic"),
+                    "requested_provider": execution_value("requested_provider", "openai"),
+                    "requested_model_name": execution_value("requested_model_name", "gpt-4o-mini"),
+                    "failure_category": execution_value("failure_category", "unknown"),
+                    "fallback_reason": execution_value("fallback_reason", "Unknown llm failure."),
+                },
+                created_at=timestamp,
+            ),
+        )
+    return events
 
 
 def build_debate_audit_event_records(
@@ -899,6 +922,20 @@ def build_debate_audit_event_records(
     timestamp = now or datetime.now(timezone.utc)
     actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
     events = [
+        AuditEventRecord(
+            event_id=_audit_event_id(debate.run_id, "debate_session.created", debate.debate_id),
+            portfolio_id=debate.portfolio_id,
+            run_id=debate.run_id,
+            actor=actor,
+            action="debate_session.created",
+            entity_type="debate_session",
+            entity_id=debate.debate_id,
+            event_payload={
+                "max_rounds": debate.max_rounds,
+                "conflict_count": len(debate.resolutions),
+            },
+            created_at=timestamp,
+        ),
         AuditEventRecord(
             event_id=_audit_event_id(debate.run_id, "debate_session.completed", debate.debate_id),
             portfolio_id=debate.portfolio_id,
@@ -944,6 +981,20 @@ def build_resynthesis_audit_event_records(
     timestamp = now or datetime.now(timezone.utc)
     actor = AuditActor(actor_type="system", actor_id=SYSTEM_ACTOR_ID, display_name=SYSTEM_ACTOR_NAME)
     events = [
+        AuditEventRecord(
+            event_id=_audit_event_id(session.run_id, "resynthesis.created", session.resynthesis_id),
+            portfolio_id=session.portfolio_id,
+            run_id=session.run_id,
+            actor=actor,
+            action="resynthesis.created",
+            entity_type="resynthesis_session",
+            entity_id=session.resynthesis_id,
+            event_payload={
+                "debate_id": session.debate_id,
+                "requested_score_change_count": session.score_change_required_count,
+            },
+            created_at=timestamp,
+        ),
         AuditEventRecord(
             event_id=_audit_event_id(session.run_id, "resynthesis.completed", session.resynthesis_id),
             portfolio_id=session.portfolio_id,
@@ -1063,9 +1114,27 @@ def build_review_persistence_bundle(
     conflicts: list[ConflictRecord],
     scorecard: Scorecard,
     committee_report: CommitteeReport,
+    execution_metadata: Any | None = None,
     now: datetime | None = None,
 ) -> ReviewPersistenceBundle:
     timestamp = now or datetime.now(timezone.utc)
+    resolved_execution_metadata = execution_metadata
+    if resolved_execution_metadata is None and agent_reviews:
+        first_metadata = agent_reviews[0].review_metadata
+        effective_runtime_mode = (
+            "deterministic"
+            if first_metadata.model_provider == "deterministic-thin-slice"
+            else "llm"
+        )
+        resolved_execution_metadata = {
+            "requested_runtime_mode": effective_runtime_mode,
+            "effective_runtime_mode": effective_runtime_mode,
+            "requested_provider": first_metadata.model_provider,
+            "requested_model_name": first_metadata.model_name,
+            "fallback_applied": False,
+            "fallback_reason": None,
+            "failure_category": None,
+        }
     review_run = build_review_run_record(run_id, canonical_portfolio, agent_reviews, conflicts, scorecard, committee_report, timestamp)
     return ReviewPersistenceBundle(
         schema_version=PERSISTENCE_SCHEMA_VERSION,
@@ -1077,7 +1146,14 @@ def build_review_persistence_bundle(
         conflicts=build_conflict_records(run_id, canonical_portfolio, conflicts, now=timestamp),
         scorecard=build_scorecard_record(scorecard, now=timestamp),
         committee_report=build_committee_report_record(committee_report, scorecard, now=timestamp),
-        audit_events=build_audit_event_records(canonical_portfolio, review_run, scorecard, committee_report, now=timestamp),
+        audit_events=build_audit_event_records(
+            canonical_portfolio,
+            review_run,
+            scorecard,
+            committee_report,
+            execution_metadata=resolved_execution_metadata,
+            now=timestamp,
+        ),
     )
 
 
@@ -1879,19 +1955,24 @@ audit_events_table = Table(
 )
 
 Index("ix_review_runs_portfolio_id", review_runs_table.c.portfolio_id)
+Index("ix_review_runs_portfolio_id_created_at", review_runs_table.c.portfolio_id, review_runs_table.c.created_at)
 Index("ix_agent_reviews_run_id", agent_reviews_table.c.run_id)
 Index("ix_agent_reviews_agent_id", agent_reviews_table.c.agent_id)
 Index("ix_conflicts_run_id", conflicts_table.c.run_id)
 Index("ix_debate_sessions_run_id", debate_sessions_table.c.run_id)
+Index("ix_debate_sessions_run_id_created_at", debate_sessions_table.c.run_id, debate_sessions_table.c.created_at)
 Index("ix_conflict_resolutions_debate_id", conflict_resolutions_table.c.debate_id)
 Index("ix_conflict_resolutions_run_id", conflict_resolutions_table.c.run_id)
 Index("ix_resynthesis_sessions_debate_id", resynthesis_sessions_table.c.debate_id)
+Index("ix_resynthesis_sessions_debate_id_created_at", resynthesis_sessions_table.c.debate_id, resynthesis_sessions_table.c.created_at)
 Index("ix_resynthesis_sessions_run_id", resynthesis_sessions_table.c.run_id)
 Index("ix_resynthesized_scorecards_run_id", resynthesized_scorecards_table.c.run_id)
 Index("ix_resynthesized_committee_reports_run_id", resynthesized_committee_reports_table.c.run_id)
 Index("ix_deliberation_entries_run_id", deliberation_entries_table.c.run_id)
 Index("ix_audit_events_portfolio_id", audit_events_table.c.portfolio_id)
+Index("ix_audit_events_portfolio_id_created_at_event_id", audit_events_table.c.portfolio_id, audit_events_table.c.created_at, audit_events_table.c.event_id)
 Index("ix_audit_events_run_id", audit_events_table.c.run_id)
+Index("ix_audit_events_run_id_created_at_event_id", audit_events_table.c.run_id, audit_events_table.c.created_at, audit_events_table.c.event_id)
 Index("ix_audit_events_entity_type", audit_events_table.c.entity_type)
 
 

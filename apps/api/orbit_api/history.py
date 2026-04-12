@@ -30,6 +30,8 @@ from .review_runs import ReviewRunSummary, summarize_review_bundle
 from .resyntheses import ResynthesisSummary, summarize_resynthesis_bundle
 
 REVIEW_AUDIT_ACTIONS = (
+    "review_run.created",
+    "review_run.runtime_fallback",
     "review_run.completed",
     "committee_report.materialized",
 )

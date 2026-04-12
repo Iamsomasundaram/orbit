@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from .domain import RECOMMENDATION_ORDER, RECOMMENDATION_RANK, clamp_score, clamp_unit, dedupe_preserve_order
 from .llm_provider import (
@@ -27,6 +28,7 @@ from .reviewer import run_specialist_reviews
 from .schemas import AgentReview, CanonicalPortfolio, DimensionScore, Finding, OrbitModel, ScoreImpact, validate_agent_review
 
 RuntimeMode = Literal["deterministic", "llm"]
+logger = logging.getLogger(__name__)
 
 RECOMMENDATION_ALIASES = {
     "strong_proceed": "Strong Proceed",
@@ -99,6 +101,19 @@ class CommitteeRuntimeOptions(OrbitModel):
             local_llm_base_url=getattr(settings, "local_llm_base_url", ""),
             local_llm_model=getattr(settings, "local_llm_model", ""),
         )
+
+
+class CommitteeExecutionResult(OrbitModel):
+    agent_reviews: list[AgentReview]
+    requested_runtime_mode: RuntimeMode
+    effective_runtime_mode: RuntimeMode
+    requested_provider: str
+    requested_model_name: str
+    effective_provider: str
+    effective_model_name: str
+    fallback_applied: bool = False
+    fallback_reason: str | None = None
+    failure_category: str | None = None
 
 
 def _normalize_recommendation(value: str) -> str:
@@ -479,21 +494,117 @@ async def run_llm_specialist_reviews_async(
     return await service.run_committee(portfolio)
 
 
+def _deterministic_execution_result(
+    portfolio: CanonicalPortfolio,
+    *,
+    requested_runtime_mode: RuntimeMode,
+    requested_provider: str,
+    requested_model_name: str,
+    fallback_applied: bool = False,
+    fallback_reason: str | None = None,
+    failure_category: str | None = None,
+) -> CommitteeExecutionResult:
+    return CommitteeExecutionResult(
+        agent_reviews=run_specialist_reviews(portfolio),
+        requested_runtime_mode=requested_runtime_mode,
+        effective_runtime_mode="deterministic",
+        requested_provider=requested_provider,
+        requested_model_name=requested_model_name,
+        effective_provider="deterministic-thin-slice",
+        effective_model_name="deterministic-thin-slice-v1",
+        fallback_applied=fallback_applied,
+        fallback_reason=fallback_reason,
+        failure_category=failure_category,
+    )
+
+
+def _failure_category(exc: Exception) -> str:
+    if isinstance(exc, asyncio.TimeoutError):
+        return "timeout"
+    if isinstance(exc, ValidationError):
+        return "invalid_response"
+    message = str(exc).lower()
+    if "token" in message and ("limit" in message or "exhaust" in message):
+        return "token_exhaustion"
+    if isinstance(exc, LLMProviderError):
+        return "provider_error"
+    return "unknown"
+
+
+def _effective_llm_execution_result(
+    reviews: list[AgentReview],
+    *,
+    runtime_options: CommitteeRuntimeOptions,
+    provider: StructuredLLMProvider,
+) -> CommitteeExecutionResult:
+    return CommitteeExecutionResult(
+        agent_reviews=reviews,
+        requested_runtime_mode="llm",
+        effective_runtime_mode="llm",
+        requested_provider=runtime_options.llm_provider,
+        requested_model_name=provider.model_name,
+        effective_provider=provider.provider_name,
+        effective_model_name=provider.model_name,
+        fallback_applied=False,
+        fallback_reason=None,
+        failure_category=None,
+    )
+
+
+def _requested_model_name(runtime_options: CommitteeRuntimeOptions) -> str:
+    provider = runtime_options.llm_provider.strip().lower()
+    if provider == "anthropic":
+        return runtime_options.anthropic_model or "anthropic-placeholder"
+    if provider == "local":
+        return runtime_options.local_llm_model or "local-placeholder"
+    return runtime_options.openai_model
+
+
 def run_committee_reviews(
     portfolio: CanonicalPortfolio,
     *,
     runtime_options: CommitteeRuntimeOptions | None = None,
     llm_provider: StructuredLLMProvider | None = None,
-) -> list[AgentReview]:
+) -> CommitteeExecutionResult:
     resolved_runtime_options = runtime_options or CommitteeRuntimeOptions()
     if resolved_runtime_options.runtime_mode == "deterministic":
-        return run_specialist_reviews(portfolio)
-    if resolved_runtime_options.runtime_mode == "llm":
-        return asyncio.run(
-            run_llm_specialist_reviews_async(
-                portfolio,
-                runtime_options=resolved_runtime_options,
-                llm_provider=llm_provider,
-            )
+        return _deterministic_execution_result(
+            portfolio,
+            requested_runtime_mode="deterministic",
+            requested_provider="deterministic-thin-slice",
+            requested_model_name="deterministic-thin-slice-v1",
         )
+    if resolved_runtime_options.runtime_mode == "llm":
+        provider = llm_provider
+        try:
+            provider = provider or build_llm_provider(resolved_runtime_options)
+            reviews = asyncio.run(
+                run_llm_specialist_reviews_async(
+                    portfolio,
+                    runtime_options=resolved_runtime_options,
+                    llm_provider=provider,
+                )
+            )
+            return _effective_llm_execution_result(
+                reviews,
+                runtime_options=resolved_runtime_options,
+                provider=provider,
+            )
+        except Exception as exc:
+            failure_category = _failure_category(exc)
+            fallback_reason = str(exc).strip() or "Unknown llm runtime failure."
+            logger.warning(
+                "LLM committee execution failed for portfolio %s and fell back to deterministic mode: %s",
+                portfolio.portfolio_id,
+                fallback_reason,
+            )
+            return _deterministic_execution_result(
+                portfolio,
+                requested_runtime_mode="llm",
+                requested_provider=resolved_runtime_options.llm_provider,
+                requested_model_name=_requested_model_name(resolved_runtime_options),
+                fallback_applied=True,
+                fallback_reason=fallback_reason[:320],
+                failure_category=failure_category,
+            )
     raise LLMProviderError(f"Unsupported runtime mode '{resolved_runtime_options.runtime_mode}'.")

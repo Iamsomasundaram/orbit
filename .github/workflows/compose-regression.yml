@@ -14,17 +14,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build migration and worker services
-        run: docker compose build migrate worker worker-parity
+      - name: Build platform services
+        run: docker compose build migrate api worker web browser-tests worker-parity
 
       - name: Apply migrations
         run: docker compose run --rm migrate
 
+      - name: Start platform services
+        run: docker compose up -d postgres redis api worker web
+
       - name: Run worker test suite
-        run: docker compose run --rm worker /app/.venv/bin/pytest apps/worker/tests -q
+        run: docker compose exec worker /app/.venv/bin/pytest apps/worker/tests -q
 
       - name: Run archived baseline parity validation
         run: docker compose --profile baseline run --rm worker-parity
+
+      - name: Run browser automation suite
+        run: docker compose run --rm browser-tests
 
       - name: Tear down Docker Compose
         if: always()

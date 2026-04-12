@@ -10,7 +10,8 @@ import {
   publicApiHref,
 } from "@/lib/orbit-api";
 
-import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBadge, SubmitButton } from "@/app/orbit-ui";
+import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBadge } from "@/app/orbit-ui";
+import { PortfolioReviewAction } from "@/app/portfolio-review-action";
 
 type DetailPageProps = {
   params: Promise<{ portfolioId: string }>;
@@ -66,7 +67,7 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 12.1" />
+              <StatusBadge label="Milestone 12.2" />
               <StatusBadge label={humanize(portfolio.portfolio.portfolio_status)} tone="warning" />
             </div>
             <div className="space-y-3">
@@ -82,12 +83,13 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <form action={`/api/portfolios/${portfolioId}/review-runs`} method="post">
-              <SubmitButton>Run ORBIT Review</SubmitButton>
-            </form>
+            <PortfolioReviewAction portfolioId={portfolioId} redirectTo={`/portfolios/${portfolioId}/history`} />
             <ActionLink href={`/portfolios/${portfolioId}/history`} tone="muted">
               View Review History
             </ActionLink>
+            {history.latest_review_run_id ? (
+              <ActionLink href={`/review-runs/${history.latest_review_run_id}`}>Review Run Detail</ActionLink>
+            ) : null}
             {history.latest_review_run_id ? (
               <ActionLink href={`/review-runs/${history.latest_review_run_id}/committee`} tone="muted">
                 Committee Mode
@@ -181,6 +183,11 @@ export default async function PortfolioDetailPage({ params, searchParams }: Deta
             {history.latest_review_run_id ? (
               <a className="block underline decoration-orbit-moss underline-offset-4" href={publicApiHref(`/api/v1/review-runs/${history.latest_review_run_id}/deliberation`)} target="_blank" rel="noreferrer">
                 Open latest deliberation timeline API
+              </a>
+            ) : null}
+            {history.latest_review_run_id ? (
+              <a className="block underline decoration-orbit-moss underline-offset-4" href={publicApiHref(`/api/v1/review-runs/${history.latest_review_run_id}`)} target="_blank" rel="noreferrer">
+                Open review run detail API
               </a>
             ) : null}
           </div>

@@ -8,12 +8,24 @@ type RouteContext = {
 
 export async function POST(request: Request, context: RouteContext) {
   const { portfolioId } = await context.params;
+  const acceptHeader = request.headers.get("accept") ?? "";
+  const wantsJson = acceptHeader.includes("application/json");
 
   try {
     const run = await postOrbitJson<ReviewRunSummary>(`/api/v1/portfolios/${portfolioId}/review-runs`, {});
+    if (wantsJson) {
+      return NextResponse.json({
+        redirect_to: `/portfolios/${portfolioId}/history?runId=${run.run_id}`,
+        review_run: run,
+      });
+    }
     return NextResponse.redirect(new URL(`/portfolios/${portfolioId}/history?runId=${run.run_id}`, request.url), 303);
   } catch (error) {
     const message = error instanceof OrbitApiError ? error.message : "Unable to run the ORBIT review.";
+    const statusCode = error instanceof OrbitApiError ? error.status : 500;
+    if (wantsJson) {
+      return NextResponse.json({ detail: message }, { status: statusCode });
+    }
     return NextResponse.redirect(new URL(`/portfolios/${portfolioId}?reviewError=${encodeURIComponent(message)}`, request.url), 303);
   }
 }

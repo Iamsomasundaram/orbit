@@ -35,6 +35,23 @@ def normalize_agent_reviews_for_baseline(agent_reviews: list[dict]) -> list[dict
     return normalized
 
 
+def normalize_conflicts_for_baseline(conflicts: list[dict]) -> list[dict]:
+    normalized: list[dict] = []
+    for conflict in conflicts:
+        copy = json.loads(json.dumps(conflict))
+        copy.pop("conflicting_agents", None)
+        copy.pop("conflict_category", None)
+        copy.pop("conflict_reason", None)
+        normalized.append(copy)
+    return normalized
+
+
+def normalize_committee_report_for_baseline(report: dict) -> dict:
+    normalized = json.loads(json.dumps(report))
+    normalized["top_conflicts"] = normalize_conflicts_for_baseline(normalized.get("top_conflicts", []))
+    return normalized
+
+
 def test_archived_baseline_artifacts_match_manifest() -> None:
     discovered = {
         str(path.relative_to(ROOT)).replace("\\", "/"): sha256_file(path)
@@ -71,7 +88,19 @@ def test_python_thin_slice_matches_js_baseline(case: dict[str, str], tmp_path: P
     assert normalize_agent_reviews_for_baseline(generated_reviews) == normalize_agent_reviews_for_baseline(
         baseline_reviews
     )
-    assert read_json(output_dir / "conflicts.json") == read_json(baseline_dir / "conflicts.json")
+    generated_conflicts = read_json(output_dir / "conflicts.json")
+    baseline_conflicts = read_json(baseline_dir / "conflicts.json")
+
+    for conflict in generated_conflicts:
+        assert sorted(conflict.get("conflicting_agents", [])) == sorted(conflict["participants"])
+        assert conflict.get("conflict_category")
+        assert conflict.get("conflict_reason")
+
+    assert normalize_conflicts_for_baseline(generated_conflicts) == normalize_conflicts_for_baseline(
+        baseline_conflicts
+    )
     assert read_json(output_dir / "scorecard.json") == read_json(baseline_dir / "scorecard.json")
-    assert read_json(output_dir / "committee-report.json") == read_json(baseline_dir / "committee-report.json")
+    assert normalize_committee_report_for_baseline(read_json(output_dir / "committee-report.json")) == (
+        normalize_committee_report_for_baseline(read_json(baseline_dir / "committee-report.json"))
+    )
     assert (output_dir / "committee-report.md").read_text(encoding="utf-8") == (baseline_dir / "committee-report.md").read_text(encoding="utf-8")
