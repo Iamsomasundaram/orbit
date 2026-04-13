@@ -429,6 +429,104 @@ export type PortfolioRankingPayload = {
   items: PortfolioRankingEntry[];
 };
 
+export type HumanReviewPayload = {
+  human_review_id: string;
+  portfolio_id: string;
+  reviewer_name: string;
+  final_recommendation: string;
+  score: number;
+  confidence: string;
+  review_payload_hash: string;
+  review_payload: {
+    human_review_id: string;
+    portfolio_id: string;
+    reviewer_name: string;
+    final_recommendation: string;
+    score: number;
+    identified_risks: string[];
+    confidence: string;
+    review_notes: string;
+    submitted_at: string;
+  };
+  created_at: string;
+};
+
+export type DecisionValidationPayload = {
+  decision_validation_id: string;
+  portfolio_id: string;
+  review_run_id: string;
+  human_review_id: string;
+  agreement_score: number;
+  recommendation_match: string;
+  score_difference: number;
+  risk_overlap: number;
+  risk_recall: number;
+  risk_precision: number;
+  confidence_alignment: number;
+  validation_payload_hash: string;
+  validation_payload: {
+    decision_validation_id: string;
+    portfolio_id: string;
+    review_run_id: string;
+    human_review_id: string;
+    orbit_recommendation: string;
+    orbit_score: number;
+    human_recommendation: string;
+    human_score: number;
+    recommendation_match: string;
+    score_difference: number;
+    risk_overlap: number;
+    risk_recall: number;
+    risk_precision: number;
+    confidence_alignment: number;
+    agreement_score: number;
+    validated_at: string;
+  };
+  created_at: string;
+};
+
+export type ReasoningConsistencyPayload = {
+  agent_claim_overlap: number;
+  confidence_dispersion: number;
+  conflict_frequency: number;
+  score_variance: number;
+  dominant_claims: string[];
+};
+
+export type ReviewRunValidationPayload = {
+  review_run_id: string;
+  portfolio_id: string;
+  orbit_final_recommendation: string;
+  orbit_weighted_composite_score: number;
+  human_reviews: HumanReviewPayload[];
+  validations: DecisionValidationPayload[];
+  reasoning_consistency: ReasoningConsistencyPayload | null;
+};
+
+export type PortfolioValidationPayload = {
+  portfolio: PortfolioRecord;
+  latest_review_run_id: string | null;
+  human_review_count: number;
+  validation_count: number;
+  human_reviews: HumanReviewPayload[];
+  validations: DecisionValidationPayload[];
+  reasoning_consistency: ReasoningConsistencyPayload | null;
+};
+
+export type DecisionValidationSummaryPayload = {
+  summary: {
+    total_validations: number;
+    recommendation_alignment_rate: number;
+    average_agreement_score: number;
+    average_score_difference: number;
+    average_risk_overlap: number;
+    average_risk_recall: number;
+    average_risk_precision: number;
+    average_confidence_alignment: number;
+  };
+  updated_at: string;
+};
+
 type ApiErrorPayload = {
   detail?: string;
 };

@@ -12,7 +12,7 @@ async function createPortfolioThroughUi(page: Page, portfolioName: string) {
   await page.getByTestId("portfolio-owner-input").fill("Automation Owner");
   await page
     .getByTestId("portfolio-description-input")
-      .fill("Automation-created portfolio for Milestone 14 browser validation.");
+      .fill("Automation-created portfolio for Milestone 15 browser validation.");
   await page.getByTestId("portfolio-tags-input").fill("automation, browser");
   await page.getByTestId("portfolio-create-submit").click();
 
@@ -50,6 +50,21 @@ test("portfolio creation, review, telemetry, committee playback, and deliberatio
   await page.waitForURL(new RegExp(`/review-runs/${runId}/committee$`), { timeout: 30_000 });
   await expect(page.getByTestId("committee-mode-page")).toBeVisible();
   await expect(page.getByText("Committee Runtime Metadata")).toBeVisible();
+
+  const humanReviewResponse = await page.request.post(`${apiBaseUrl}/api/v1/portfolios/${portfolioId}/human-reviews`, {
+    data: {
+      reviewer_name: "Automation Reviewer",
+      final_recommendation: "Pilot Only",
+      score: 2.6,
+      identified_risks: ["integration complexity", "adoption friction"],
+      confidence: "Medium",
+      review_notes: "Automation baseline for decision validation.",
+    },
+  });
+  expect(humanReviewResponse.ok()).toBeTruthy();
+
+  await page.reload();
+  await expect(page.getByTestId("committee-human-review")).toBeVisible();
 
   await page.getByTestId("committee-speed-0.5x").click();
   await expect(page.getByTestId("committee-speed-current")).toContainText("Deliberate playback");

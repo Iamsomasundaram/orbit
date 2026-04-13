@@ -64,7 +64,7 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 14" />
+              <StatusBadge label="Milestone 15" />
               <StatusBadge label="Static Timeline" />
               <StatusBadge label={summary.active_artifact_source} tone="warning" />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -75,9 +75,9 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
                 Review Timeline {timeline.review_run_id}
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-ink/75">
-              This is the static inspection view for the ORBIT committee reasoning. Milestone 14 keeps this audit
-              view intact while requiring evidence-based claim chains, explicit confidence, and structured risks in
-              every agent statement. No additional LLM calls are issued here.
+                This is the static inspection view for the ORBIT committee reasoning. Milestone 15 keeps this audit
+                view intact while adding human baseline comparisons and decision validation metadata alongside the
+                evidence-based claim chains. No additional LLM calls are issued here.
               </p>
             </div>
           </div>

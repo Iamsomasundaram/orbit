@@ -79,6 +79,37 @@ class EvidenceReasoning(OrbitModel):
     confidence: Literal["Low", "Medium", "High"]
 
 
+class HumanReview(OrbitModel):
+    human_review_id: str
+    portfolio_id: str
+    reviewer_name: str
+    final_recommendation: str
+    score: float
+    identified_risks: list[str]
+    confidence: Literal["Low", "Medium", "High"]
+    review_notes: str
+    submitted_at: datetime
+
+
+class DecisionValidation(OrbitModel):
+    decision_validation_id: str
+    portfolio_id: str
+    review_run_id: str
+    human_review_id: str
+    orbit_recommendation: str
+    orbit_score: float
+    human_recommendation: str
+    human_score: float
+    recommendation_match: Literal["match", "partial", "mismatch"]
+    score_difference: float
+    risk_overlap: float
+    risk_recall: float
+    risk_precision: float
+    confidence_alignment: float
+    agreement_score: float
+    validated_at: datetime
+
+
 class ReviewMetadata(OrbitModel):
     prompt_contract_version: str
     model_provider: str

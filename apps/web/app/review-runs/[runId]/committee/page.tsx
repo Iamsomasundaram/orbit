@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   type ReviewRunDeliberationPayload,
   type ReviewRunDeliberationSummaryPayload,
+  type ReviewRunValidationPayload,
   fetchOrbitJson,
 } from "@/lib/orbit-api";
 
@@ -14,14 +15,15 @@ type CommitteePageProps = {
 
 export default async function ReviewRunCommitteePage({ params }: CommitteePageProps) {
   const { runId } = await params;
-  const [timeline, summary] = await Promise.all([
+  const [timeline, summary, validation] = await Promise.all([
     fetchOrbitJson<ReviewRunDeliberationPayload>(`/api/v1/review-runs/${runId}/deliberation`),
     fetchOrbitJson<ReviewRunDeliberationSummaryPayload>(`/api/v1/review-runs/${runId}/deliberation/summary`),
+    fetchOrbitJson<ReviewRunValidationPayload>(`/api/v1/validation/review-runs/${runId}`),
   ]);
 
   if (!timeline || !summary) {
     notFound();
   }
 
-  return <CommitteeMode timeline={timeline} summary={summary} />;
+  return <CommitteeMode timeline={timeline} summary={summary} validation={validation} />;
 }

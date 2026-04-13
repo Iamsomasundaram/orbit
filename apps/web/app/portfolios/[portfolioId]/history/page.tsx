@@ -42,7 +42,7 @@ export default async function PortfolioHistoryPage({ params, searchParams }: His
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 14" />
+              <StatusBadge label="Milestone 15" />
               <StatusBadge label={`${history.review_run_count} review ${history.review_run_count === 1 ? "run" : "runs"}`} tone="warning" />
             </div>
             <div className="space-y-3">

@@ -13,9 +13,23 @@ from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import Column, CreateIndex, CreateTable
 
-from .schemas import AgentReview, CanonicalPortfolio, CommitteeReport, ConflictRecord, ConflictResolution, DebateSession, DeliberationEntry, OrbitModel, ResynthesisSession, Scorecard, SourceDocument
+from .schemas import (
+    AgentReview,
+    CanonicalPortfolio,
+    CommitteeReport,
+    ConflictRecord,
+    ConflictResolution,
+    DebateSession,
+    DecisionValidation,
+    DeliberationEntry,
+    HumanReview,
+    OrbitModel,
+    ResynthesisSession,
+    Scorecard,
+    SourceDocument,
+)
 
-PERSISTENCE_SCHEMA_VERSION = "m12.2-v1"
+PERSISTENCE_SCHEMA_VERSION = "m15-v1"
 SOURCE_OF_TRUTH_MODULE = "orbit_worker.schemas"
 REFERENCE_RUNTIME_MODE = "js-baseline-only"
 ACTIVE_BACKEND = "python"
@@ -51,6 +65,14 @@ class DebateConflictError(PersistenceConflictError):
 
 
 class ResynthesisConflictError(PersistenceConflictError):
+    pass
+
+
+class HumanReviewConflictError(PersistenceConflictError):
+    pass
+
+
+class DecisionValidationConflictError(PersistenceConflictError):
     pass
 
 
@@ -261,6 +283,35 @@ class AuditEventRecord(OrbitModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class HumanReviewRecord(OrbitModel):
+    human_review_id: str
+    portfolio_id: str
+    reviewer_name: str
+    final_recommendation: str
+    score: float
+    confidence: str
+    review_payload_hash: str
+    review_payload: HumanReview
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class DecisionValidationRecord(OrbitModel):
+    decision_validation_id: str
+    portfolio_id: str
+    review_run_id: str
+    human_review_id: str
+    agreement_score: float
+    recommendation_match: str
+    score_difference: float
+    risk_overlap: float
+    risk_recall: float
+    risk_precision: float
+    confidence_alignment: float
+    validation_payload_hash: str
+    validation_payload: DecisionValidation
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class ReviewPersistenceBundle(OrbitModel):
     schema_version: str
     portfolio: PortfolioRecord
@@ -344,6 +395,22 @@ class PersistenceRepository(Protocol):
 
     def list_audit_events(self, portfolio_id: str | None = None, run_id: str | None = None) -> list[AuditEventRecord]: ...
 
+    def save_human_review(self, record: HumanReviewRecord, audit_event: AuditEventRecord | None = None) -> None: ...
+
+    def get_human_review(self, human_review_id: str) -> HumanReviewRecord | None: ...
+
+    def list_human_reviews(self, portfolio_id: str | None = None) -> list[HumanReviewRecord]: ...
+
+    def save_decision_validation(self, record: DecisionValidationRecord) -> None: ...
+
+    def get_decision_validation(self, decision_validation_id: str) -> DecisionValidationRecord | None: ...
+
+    def list_decision_validations(
+        self,
+        portfolio_id: str | None = None,
+        run_id: str | None = None,
+    ) -> list[DecisionValidationRecord]: ...
+
 
 class InMemoryPersistenceRepository:
     def __init__(self) -> None:
@@ -353,6 +420,8 @@ class InMemoryPersistenceRepository:
         self._resyntheses: dict[str, ResynthesisPersistenceBundle] = {}
         self._deliberations: dict[str, DeliberationPersistenceBundle] = {}
         self._audit_events: dict[str, AuditEventRecord] = {}
+        self._human_reviews: dict[str, HumanReviewRecord] = {}
+        self._decision_validations: dict[str, DecisionValidationRecord] = {}
 
     def assert_schema_ready(self) -> None:
         return None
@@ -466,6 +535,50 @@ class InMemoryPersistenceRepository:
             events = [event for event in events if event.run_id == run_id]
         return sorted(events, key=lambda event: (event.created_at, event.event_id))
 
+    def save_human_review(self, record: HumanReviewRecord, audit_event: AuditEventRecord | None = None) -> None:
+        if record.human_review_id in self._human_reviews:
+            raise HumanReviewConflictError(
+                f"Human review '{record.human_review_id}' already exists in the persistence store."
+            )
+        self._human_reviews[record.human_review_id] = record
+        if audit_event is not None:
+            self._audit_events[audit_event.event_id] = audit_event
+
+    def get_human_review(self, human_review_id: str) -> HumanReviewRecord | None:
+        return self._human_reviews.get(human_review_id)
+
+    def list_human_reviews(self, portfolio_id: str | None = None) -> list[HumanReviewRecord]:
+        reviews = list(self._human_reviews.values())
+        if portfolio_id is not None:
+            reviews = [review for review in reviews if review.portfolio_id == portfolio_id]
+        return sorted(reviews, key=lambda review: (review.created_at, review.human_review_id), reverse=True)
+
+    def save_decision_validation(self, record: DecisionValidationRecord) -> None:
+        if record.decision_validation_id in self._decision_validations:
+            raise DecisionValidationConflictError(
+                f"Decision validation '{record.decision_validation_id}' already exists in the persistence store."
+            )
+        self._decision_validations[record.decision_validation_id] = record
+
+    def get_decision_validation(self, decision_validation_id: str) -> DecisionValidationRecord | None:
+        return self._decision_validations.get(decision_validation_id)
+
+    def list_decision_validations(
+        self,
+        portfolio_id: str | None = None,
+        run_id: str | None = None,
+    ) -> list[DecisionValidationRecord]:
+        validations = list(self._decision_validations.values())
+        if portfolio_id is not None:
+            validations = [record for record in validations if record.portfolio_id == portfolio_id]
+        if run_id is not None:
+            validations = [record for record in validations if record.review_run_id == run_id]
+        return sorted(
+            validations,
+            key=lambda record: (record.created_at, record.decision_validation_id),
+            reverse=True,
+        )
+
 
 def _jsonable(value: Any) -> Any:
     if isinstance(value, BaseModel):
@@ -567,6 +680,44 @@ def build_portfolio_record(canonical_portfolio: CanonicalPortfolio, latest_revie
         latest_review_run_id=latest_review_run_id,
         created_at=timestamp,
         updated_at=timestamp,
+    )
+
+
+def build_human_review_record(human_review: HumanReview, now: datetime | None = None) -> HumanReviewRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    return HumanReviewRecord(
+        human_review_id=human_review.human_review_id,
+        portfolio_id=human_review.portfolio_id,
+        reviewer_name=human_review.reviewer_name,
+        final_recommendation=human_review.final_recommendation,
+        score=human_review.score,
+        confidence=human_review.confidence,
+        review_payload_hash=payload_sha256(human_review),
+        review_payload=human_review,
+        created_at=timestamp,
+    )
+
+
+def build_decision_validation_record(
+    validation: DecisionValidation,
+    now: datetime | None = None,
+) -> DecisionValidationRecord:
+    timestamp = now or datetime.now(timezone.utc)
+    return DecisionValidationRecord(
+        decision_validation_id=validation.decision_validation_id,
+        portfolio_id=validation.portfolio_id,
+        review_run_id=validation.review_run_id,
+        human_review_id=validation.human_review_id,
+        agreement_score=validation.agreement_score,
+        recommendation_match=validation.recommendation_match,
+        score_difference=validation.score_difference,
+        risk_overlap=validation.risk_overlap,
+        risk_recall=validation.risk_recall,
+        risk_precision=validation.risk_precision,
+        confidence_alignment=validation.confidence_alignment,
+        validation_payload_hash=payload_sha256(validation),
+        validation_payload=validation,
+        created_at=timestamp,
     )
 
 
@@ -1300,6 +1451,14 @@ def audit_event_row_values(record: AuditEventRecord) -> dict[str, Any]:
     }
 
 
+def human_review_row_values(record: HumanReviewRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
+def decision_validation_row_values(record: DecisionValidationRecord) -> dict[str, Any]:
+    return _model_row(record)
+
+
 def bundle_to_table_rows(bundle: ReviewPersistenceBundle) -> dict[str, list[dict[str, Any]]]:
     return {
         "portfolios": [portfolio_row_values(bundle.portfolio)],
@@ -1730,6 +1889,74 @@ class SqlAlchemyPersistenceRepository:
             rows = connection.execute(statement).mappings().all()
         return [_audit_event_from_row(dict(row)) for row in rows]
 
+    def save_human_review(self, record: HumanReviewRecord, audit_event: AuditEventRecord | None = None) -> None:
+        try:
+            with self._engine.begin() as connection:
+                _insert_row(connection, human_reviews_table, human_review_row_values(record))
+                if audit_event is not None:
+                    _insert_row(connection, audit_events_table, audit_event_row_values(audit_event))
+        except IntegrityError as exc:
+            raise HumanReviewConflictError(
+                f"Human review '{record.human_review_id}' already exists in the persistence store."
+            ) from exc
+
+    def get_human_review(self, human_review_id: str) -> HumanReviewRecord | None:
+        with self._engine.connect() as connection:
+            row = connection.execute(
+                select(human_reviews_table).where(human_reviews_table.c.human_review_id == human_review_id)
+            ).mappings().first()
+        if row is None:
+            return None
+        return HumanReviewRecord.model_validate(dict(row))
+
+    def list_human_reviews(self, portfolio_id: str | None = None) -> list[HumanReviewRecord]:
+        statement = select(human_reviews_table).order_by(
+            human_reviews_table.c.created_at.desc(),
+            human_reviews_table.c.human_review_id.desc(),
+        )
+        if portfolio_id is not None:
+            statement = statement.where(human_reviews_table.c.portfolio_id == portfolio_id)
+        with self._engine.connect() as connection:
+            rows = connection.execute(statement).mappings().all()
+        return [HumanReviewRecord.model_validate(dict(row)) for row in rows]
+
+    def save_decision_validation(self, record: DecisionValidationRecord) -> None:
+        try:
+            with self._engine.begin() as connection:
+                _insert_row(connection, decision_validations_table, decision_validation_row_values(record))
+        except IntegrityError as exc:
+            raise DecisionValidationConflictError(
+                f"Decision validation '{record.decision_validation_id}' already exists in the persistence store."
+            ) from exc
+
+    def get_decision_validation(self, decision_validation_id: str) -> DecisionValidationRecord | None:
+        with self._engine.connect() as connection:
+            row = connection.execute(
+                select(decision_validations_table).where(
+                    decision_validations_table.c.decision_validation_id == decision_validation_id
+                )
+            ).mappings().first()
+        if row is None:
+            return None
+        return DecisionValidationRecord.model_validate(dict(row))
+
+    def list_decision_validations(
+        self,
+        portfolio_id: str | None = None,
+        run_id: str | None = None,
+    ) -> list[DecisionValidationRecord]:
+        statement = select(decision_validations_table).order_by(
+            decision_validations_table.c.created_at.desc(),
+            decision_validations_table.c.decision_validation_id.desc(),
+        )
+        if portfolio_id is not None:
+            statement = statement.where(decision_validations_table.c.portfolio_id == portfolio_id)
+        if run_id is not None:
+            statement = statement.where(decision_validations_table.c.review_run_id == run_id)
+        with self._engine.connect() as connection:
+            rows = connection.execute(statement).mappings().all()
+        return [DecisionValidationRecord.model_validate(dict(row)) for row in rows]
+
 
 NAMING_CONVENTION = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",
@@ -1965,6 +2192,41 @@ audit_events_table = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
 
+human_reviews_table = Table(
+    "human_reviews",
+    persistence_metadata,
+    Column("human_review_id", String(192), primary_key=True),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("reviewer_name", String(255), nullable=False),
+    Column("final_recommendation", String(64), nullable=False),
+    Column("score", Float, nullable=False),
+    Column("confidence", String(32), nullable=False),
+    Column("review_payload_hash", String(64), nullable=False),
+    Column("review_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("portfolio_id", "human_review_id"),
+)
+
+decision_validations_table = Table(
+    "decision_validations",
+    persistence_metadata,
+    Column("decision_validation_id", String(256), primary_key=True),
+    Column("portfolio_id", String(128), ForeignKey("portfolios.portfolio_id"), nullable=False),
+    Column("review_run_id", String(128), ForeignKey("review_runs.run_id"), nullable=False),
+    Column("human_review_id", String(192), ForeignKey("human_reviews.human_review_id"), nullable=False),
+    Column("agreement_score", Float, nullable=False),
+    Column("recommendation_match", String(32), nullable=False),
+    Column("score_difference", Float, nullable=False),
+    Column("risk_overlap", Float, nullable=False),
+    Column("risk_recall", Float, nullable=False),
+    Column("risk_precision", Float, nullable=False),
+    Column("confidence_alignment", Float, nullable=False),
+    Column("validation_payload_hash", String(64), nullable=False),
+    Column("validation_payload", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("review_run_id", "human_review_id"),
+)
+
 Index("ix_review_runs_portfolio_id", review_runs_table.c.portfolio_id)
 Index("ix_review_runs_portfolio_id_created_at", review_runs_table.c.portfolio_id, review_runs_table.c.created_at)
 Index("ix_agent_reviews_run_id", agent_reviews_table.c.run_id)
@@ -1985,6 +2247,10 @@ Index("ix_audit_events_portfolio_id_created_at_event_id", audit_events_table.c.p
 Index("ix_audit_events_run_id", audit_events_table.c.run_id)
 Index("ix_audit_events_run_id_created_at_event_id", audit_events_table.c.run_id, audit_events_table.c.created_at, audit_events_table.c.event_id)
 Index("ix_audit_events_entity_type", audit_events_table.c.entity_type)
+Index("ix_human_reviews_portfolio_id", human_reviews_table.c.portfolio_id)
+Index("ix_human_reviews_portfolio_id_created_at", human_reviews_table.c.portfolio_id, human_reviews_table.c.created_at)
+Index("ix_decision_validations_portfolio_id", decision_validations_table.c.portfolio_id)
+Index("ix_decision_validations_review_run_id", decision_validations_table.c.review_run_id)
 
 
 PERSISTENCE_TABLE_SPECS = [
@@ -2107,6 +2373,34 @@ PERSISTENCE_TABLE_SPECS = [
         source_contract=None,
         json_payload_columns=["event_payload"],
         queryable_columns=["portfolio_id", "run_id", "actor_type", "actor_id", "action", "entity_type", "entity_id", "created_at"],
+    ),
+    PersistenceTableSpec(
+        table_name="human_reviews",
+        purpose="Human expert review artifacts captured for decision quality comparisons.",
+        primary_key="human_review_id",
+        source_contract="orbit_worker.schemas.HumanReview",
+        json_payload_columns=["review_payload"],
+        queryable_columns=["portfolio_id", "reviewer_name", "final_recommendation", "score", "confidence", "created_at"],
+    ),
+    PersistenceTableSpec(
+        table_name="decision_validations",
+        purpose="Decision validation metrics comparing ORBIT results with human review baselines.",
+        primary_key="decision_validation_id",
+        source_contract="orbit_worker.schemas.DecisionValidation",
+        json_payload_columns=["validation_payload"],
+        queryable_columns=[
+            "portfolio_id",
+            "review_run_id",
+            "human_review_id",
+            "agreement_score",
+            "recommendation_match",
+            "score_difference",
+            "risk_overlap",
+            "risk_recall",
+            "risk_precision",
+            "confidence_alignment",
+            "created_at",
+        ],
     ),
 ]
 

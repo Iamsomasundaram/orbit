@@ -9,6 +9,7 @@ import {
   type DeliberationEntryPayload,
   type ReviewRunDeliberationPayload,
   type ReviewRunDeliberationSummaryPayload,
+  type ReviewRunValidationPayload,
   formatCostUsd,
   formatDate,
   formatInteger,
@@ -22,6 +23,7 @@ import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBad
 type CommitteeModeProps = {
   timeline: ReviewRunDeliberationPayload;
   summary: ReviewRunDeliberationSummaryPayload;
+  validation: ReviewRunValidationPayload | null;
 };
 
 type Tone = "default" | "success" | "warning" | "danger";
@@ -137,6 +139,19 @@ function activationTone(status: string): Tone {
     return "default";
   }
   return "warning";
+}
+
+function agreementTone(score: number | null | undefined): Tone {
+  if (typeof score !== "number") {
+    return "default";
+  }
+  if (score >= 0.8) {
+    return "success";
+  }
+  if (score >= 0.6) {
+    return "warning";
+  }
+  return "danger";
 }
 
 function avatarLabel(role: string): string {
@@ -311,7 +326,7 @@ function conflictMetadataForReference(
   return conflicts.find((conflict) => conflict.conflict_id === conflictReference) ?? null;
 }
 
-export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
+export function CommitteeMode({ timeline, summary, validation }: CommitteeModeProps) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>("1x");
@@ -329,6 +344,15 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
     timeline.conflicts,
     activeSpotlight?.conflictReference,
   );
+  const latestValidation = validation?.validations?.[0] ?? null;
+  const latestHumanReview =
+    (latestValidation
+      ? validation?.human_reviews?.find(
+          (review) => review.human_review_id === latestValidation.human_review_id,
+        )
+      : null) ??
+    validation?.human_reviews?.[0] ??
+    null;
 
   const openingStatementByRole: Record<string, DeliberationEntryPayload> = {};
   const stanceByRole: Record<string, string> = {};
@@ -425,7 +449,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 14" />
+              <StatusBadge label="Milestone 15" />
               <StatusBadge label="Committee Mode" tone="warning" />
               <StatusBadge label={summary.active_artifact_source} />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -437,8 +461,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-mist/78">
                 Committee Mode replays the persisted deliberation timeline with evidence-based claim chains, adaptive
-                routing telemetry, consistent agent identities, passive-observer visibility, conflict stance callouts,
-                and controllable playback speed, while preserving the same bounded committee record underneath.
+                routing telemetry, human decision validation overlays, consistent agent identities, and controllable
+                playback speed, while preserving the same bounded committee record underneath.
               </p>
             </div>
           </div>
@@ -586,6 +610,95 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
           </div>
         </ShellCard>
       </section>
+
+      <ShellCard data-testid="committee-human-review">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <SectionEyebrow>Human Review Overlay</SectionEyebrow>
+            <p className="max-w-3xl text-sm leading-6 text-orbit-ink/70">
+              Decision validation compares the latest human expert verdict with the ORBIT committee outcome using
+              recommendation alignment, score proximity, and risk overlap.
+            </p>
+          </div>
+          <a
+            className="inline-flex rounded-full border border-orbit-pine/10 px-4 py-2 text-sm font-medium text-orbit-ink/75 transition hover:border-orbit-pine/30 hover:text-orbit-ink"
+            href={publicApiHref(`/api/v1/validation/review-runs/${timeline.review_run_id}`)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Validation API
+          </a>
+        </div>
+
+        {latestHumanReview ? (
+          <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-[24px] border border-orbit-pine/10 bg-white/70 p-4 shadow-panel">
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge label={latestHumanReview.reviewer_name} />
+                <StatusBadge
+                  label={latestHumanReview.final_recommendation}
+                  tone={recommendationTone(latestHumanReview.final_recommendation)}
+                />
+                <StatusBadge label={`Confidence: ${latestHumanReview.confidence}`} />
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <MetricCard
+                  label="Human Score"
+                  value={formatScore(latestHumanReview.score)}
+                  detail={`Submitted ${formatDate(latestHumanReview.created_at)}`}
+                />
+                <MetricCard
+                  label="Human Risks"
+                  value={formatInteger(latestHumanReview.review_payload.identified_risks.length)}
+                  detail="Risks supplied by the human reviewer."
+                />
+              </div>
+              {latestHumanReview.review_payload.review_notes ? (
+                <p className="mt-4 text-sm leading-6 text-orbit-ink/75">
+                  {latestHumanReview.review_payload.review_notes}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-4 rounded-[24px] border border-orbit-gold/30 bg-orbit-gold/10 p-4">
+              {latestValidation ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge label="Agreement Score" tone={agreementTone(latestValidation.agreement_score)} />
+                    <StatusBadge label={`Match: ${latestValidation.recommendation_match}`} />
+                    <StatusBadge label={`Risk overlap ${latestValidation.risk_overlap}`} />
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <MetricCard
+                      label="Agreement"
+                      value={latestValidation.agreement_score.toFixed(2)}
+                      detail={`Score diff ${latestValidation.score_difference.toFixed(2)}`}
+                    />
+                    <MetricCard
+                      label="Confidence Alignment"
+                      value={latestValidation.confidence_alignment.toFixed(2)}
+                      detail={`Risk recall ${latestValidation.risk_recall.toFixed(2)}`}
+                    />
+                  </div>
+                  <p className="text-sm leading-6 text-orbit-ink/70">
+                    ORBIT recommendation: {latestValidation.validation_payload.orbit_recommendation} · Human
+                    recommendation: {latestValidation.validation_payload.human_recommendation}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm leading-6 text-orbit-ink/70">
+                  A human review is stored, but no decision validation has been computed yet for this review run.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 rounded-[24px] border border-dashed border-orbit-pine/15 bg-orbit-mist/35 px-5 py-6 text-sm leading-6 text-orbit-ink/65">
+            No human review has been submitted for this portfolio yet. Submit a human review to compare the committee
+            outcome against an expert baseline.
+          </div>
+        )}
+      </ShellCard>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard

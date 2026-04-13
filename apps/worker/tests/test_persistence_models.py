@@ -52,6 +52,8 @@ CATALOG_EXPECTED_TABLES = REVIEW_EXPECTED_TABLES | {
     "resynthesized_scorecards",
     "resynthesized_committee_reports",
     "deliberation_entries",
+    "human_reviews",
+    "decision_validations",
 }
 
 

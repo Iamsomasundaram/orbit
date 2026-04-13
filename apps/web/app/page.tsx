@@ -11,6 +11,7 @@ import { getRuntimeConfig } from "@/lib/config";
 import {
   type HealthPayload,
   type InfoPayload,
+  type DecisionValidationSummaryPayload,
   type PersistenceCatalogPayload,
   type PortfolioRankingPayload,
   type PortfolioWorkspaceSummaryPayload,
@@ -69,12 +70,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const sortBy = normalizeSortBy(resolvedSearchParams.sortBy);
   const direction = normalizeDirection(resolvedSearchParams.direction);
-  const [apiReady, apiInfo, persistenceCatalog, workspaceSummary, portfolioRanking] = await Promise.all([
+  const [apiReady, apiInfo, persistenceCatalog, workspaceSummary, portfolioRanking, validationSummary] = await Promise.all([
     fetchOrbitJson<HealthPayload>("/health/ready"),
     fetchOrbitJson<InfoPayload>("/api/v1/system/info"),
     fetchOrbitJson<PersistenceCatalogPayload>("/api/v1/system/persistence/schema"),
     fetchOrbitJson<PortfolioWorkspaceSummaryPayload>(workspaceSummaryPath(sortBy, direction)),
     fetchOrbitJson<PortfolioRankingPayload>("/api/v1/portfolios/ranking?sort_by=weighted_composite_score&direction=desc"),
+    fetchOrbitJson<DecisionValidationSummaryPayload>("/api/v1/validation/summary"),
   ]);
 
   return (
@@ -87,13 +89,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <StatusBadge label={apiInfo?.reference_runtime_stage ?? "archived-baseline"} tone="success" />
             </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-              Run a parallel llm-backed ORBIT committee, compare portfolio outcomes, and replay the boardroom
-              discussion from one workspace.
+              Submit ideas, run the ORBIT committee, and validate decisions against human baselines from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 14 upgrades committee reasoning into structured claim-evidence-risk chains with explicit
-              confidence and implications, while keeping the adaptive routing and deterministic fallback paths
-              intact.
+              Milestone 15 introduces decision quality validation, comparing committee recommendations with human
+              expert reviews and surfacing agreement, risk overlap, and consistency metrics without changing the
+              committee workflow.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
@@ -139,6 +140,57 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           detail={`The Docker Compose baseline profile still validates deterministic Python output against the archived artifact set from ${apiInfo?.reference_runtime_archival_target_milestone ?? "Milestone 7.1"}.`}
         />
       </section>
+
+      <ShellCard>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-3">
+            <SectionEyebrow>Decision Validation</SectionEyebrow>
+            <p className="max-w-3xl text-sm leading-6 text-orbit-ink/70">
+              Human expert reviews can now be captured per portfolio and compared against ORBIT outcomes. This panel
+              summarizes agreement quality across all validation records.
+            </p>
+          </div>
+          <StatusBadge label={`Validations ${validationSummary?.summary.total_validations ?? 0}`} />
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Avg Agreement"
+            value={
+              typeof validationSummary?.summary.average_agreement_score === "number"
+                ? validationSummary.summary.average_agreement_score.toFixed(2)
+                : "Not available"
+            }
+            detail="Composite agreement score across human-reviewed portfolios."
+          />
+          <MetricCard
+            label="Recommendation Match"
+            value={
+              typeof validationSummary?.summary.recommendation_alignment_rate === "number"
+                ? `${(validationSummary.summary.recommendation_alignment_rate * 100).toFixed(0)}%`
+                : "Not available"
+            }
+            detail="Exact recommendation alignment rate."
+          />
+          <MetricCard
+            label="Risk Overlap"
+            value={
+              typeof validationSummary?.summary.average_risk_overlap === "number"
+                ? validationSummary.summary.average_risk_overlap.toFixed(2)
+                : "Not available"
+            }
+            detail="Average Jaccard overlap between human and ORBIT risk sets."
+          />
+          <MetricCard
+            label="Confidence Alignment"
+            value={
+              typeof validationSummary?.summary.average_confidence_alignment === "number"
+                ? validationSummary.summary.average_confidence_alignment.toFixed(2)
+                : "Not available"
+            }
+            detail="Alignment between human and committee confidence bands."
+          />
+        </div>
+      </ShellCard>
 
       <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <HomeSubmissionCard />
@@ -336,8 +388,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 14
-              evidence-based committee workspace.
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 15
+              decision validation workspace.
             </p>
           )}
         </form>

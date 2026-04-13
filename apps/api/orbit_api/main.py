@@ -46,6 +46,17 @@ from .resyntheses import (
     ResynthesisSummary,
 )
 from .persistence import PersistenceDdlResponse, persistence_ddl_response, persistence_schema_catalog
+from .validation import (
+    DecisionValidationService,
+    DecisionValidationSummaryResponse,
+    HumanReviewAlreadyExistsError,
+    HumanReviewDetail,
+    HumanReviewListResponse,
+    HumanReviewSubmission,
+    PortfolioValidationDetail,
+    ReviewRunValidationDetail,
+    ValidationNotFoundError,
+)
 from .workspace import (
     PortfolioComparisonResponse,
     PortfolioRankingResponse,
@@ -95,6 +106,7 @@ async def lifespan(app: FastAPI):
     app.state.review_history_service = ReviewHistoryService(repository=repository)
     app.state.deliberation_service = deliberation_service
     app.state.portfolio_workspace_service = PortfolioWorkspaceService(repository=repository)
+    app.state.validation_service = DecisionValidationService(repository=repository)
     try:
         yield
     finally:
@@ -134,6 +146,10 @@ def deliberation_service(request: Request) -> DeliberationService:
 
 def portfolio_workspace_service(request: Request) -> PortfolioWorkspaceService:
     return request.app.state.portfolio_workspace_service
+
+
+def validation_service(request: Request) -> DecisionValidationService:
+    return request.app.state.validation_service
 
 
 @app.get("/", response_model=ServiceInfo)
@@ -349,3 +365,59 @@ def get_resynthesis_artifacts(request: Request, resynthesis_id: str) -> Artifact
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Re-synthesis session '{resynthesis_id}' was not found.")
     return detail
+
+
+@app.post(
+    "/api/v1/portfolios/{portfolio_id}/human-reviews",
+    response_model=HumanReviewDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+def submit_human_review(
+    request: Request,
+    portfolio_id: str,
+    submission: HumanReviewSubmission,
+) -> HumanReviewDetail:
+    service = validation_service(request)
+    try:
+        return service.submit_human_review(portfolio_id, submission)
+    except ValidationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except HumanReviewAlreadyExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/portfolios/{portfolio_id}/human-reviews", response_model=HumanReviewListResponse)
+def list_human_reviews(request: Request, portfolio_id: str) -> HumanReviewListResponse:
+    service = validation_service(request)
+    if portfolio_service(request).get_portfolio(portfolio_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Portfolio '{portfolio_id}' was not found.")
+    return service.list_human_reviews(portfolio_id)
+
+
+@app.get("/api/v1/human-reviews/{human_review_id}", response_model=HumanReviewDetail)
+def get_human_review(request: Request, human_review_id: str) -> HumanReviewDetail:
+    detail = validation_service(request).get_human_review(human_review_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Human review '{human_review_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/validation/portfolio/{portfolio_id}", response_model=PortfolioValidationDetail)
+def get_portfolio_validation(request: Request, portfolio_id: str) -> PortfolioValidationDetail:
+    detail = validation_service(request).get_portfolio_validation(portfolio_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Portfolio '{portfolio_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/validation/review-runs/{run_id}", response_model=ReviewRunValidationDetail)
+def get_review_run_validation(request: Request, run_id: str) -> ReviewRunValidationDetail:
+    detail = validation_service(request).get_review_run_validation(run_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review run '{run_id}' was not found.")
+    return detail
+
+
+@app.get("/api/v1/validation/summary", response_model=DecisionValidationSummaryResponse)
+def get_validation_summary(request: Request) -> DecisionValidationSummaryResponse:
+    return validation_service(request).get_validation_summary()

@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ORBIT Milestone 14",
+  title: "ORBIT Milestone 15",
   description:
-    "ORBIT evidence-based committee reasoning with claim-evidence-risk chains, confidence scoring, and audit-ready playback.",
+    "ORBIT decision quality validation with human baselines, agreement scoring, and evidence-first committee playback.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
