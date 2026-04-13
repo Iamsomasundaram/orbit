@@ -205,12 +205,43 @@ def build_agent_review(agent: Any, portfolio: CanonicalPortfolio, analysis: dict
     if risk_active:
         findings.append(build_finding(agent, agent.risk_signal, "risk", dimension_scores))
 
+    confidence_label = (
+        "High" if mean([score.confidence for score in dimension_scores]) >= 0.72 else "Medium"
+    )
+    if mean([score.confidence for score in dimension_scores]) < 0.55:
+        confidence_label = "Low"
+
+    reasoning_claim = (
+        f"{agent.name} believes the portfolio supports {agent.positive_signal.replace('_', ' ')}."
+        if positive_active
+        else f"{agent.name} is concerned about {agent.risk_signal.replace('_', ' ')}."
+    )
+    reasoning_evidence = [
+        f"Portfolio evidence references: {', '.join(dedupe_preserve_order([*agent.positive_refs, *agent.risk_refs]))}."
+    ]
+    reasoning_risk = (
+        [RISK_SIGNAL_META[agent.risk_signal]["title"]]
+        if risk_active
+        else ["No major red flags beyond standard execution risk."]
+    )
+    reasoning_implication = (
+        f"This evidence and risk profile supports a {recommendation} stance for the current portfolio."
+    )
+
     return validate_agent_review(
         {
             "agent_id": agent.id,
             "agent_name": agent.name,
             "portfolio_id": portfolio.portfolio_id,
             "review_summary": f"{agent.name} recommends {recommendation} with strongest support in {dimension_scores[0].dimension} and primary concern in {agent.risk_signal}.",
+            "reasoning": {
+                "claim": reasoning_claim,
+                "evidence": reasoning_evidence,
+                "risk": reasoning_risk,
+                "implication": reasoning_implication,
+                "score": clamp_score(score_average),
+                "confidence": confidence_label,
+            },
             "findings": [finding.model_dump(mode="json") for finding in findings],
             "dimension_scores": [score.model_dump(mode="json") for score in dimension_scores],
             "recommendation": recommendation,

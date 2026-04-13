@@ -28,6 +28,7 @@ def normalize_agent_reviews_for_baseline(agent_reviews: list[dict]) -> list[dict
     normalized: list[dict] = []
     for review in agent_reviews:
         copy = json.loads(json.dumps(review))
+        copy.pop("reasoning", None)
         review_metadata = copy.get("review_metadata") or {}
         for field in (
             "input_tokens",
@@ -49,6 +50,8 @@ def normalize_conflicts_for_baseline(conflicts: list[dict]) -> list[dict]:
     for conflict in conflicts:
         copy = json.loads(json.dumps(conflict))
         copy.pop("conflicting_agents", None)
+        copy.pop("conflicting_claims", None)
+        copy.pop("conflicting_evidence", None)
         copy.pop("conflict_category", None)
         copy.pop("conflict_reason", None)
         normalized.append(copy)
@@ -104,6 +107,8 @@ def test_python_thin_slice_matches_js_baseline(case: dict[str, str], tmp_path: P
         assert sorted(conflict.get("conflicting_agents", [])) == sorted(conflict["participants"])
         assert conflict.get("conflict_category")
         assert conflict.get("conflict_reason")
+        assert conflict.get("conflicting_claims")
+        assert conflict.get("conflicting_evidence")
 
     assert normalize_conflicts_for_baseline(generated_conflicts) == normalize_conflicts_for_baseline(
         baseline_conflicts

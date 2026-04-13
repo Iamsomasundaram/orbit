@@ -70,6 +70,15 @@ class DimensionScore(OrbitModel):
     evidence_refs: list[str]
 
 
+class EvidenceReasoning(OrbitModel):
+    claim: str
+    evidence: list[str]
+    risk: list[str]
+    implication: str
+    score: float
+    confidence: Literal["Low", "Medium", "High"]
+
+
 class ReviewMetadata(OrbitModel):
     prompt_contract_version: str
     model_provider: str
@@ -90,6 +99,7 @@ class AgentReview(OrbitModel):
     agent_name: str
     portfolio_id: str
     review_summary: str
+    reasoning: EvidenceReasoning | None = None
     findings: list[Finding]
     dimension_scores: list[DimensionScore]
     recommendation: str
@@ -105,6 +115,8 @@ class ConflictRecord(OrbitModel):
     topic: str
     participants: list[str]
     conflicting_agents: list[str] = Field(default_factory=list)
+    conflicting_claims: list[str] = Field(default_factory=list)
+    conflicting_evidence: list[str] = Field(default_factory=list)
     severity: str
     conflict_category: str | None = None
     conflict_reason: str | None = None

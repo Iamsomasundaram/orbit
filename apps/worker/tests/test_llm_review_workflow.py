@@ -67,7 +67,15 @@ class MockParallelLLMProvider:
     def _payload_for_spec(self, agent_id: str, owned_dimensions: list[str]) -> dict[str, object]:
         default_score = {
             "stance": "Proceed with Conditions",
-            "reasoning_summary": f"{agent_id} sees bounded upside but still needs tighter execution controls.",
+            "claim": f"{agent_id} sees a credible portfolio claim with bounded upside.",
+            "evidence": [
+                "Portfolio emphasizes a clear workflow narrative.",
+                "Evidence points to measurable operational impact.",
+            ],
+            "risk": ["Execution sequencing still needs tighter controls."],
+            "implication": "The evidence supports conditional progress with tightened execution gates.",
+            "score": 3.6,
+            "confidence": "Medium",
             "score_contributions": [
                 {
                     "dimension": dimension,
@@ -99,7 +107,15 @@ class MockParallelLLMProvider:
 
         if agent_id == "security_compliance_agent":
             default_score["stance"] = "High Risk"
-            default_score["reasoning_summary"] = "Security and compliance controls are materially incomplete for anything beyond a tightly bounded pilot."
+            default_score["claim"] = "Security and compliance controls are materially incomplete for broader rollout."
+            default_score["evidence"] = [
+                "Portfolio references limited retention and incident response detail.",
+                "Compliance scope is acknowledged but not fully specified.",
+            ]
+            default_score["risk"] = ["Governance gaps could block regulated deployment."]
+            default_score["implication"] = "The committee should constrain rollout to a tightly bounded pilot."
+            default_score["score"] = 2.2
+            default_score["confidence"] = "High"
             default_score["score_contributions"] = [
                 {
                     "dimension": "Security & Compliance",
@@ -134,6 +150,7 @@ class MockParallelLLMProvider:
             default_score["assumption_register"] = ["control_posture=insufficient_for_regulated_pilot"]
         elif agent_id == "risk_governance_agent":
             default_score["stance"] = "Proceed with Conditions"
+            default_score["confidence"] = "Medium"
             default_score["score_contributions"] = [
                 {
                     "dimension": "Security & Compliance",
@@ -167,6 +184,7 @@ class MockParallelLLMProvider:
             ]
             default_score["assumption_register"] = ["control_posture=conditional_launch_gate_is_sufficient"]
         elif agent_id == "architecture_agent":
+            default_score["confidence"] = "High"
             default_score["score_contributions"] = [
                 {
                     "dimension": "Technical Feasibility",
@@ -190,6 +208,7 @@ class MockParallelLLMProvider:
             default_score["assumption_register"] = ["integration_scope=single_connector_first"]
         elif agent_id == "implementation_feasibility_agent":
             default_score["stance"] = "Pilot Only"
+            default_score["confidence"] = "Medium"
             default_score["score_contributions"] = [
                 {
                     "dimension": "Technical Feasibility",
@@ -224,6 +243,7 @@ class MockParallelLLMProvider:
             default_score["assumption_register"] = ["integration_scope=dual_connector_first"]
         elif agent_id == "ai_systems_agent":
             default_score["stance"] = "Pilot Only"
+            default_score["confidence"] = "Medium"
             default_score["score_contributions"] = [
                 {
                     "dimension": "AI Reliability",
@@ -256,6 +276,7 @@ class MockParallelLLMProvider:
                 }
             ]
         elif agent_id == "data_strategy_agent":
+            default_score["confidence"] = "Medium"
             default_score["score_contributions"] = [
                 {
                     "dimension": "AI Reliability",
@@ -349,6 +370,12 @@ def test_llm_review_workflow_runs_parallel_agents_and_triggers_resynthesis() -> 
     assert all(record.review_payload.review_metadata.estimated_cost_usd > 0 for record in active_reviews)
     assert all(record.review_payload.review_metadata.total_tokens == 0 for record in passive_reviews)
     assert all(record.review_payload.review_metadata.estimated_cost_usd == 0 for record in passive_reviews)
+    assert all(record.review_payload.reasoning is not None for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.reasoning.claim for record in review_bundle.agent_reviews)
+    assert all(
+        record.review_payload.reasoning.confidence in {"Low", "Medium", "High"}
+        for record in review_bundle.agent_reviews
+    )
 
 
 def test_llm_deliberation_runtime_metadata_exposes_agent_token_telemetry() -> None:
@@ -450,6 +477,12 @@ def test_llm_review_workflow_falls_back_to_deterministic_runtime_when_provider_f
     assert detail.runtime_metadata.total_tokens == 0
     assert detail.runtime_metadata.estimated_cost_usd == 0.0
     assert all(record.review_payload.review_metadata.model_provider == "deterministic-thin-slice" for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.reasoning is not None for record in review_bundle.agent_reviews)
+    assert all(record.review_payload.reasoning.claim for record in review_bundle.agent_reviews)
+    assert all(
+        record.review_payload.reasoning.confidence in {"Low", "Medium", "High"}
+        for record in review_bundle.agent_reviews
+    )
     assert {event.action for event in review_bundle.audit_events} >= {
         "review_run.created",
         "review_run.runtime_fallback",

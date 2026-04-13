@@ -12,7 +12,7 @@ async function createPortfolioThroughUi(page: Page, portfolioName: string) {
   await page.getByTestId("portfolio-owner-input").fill("Automation Owner");
   await page
     .getByTestId("portfolio-description-input")
-    .fill("Automation-created portfolio for Milestone 13 browser validation.");
+      .fill("Automation-created portfolio for Milestone 14 browser validation.");
   await page.getByTestId("portfolio-tags-input").fill("automation, browser");
   await page.getByTestId("portfolio-create-submit").click();
 

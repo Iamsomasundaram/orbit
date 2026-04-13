@@ -91,9 +91,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               discussion from one workspace.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-orbit-ink/75 md:text-lg">
-              Milestone 13 makes the llm committee the default runtime, executes fast Tier-1 screening agents first,
-              activates specialists only when the evidence requires them, and keeps deterministic fallback and
-              boardroom playback fully observable across the existing ORBIT workspace.
+              Milestone 14 upgrades committee reasoning into structured claim-evidence-risk chains with explicit
+              confidence and implications, while keeping the adaptive routing and deterministic fallback paths
+              intact.
             </p>
           </div>
           <div className="rounded-3xl bg-orbit-ink px-5 py-4 text-orbit-mist">
@@ -336,8 +336,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </div>
           ) : (
             <p className="text-sm leading-6 text-orbit-ink/70">
-              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 13
-              adaptive committee workspace.
+              No portfolios are stored yet. Submit an idea above to create the first entry in the Milestone 14
+              evidence-based committee workspace.
             </p>
           )}
         </form>

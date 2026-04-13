@@ -4,6 +4,7 @@ import { startTransition, useDeferredValue, useEffect, useState } from "react";
 
 import {
   type AgentRuntimeTelemetryPayload,
+  type AgentReasoningPayload,
   type ConflictPersistencePayload,
   type DeliberationEntryPayload,
   type ReviewRunDeliberationPayload,
@@ -290,6 +291,16 @@ function agentTelemetryForEntry(
   return agents.find((agent) => agent.agent_id === entry.agent_id) ?? agents.find((agent) => agent.agent_role === entry.agent_role) ?? null;
 }
 
+function agentReasoningForEntry(
+  reasoning: AgentReasoningPayload[],
+  entry: DeliberationEntryPayload | null,
+): AgentReasoningPayload | null {
+  if (!entry) {
+    return null;
+  }
+  return reasoning.find((agent) => agent.agent_id === entry.agent_id) ?? reasoning.find((agent) => agent.agent_role === entry.agent_role) ?? null;
+}
+
 function conflictMetadataForReference(
   conflicts: ConflictPersistencePayload[],
   conflictReference: string | null | undefined,
@@ -308,6 +319,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
   const revealedEntries = timeline.entries.slice(0, deferredVisibleCount);
   const currentEntry = revealedEntries.length ? revealedEntries[revealedEntries.length - 1] : null;
   const currentAgentTelemetry = agentTelemetryForEntry(timeline.runtime_metadata.agents, currentEntry);
+  const currentAgentReasoning = agentReasoningForEntry(timeline.agent_reasoning, currentEntry);
   const visibleConflictSpotlights = buildConflictSpotlights(revealedEntries);
   const activeSpotlight =
     currentEntry?.conflict_reference != null
@@ -413,7 +425,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 13" />
+              <StatusBadge label="Milestone 14" />
               <StatusBadge label="Committee Mode" tone="warning" />
               <StatusBadge label={summary.active_artifact_source} />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -424,9 +436,9 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                 Watch the ORBIT committee unfold like a live investment boardroom.
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-mist/78">
-                Committee Mode replays the persisted deliberation timeline with adaptive routing telemetry, consistent
-                agent identities, passive-observer visibility, conflict stance callouts, and controllable playback
-                speed, while preserving the same bounded committee record underneath.
+                Committee Mode replays the persisted deliberation timeline with evidence-based claim chains, adaptive
+                routing telemetry, consistent agent identities, passive-observer visibility, conflict stance callouts,
+                and controllable playback speed, while preserving the same bounded committee record underneath.
               </p>
             </div>
           </div>
@@ -701,8 +713,8 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                         <StatusBadge label={currentEntry.conflict_reference} tone="danger" />
                       ) : null}
                     </div>
-                    {currentAgentTelemetry ? (
-                      <div className="grid gap-3 md:grid-cols-3">
+              {currentAgentTelemetry ? (
+                <div className="grid gap-3 md:grid-cols-3">
                         <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
                           <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Runtime</div>
                           <div className="mt-2 font-semibold">{formatDurationMs(currentAgentTelemetry.duration_ms)}</div>
@@ -717,10 +729,46 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                             {formatCostUsd(currentAgentTelemetry.estimated_cost_usd)}
                           </div>
                         </div>
-                      </div>
-                    ) : null}
-                    {currentAgentTelemetry ? (
-                      <div className="flex flex-wrap gap-2">
+                </div>
+              ) : null}
+              {currentAgentReasoning ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Claim</div>
+                    <div className="mt-2 font-semibold">{currentAgentReasoning.claim}</div>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Implication</div>
+                    <div className="mt-2 font-semibold">{currentAgentReasoning.implication}</div>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Evidence</div>
+                    <ul className="mt-2 list-disc pl-5">
+                      {currentAgentReasoning.evidence.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Risks</div>
+                    <ul className="mt-2 list-disc pl-5">
+                      {currentAgentReasoning.risk.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Score</div>
+                    <div className="mt-2 font-semibold">{formatScore(currentAgentReasoning.score)}</div>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/7 px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-[0.18em] text-orbit-moss">Confidence</div>
+                    <div className="mt-2 font-semibold">{currentAgentReasoning.confidence}</div>
+                  </div>
+                </div>
+              ) : null}
+              {currentAgentTelemetry ? (
+                <div className="flex flex-wrap gap-2">
                         <StatusBadge label={currentAgentTelemetry.activation_tier} tone="warning" />
                         <StatusBadge
                           label={humanize(currentAgentTelemetry.activation_status)}
@@ -784,6 +832,7 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                           const recommendation = stanceByRole[entry.agent_role] ?? parseStance(entry.statement_text);
                           const stance = committeeStance(recommendation);
                           const telemetry = agentTelemetryForEntry(timeline.runtime_metadata.agents, entry);
+                          const reasoning = agentReasoningForEntry(timeline.agent_reasoning, entry);
                           return (
                             <div key={entry.deliberation_entry_row_id} className={`committee-entry-reveal rounded-[24px] border px-4 py-4 shadow-panel ${profile.panelClass}`}>
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -805,6 +854,32 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                                     {entry.conflict_reference ? <StatusBadge label={entry.conflict_reference} tone="danger" /> : null}
                                   </div>
                                   <p className="text-sm leading-6 text-orbit-ink/80">{entry.statement_text}</p>
+                                  {reasoning ? (
+                                    <div className="mt-3 space-y-2 text-sm text-orbit-ink/75">
+                                      <div><span className="font-semibold">Claim:</span> {reasoning.claim}</div>
+                                      <div><span className="font-semibold">Implication:</span> {reasoning.implication}</div>
+                                      <div>
+                                        <span className="font-semibold">Evidence:</span>
+                                        <ul className="list-disc pl-5">
+                                          {reasoning.evidence.map((item) => (
+                                            <li key={item}>{item}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                      <div>
+                                        <span className="font-semibold">Risks:</span>
+                                        <ul className="list-disc pl-5">
+                                          {reasoning.risk.map((item) => (
+                                            <li key={item}>{item}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                      <div className="flex flex-wrap gap-3">
+                                        <span><span className="font-semibold">Score:</span> {formatScore(reasoning.score)}</span>
+                                        <span><span className="font-semibold">Confidence:</span> {reasoning.confidence}</span>
+                                      </div>
+                                    </div>
+                                  ) : null}
                                 </div>
                                 <div className="text-sm leading-6 text-orbit-ink/60">
                                   <div>Recorded {formatDate(entry.created_at)}</div>
@@ -885,6 +960,26 @@ export function CommitteeMode({ timeline, summary }: CommitteeModeProps) {
                       {activeConflictMetadata.conflict_payload.conflict_reason ? (
                         <StatusBadge label={activeConflictMetadata.conflict_payload.conflict_reason} />
                       ) : null}
+                    </div>
+                  ) : null}
+                  {activeConflictMetadata?.conflict_payload.conflicting_claims?.length ? (
+                    <div className="mt-4 text-sm text-orbit-ink/75">
+                      <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Conflicting Claims</div>
+                      <ul className="mt-2 list-disc pl-5">
+                        {activeConflictMetadata.conflict_payload.conflicting_claims.map((claim) => (
+                          <li key={claim}>{claim}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {activeConflictMetadata?.conflict_payload.conflicting_evidence?.length ? (
+                    <div className="mt-4 text-sm text-orbit-ink/75">
+                      <div className="text-xs uppercase tracking-[0.18em] text-orbit-pine/70">Conflicting Evidence</div>
+                      <ul className="mt-2 list-disc pl-5">
+                        {activeConflictMetadata.conflict_payload.conflicting_evidence.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
                     </div>
                   ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">

@@ -109,6 +109,52 @@ def _discussion_round_by_conflict(
     return mapping
 
 
+def _confidence_distribution(reviews: list[object]) -> str:
+    counts = {"High": 0, "Medium": 0, "Low": 0}
+    for review_record in reviews:
+        review = getattr(review_record, "review_payload", None)
+        reasoning = getattr(review, "reasoning", None) if review is not None else None
+        if reasoning is None:
+            continue
+        label = getattr(reasoning, "confidence", "")
+        if label in counts:
+            counts[label] += 1
+    return f"High {counts['High']} / Medium {counts['Medium']} / Low {counts['Low']}"
+
+
+def _conflict_reasoning_summary(
+    conflict_record,
+    review_bundle: ReviewPersistenceBundle,
+) -> str:
+    participants = set(conflict_record.conflict_payload.participants)
+    participant_reviews = [
+        record for record in review_bundle.agent_reviews if record.agent_id in participants
+    ]
+    claims = conflict_record.conflict_payload.conflicting_claims or []
+    evidence = conflict_record.conflict_payload.conflicting_evidence or []
+    evidence_consensus = (
+        "Evidence consensus is limited; core points are contested."
+        if len(claims) >= 2
+        else "Evidence consensus appears moderate across the participating agents."
+    )
+    evidence_disagreement = (
+        f"Conflicting claims include: {', '.join(claims[:2])}."
+        if claims
+        else "No explicit conflicting claims were captured."
+    )
+    risk_amplification = (
+        conflict_record.conflict_payload.conflict_reason
+        or conflict_record.conflict_payload.trigger_reason
+    )
+    confidence_distribution = _confidence_distribution(participant_reviews)
+    evidence_summary = f"Evidence references noted: {', '.join(evidence[:3])}." if evidence else "Evidence references were sparse."
+    return (
+        f"{evidence_consensus} {evidence_disagreement} {evidence_summary} "
+        f"Risk amplification: {risk_amplification} "
+        f"Confidence distribution: {confidence_distribution}."
+    )
+
+
 def build_deliberation_entries(
     review_bundle: ReviewPersistenceBundle,
     *,
@@ -241,6 +287,13 @@ def build_deliberation_entries(
     if debate_bundle is not None and debate_bundle.conflict_resolutions:
         for resolution_record in debate_bundle.conflict_resolutions:
             resolution = resolution_record.resolution_payload
+            conflict_record = next(
+                (record for record in review_bundle.conflicts if record.conflict_id == resolution.conflict_id),
+                None,
+            )
+            reasoning_summary = (
+                _conflict_reasoning_summary(conflict_record, review_bundle) if conflict_record else ""
+            )
             summary_suffix = (
                 " Score recheck was requested."
                 if resolution.score_change_required
@@ -256,7 +309,7 @@ def build_deliberation_entries(
                     agent_role=DEBATE_MODERATOR_ROLE,
                     statement_type="moderator_synthesis",
                     statement_text=_normalize_text(
-                        f"{resolution.resolution_summary}{summary_suffix}",
+                        f"{resolution.resolution_summary}{summary_suffix} {reasoning_summary}",
                         f"Debate moderator issued a bounded synthesis for {_display_topic(resolution.topic)}.",
                     ),
                     conflict_reference=resolution.conflict_id,

@@ -44,6 +44,17 @@ class AgentRuntimeTelemetry(OrbitModel):
     estimated_cost_usd: float
 
 
+class AgentReasoningSummary(OrbitModel):
+    agent_id: str
+    agent_role: str
+    claim: str
+    evidence: list[str]
+    risk: list[str]
+    implication: str
+    score: float
+    confidence: str
+
+
 class CommitteeRuntimeMetadata(OrbitModel):
     routing_strategy_version: str | None = None
     requested_runtime_mode: str
@@ -79,6 +90,7 @@ class ReviewRunDeliberationDetail(OrbitModel):
     weighted_composite_score: float
     entry_count: int
     runtime_metadata: CommitteeRuntimeMetadata
+    agent_reasoning: list[AgentReasoningSummary]
     conflicts: list[ConflictPersistenceRecord]
     entries: list[DeliberationEntryRecord]
 
@@ -260,6 +272,27 @@ def _runtime_metadata(review_bundle) -> CommitteeRuntimeMetadata:
     )
 
 
+def _agent_reasoning(review_bundle) -> list[AgentReasoningSummary]:
+    summaries: list[AgentReasoningSummary] = []
+    for record in review_bundle.agent_reviews:
+        reasoning = getattr(record.review_payload, "reasoning", None)
+        if reasoning is None:
+            continue
+        summaries.append(
+            AgentReasoningSummary(
+                agent_id=record.agent_id,
+                agent_role=record.review_payload.agent_name,
+                claim=reasoning.claim,
+                evidence=reasoning.evidence,
+                risk=reasoning.risk,
+                implication=reasoning.implication,
+                score=reasoning.score,
+                confidence=reasoning.confidence,
+            )
+        )
+    return summaries
+
+
 class DeliberationService:
     def __init__(self, repository: PersistenceRepository) -> None:
         self._repository = repository
@@ -302,6 +335,7 @@ class DeliberationService:
             weighted_composite_score=artifacts.active_scorecard.weighted_composite_score,
             entry_count=len(bundle.entries),
             runtime_metadata=_runtime_metadata(review_bundle),
+            agent_reasoning=_agent_reasoning(review_bundle),
             conflicts=review_bundle.conflicts,
             entries=bundle.entries,
         )

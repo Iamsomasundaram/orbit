@@ -235,7 +235,12 @@ class LLMCommitteeResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     stance: str
-    reasoning_summary: str
+    claim: str
+    evidence: list[str]
+    risk: list[str]
+    implication: str
+    score: float
+    confidence: Literal["Low", "Medium", "High"]
     score_contributions: list[LLMCommitteeDimensionScore]
     identified_risks: list[LLMCommitteeRisk] = Field(default_factory=list)
     disagreement_flags: list[str] = Field(default_factory=list)

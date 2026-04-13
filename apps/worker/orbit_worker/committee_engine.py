@@ -173,6 +173,35 @@ def _sanitize_text_list(values: list[str], *, limit: int, fallback: list[str] | 
     return (fallback or [])[:limit]
 
 
+def _normalize_confidence(value: str) -> str:
+    candidate = (value or "").strip().lower()
+    if candidate in {"high", "medium", "low"}:
+        return candidate.capitalize()
+    return "Medium"
+
+
+def _confidence_from_numeric(value: float) -> str:
+    if value >= 0.72:
+        return "High"
+    if value >= 0.55:
+        return "Medium"
+    return "Low"
+
+
+def _overall_score_from_dimensions(scores: list[DimensionScore]) -> float:
+    if not scores:
+        return 0.0
+    return clamp_score(sum(score.score for score in scores) / len(scores))
+
+
+def _sanitize_overall_score(value: float | None, fallback: float) -> float:
+    try:
+        candidate = float(value) if value is not None else fallback
+    except (TypeError, ValueError):
+        candidate = fallback
+    return clamp_score(candidate)
+
+
 def _portfolio_text(portfolio: CanonicalPortfolio, section_keys: list[str] | None = None) -> str:
     keys = section_keys or list(portfolio.sections.keys())
     fragments: list[str] = []
@@ -257,6 +286,18 @@ def _passive_observer_review(
                 f"Passive observer. {spec.name} was not deeply activated because {activation_reason.lower()} "
                 f"The agent aligns with the core screening consensus of {consensus_recommendation}."
             ),
+            "reasoning": {
+                "claim": f"{spec.name} observed the portfolio without deep activation.",
+                "evidence": [
+                    "Consensus derived from Tier-1 screening and available portfolio context.",
+                ],
+                "risk": [
+                    "Passive observers may miss specialized edge cases without deeper activation.",
+                ],
+                "implication": f"The agent aligns with the core screening consensus of {consensus_recommendation}.",
+                "score": 0.0,
+                "confidence": "Low",
+            },
             "findings": [],
             "dimension_scores": [],
             "recommendation": consensus_recommendation,
@@ -478,7 +519,8 @@ def _system_prompt(spec: LLMCommitteeAgentSpec) -> str:
         "3 means pilot-feasible with material gaps; 2 means weak or heavily constrained; 1 means not credible. "
         "Do not use score 5 unless the evidence is unusually complete and there is no major governance blocker on that dimension. "
         "Use evidence references only from the allowed portfolio.<section_key> values provided in the context. "
-        "Keep reasoning concise, keep risks to 1-3 items, and keep disagreement flags short."
+        "Keep reasoning concise, keep risks to 1-3 items, and keep disagreement flags short. "
+        "Do not fabricate external facts or sources."
     )
 
 
@@ -496,7 +538,12 @@ def _user_prompt(spec: LLMCommitteeAgentSpec, portfolio: CanonicalPortfolio, sha
         f"{shared_context}\n\n"
         "Required response contract:\n"
         "- stance: one allowed recommendation string.\n"
-        "- reasoning_summary: 1 short paragraph.\n"
+        "- claim: one sentence stating the core claim being evaluated.\n"
+        "- evidence: 1-3 concise evidence statements grounded in the portfolio context.\n"
+        "- risk: 1-3 concise risks tied to the claim.\n"
+        "- implication: one sentence tying the evidence and risk to the final stance.\n"
+        "- score: single numeric score aligned to your owned dimensions.\n"
+        "- confidence: one of Low, Medium, High.\n"
         "- score_contributions: one object per owned dimension.\n"
         "- identified_risks: 1-3 concise risks.\n"
         "- disagreement_flags: 0-3 short items if another committee member is likely to disagree.\n"
@@ -689,6 +736,31 @@ class AgentInferenceService:
         ]
         recommendation = _normalize_recommendation(response.stance)
         dimension_scores = _calibrate_dimension_scores(recommendation, dimension_scores, findings)
+        overall_score = _sanitize_overall_score(
+            getattr(response, "score", None),
+            _overall_score_from_dimensions(dimension_scores),
+        )
+        reasoning_claim = _sanitize_text(
+            response.claim,
+            f"{spec.name} evaluated whether the portfolio supports its core claim.",
+            max_length=200,
+        )
+        reasoning_evidence = _sanitize_text_list(
+            response.evidence,
+            limit=3,
+            fallback=[f"Evidence references: {', '.join(fallback_refs)}"],
+        )
+        reasoning_risk = _sanitize_text_list(
+            response.risk,
+            limit=3,
+            fallback=["Execution and validation risks remain present for this portfolio."],
+        )
+        reasoning_implication = _sanitize_text(
+            response.implication,
+            f"The evidence and risks support a {recommendation} stance for this portfolio.",
+            max_length=220,
+        )
+        reasoning_confidence = _normalize_confidence(response.confidence)
 
         disagreement_notes = [
             f"Disagreement flag: {item}"
@@ -707,9 +779,17 @@ class AgentInferenceService:
                 "agent_name": spec.name,
                 "portfolio_id": portfolio.portfolio_id,
                 "review_summary": _sanitize_text(
-                    response.reasoning_summary,
+                    f"{reasoning_claim} {reasoning_implication}",
                     f"{spec.name} recommends {recommendation} based on the available portfolio evidence.",
                 ),
+                "reasoning": {
+                    "claim": reasoning_claim,
+                    "evidence": reasoning_evidence,
+                    "risk": reasoning_risk,
+                    "implication": reasoning_implication,
+                    "score": overall_score,
+                    "confidence": reasoning_confidence,
+                },
                 "findings": [finding.model_dump(mode="json") for finding in findings],
                 "dimension_scores": [score.model_dump(mode="json") for score in dimension_scores],
                 "recommendation": recommendation,

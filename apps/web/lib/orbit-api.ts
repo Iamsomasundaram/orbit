@@ -118,6 +118,8 @@ export type ConflictRecordPayload = {
   topic: string;
   participants: string[];
   conflicting_agents: string[];
+  conflicting_claims: string[];
+  conflicting_evidence: string[];
   severity: string;
   conflict_category: string | null;
   conflict_reason: string | null;
@@ -313,6 +315,17 @@ export type AgentRuntimeTelemetryPayload = {
   estimated_cost_usd: number;
 };
 
+export type AgentReasoningPayload = {
+  agent_id: string;
+  agent_role: string;
+  claim: string;
+  evidence: string[];
+  risk: string[];
+  implication: string;
+  score: number;
+  confidence: string;
+};
+
 export type CommitteeRuntimeMetadataPayload = {
   routing_strategy_version: string | null;
   requested_runtime_mode: string;
@@ -353,6 +366,7 @@ export type ReviewRunDeliberationPayload = {
   weighted_composite_score: number;
   entry_count: number;
   runtime_metadata: CommitteeRuntimeMetadataPayload;
+  agent_reasoning: AgentReasoningPayload[];
   conflicts: ConflictPersistencePayload[];
   entries: DeliberationEntryPayload[];
 };

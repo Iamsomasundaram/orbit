@@ -49,7 +49,7 @@ export default async function ReviewRunPage({ params }: ReviewRunPageProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 13" />
+              <StatusBadge label="Milestone 14" />
               <StatusBadge label={detail.review_run.review_status} tone="warning" />
               <StatusBadge
                 label={artifacts.active_scorecard.final_recommendation}

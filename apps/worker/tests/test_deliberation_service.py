@@ -61,6 +61,7 @@ def test_deliberation_is_materialized_after_review_run_even_before_debate() -> N
     assert detail.runtime_metadata.agent_count == 15
     assert detail.runtime_metadata.total_tokens == 0
     assert detail.runtime_metadata.estimated_cost_usd == 0
+    assert len(detail.agent_reasoning) == 15
 
 
 def test_deliberation_summary_reflects_completed_workflow_with_bounded_debate() -> None:

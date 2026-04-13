@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import {
+  type AgentReasoningPayload,
   type ReviewRunDeliberationPayload,
   type ReviewRunDeliberationSummaryPayload,
   fetchOrbitJson,
@@ -15,6 +16,23 @@ import { ActionLink, MetricCard, PageFrame, SectionEyebrow, ShellCard, StatusBad
 type DeliberationPageProps = {
   params: Promise<{ runId: string }>;
 };
+
+function reasoningForEntry(
+  reasoning: AgentReasoningPayload[],
+  agentId: string | null,
+  agentRole: string,
+): AgentReasoningPayload | null {
+  if (!reasoning.length) {
+    return null;
+  }
+  if (agentId) {
+    const match = reasoning.find((item) => item.agent_id === agentId);
+    if (match) {
+      return match;
+    }
+  }
+  return reasoning.find((item) => item.agent_role === agentRole) ?? null;
+}
 
 function recommendationTone(recommendation: string): "default" | "success" | "warning" | "danger" {
   if (recommendation === "Strong Proceed") {
@@ -46,7 +64,7 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge label="Milestone 13" />
+              <StatusBadge label="Milestone 14" />
               <StatusBadge label="Static Timeline" />
               <StatusBadge label={summary.active_artifact_source} tone="warning" />
               <StatusBadge label={summary.final_recommendation} tone={recommendationTone(summary.final_recommendation)} />
@@ -57,10 +75,9 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
                 Review Timeline {timeline.review_run_id}
               </h1>
               <p className="max-w-3xl text-base leading-7 text-orbit-ink/75">
-                This is the static inspection view for the ORBIT committee reasoning. Milestone 13 keeps this audit
-                view intact while the adaptive committee runtime adds llm-first routing, passive specialist observers,
-                richer activation telemetry, and slower or faster boardroom playback controls. No additional LLM calls
-                are issued here.
+              This is the static inspection view for the ORBIT committee reasoning. Milestone 14 keeps this audit
+              view intact while requiring evidence-based claim chains, explicit confidence, and structured risks in
+              every agent statement. No additional LLM calls are issued here.
               </p>
             </div>
           </div>
@@ -153,6 +170,38 @@ export default async function ReviewRunDeliberationPage({ params }: Deliberation
                   <div>
                     <div className="text-lg font-semibold text-orbit-ink">{entry.agent_role}</div>
                     <p className="mt-2 text-sm leading-6 text-orbit-ink/75">{entry.statement_text}</p>
+                    {(() => {
+                      const reasoning = reasoningForEntry(timeline.agent_reasoning, entry.agent_id, entry.agent_role);
+                      if (!reasoning) {
+                        return null;
+                      }
+                      return (
+                        <div className="mt-3 space-y-2 text-sm text-orbit-ink/75">
+                          <div><span className="font-semibold">Claim:</span> {reasoning.claim}</div>
+                          <div><span className="font-semibold">Implication:</span> {reasoning.implication}</div>
+                          <div>
+                            <span className="font-semibold">Evidence:</span>
+                            <ul className="list-disc pl-5">
+                              {reasoning.evidence.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <span className="font-semibold">Risks:</span>
+                            <ul className="list-disc pl-5">
+                              {reasoning.risk.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            <span><span className="font-semibold">Score:</span> {formatScore(reasoning.score)}</span>
+                            <span><span className="font-semibold">Confidence:</span> {reasoning.confidence}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="text-sm leading-6 text-orbit-ink/65">

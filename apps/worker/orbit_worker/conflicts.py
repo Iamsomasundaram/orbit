@@ -28,6 +28,9 @@ def create_conflict(
     conflict_reason: str,
     trigger_reason: str,
     routing_reason: str,
+    *,
+    conflicting_claims: list[str] | None = None,
+    conflicting_evidence: list[str] | None = None,
 ) -> ConflictRecord:
     participant_list = sorted(set(participants))
     return validate_conflict_record(
@@ -37,6 +40,8 @@ def create_conflict(
             "topic": topic,
             "participants": participant_list,
             "conflicting_agents": participant_list,
+            "conflicting_claims": conflicting_claims or [],
+            "conflicting_evidence": conflicting_evidence or [],
             "severity": severity,
             "conflict_category": conflict_category,
             "conflict_reason": conflict_reason,
@@ -50,6 +55,7 @@ def create_conflict(
 
 
 def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
+    review_map = {review.agent_id: review for review in reviews}
     recommendation_participants: set[str] = set()
     assumption_clusters: dict[str, dict[str, object]] = {}
     score_clusters: dict[str, dict[str, object]] = {}
@@ -109,6 +115,7 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
     conflicts: list[ConflictRecord] = []
     index = 1
     if recommendation_participants:
+        claims, evidence = _collect_reasoning(review_map, recommendation_participants)
         conflicts.append(
             create_conflict(
                 f"conflict-{index:03d}",
@@ -120,11 +127,14 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 "Committee members disagree materially on the rollout recommendation and timing.",
                 f"{len(recommendation_participants)} reviewers are separated by at least two recommendation tiers on rollout timing.",
                 "Recommendation polarity differs enough to alter rollout guidance.",
+                conflicting_claims=claims,
+                conflicting_evidence=evidence,
             )
         )
         index += 1
 
     for topic, cluster in assumption_clusters.items():
+        claims, evidence = _collect_reasoning(review_map, cluster["participants"])
         conflicts.append(
             create_conflict(
                 f"conflict-{index:03d}",
@@ -136,11 +146,14 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 f"Agents are using incompatible assumptions for {topic}.",
                 f"Assumption topic {topic} contains incompatible values including {'; '.join(cluster['examples'])}.",
                 "Different assumptions could distort committee synthesis.",
+                conflicting_claims=claims,
+                conflicting_evidence=evidence,
             )
         )
         index += 1
 
     for dimension, cluster in score_clusters.items():
+        claims, evidence = _collect_reasoning(review_map, cluster["participants"])
         conflicts.append(
             create_conflict(
                 f"conflict-{index:03d}",
@@ -152,11 +165,14 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 f"Agent score contributions for {dimension} diverge beyond the bounded committee threshold.",
                 f"Maximum score delta {cluster['max_delta']:.2f} exceeds the 1.50 threshold on {dimension}.",
                 "Committee scoring could shift materially after reconciliation.",
+                conflicting_claims=claims,
+                conflicting_evidence=evidence,
             )
         )
         index += 1
 
     for dimension, cluster in completeness_clusters.items():
+        claims, evidence = _collect_reasoning(review_map, cluster["participants"])
         conflicts.append(
             create_conflict(
                 f"conflict-{index:03d}",
@@ -168,11 +184,14 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 f"Agents disagree on whether the evidence for {dimension} is complete enough to support the score.",
                 f"Maximum completeness delta {cluster['max_delta']:.2f} exceeds the 0.35 threshold on {dimension}.",
                 "Evidence sufficiency differs materially across reviewers.",
+                conflicting_claims=claims,
+                conflicting_evidence=evidence,
             )
         )
         index += 1
 
     for category, cluster in severity_clusters.items():
+        claims, evidence = _collect_reasoning(review_map, cluster["participants"])
         conflicts.append(
             create_conflict(
                 f"conflict-{index:03d}",
@@ -184,9 +203,29 @@ def detect_conflicts(reviews: list[AgentReview]) -> list[ConflictRecord]:
                 f"Agents assign materially different risk severity to the {category} category.",
                 f"Maximum severity delta {cluster['max_delta']} exceeds the structured threshold on {category}.",
                 "Risk handling guidance differs enough to require committee attention.",
+                conflicting_claims=claims,
+                conflicting_evidence=evidence,
             )
         )
         index += 1
 
     severity_order = {"high": 3, "medium": 2, "low": 1}
     return sorted(conflicts, key=lambda conflict: (-severity_order[conflict.severity], conflict.conflict_id))
+
+
+def _collect_reasoning(
+    review_map: dict[str, AgentReview],
+    participants: Iterable[str],
+) -> tuple[list[str], list[str]]:
+    claims: list[str] = []
+    evidence: list[str] = []
+    for agent_id in participants:
+        review = review_map.get(agent_id)
+        if review is None or review.reasoning is None:
+            continue
+        if review.reasoning.claim and review.reasoning.claim not in claims:
+            claims.append(review.reasoning.claim)
+        for item in review.reasoning.evidence:
+            if item not in evidence:
+                evidence.append(item)
+    return claims, evidence

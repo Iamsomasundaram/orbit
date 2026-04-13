@@ -1,6 +1,6 @@
 # Web App
 
-Milestone 13 keeps the existing workspace shell and extends it for adaptive committee execution with llm-first runtime defaults, tiered specialist activation telemetry, passive-observer visibility, slower or faster Committee Mode playback, and existing browser automation coverage.
+Milestone 14 keeps the existing workspace shell and extends it for evidence-based committee reasoning with explicit claim chains, confidence display, and conflict evidence visibility while preserving adaptive routing telemetry and playback controls.
 
 Current capability:
 
@@ -12,7 +12,7 @@ Current capability:
 - review-run detail page with active artifact state, adaptive routing telemetry, fallback banner, conflict metadata, and review-scope audit events
 - review-run Committee Mode page with staged playback, phase rail, conflict spotlight, final verdict reveal, `0.5x` to `instant` playback controls, passive-observer visibility, and telemetry-aware agent identity cards
 - review-run static deliberation page with ordered committee statements and phase summaries
-- runtime copy and health metadata aligned to the Milestone 13 adaptive architecture milestone
+- runtime copy and health metadata aligned to the Milestone 14 evidence-based reasoning milestone
 - web-side POST handlers that forward submission and review triggers to the FastAPI backend with JSON-aware responses for reliable client interaction
 - liveness and readiness endpoints for Compose health checks
 - typed runtime config for internal and public API base URLs

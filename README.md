@@ -27,6 +27,7 @@ Current status:
 - Milestone 12.1 improves Committee Mode usability and observability with persistent agent identity treatment, stance-aware conflict visualization, playback speed control, and committee token telemetry surfaced from existing runtime metadata.
 - Milestone 12.2 hardens the platform with Playwright browser automation, reliable client-side submission and review actions, deeper runtime telemetry, deterministic llm fallback safety, markdown-ingestion safeguards, conflict metadata enrichment, audit-boundary cleanup, and indexed history/query paths.
 - Milestone 13 makes llm execution the default committee runtime, adds adaptive Tier-1 and Tier-2 routing with passive observers for inactive specialists, expands routing telemetry, and preserves deterministic fallback plus Committee Mode playback compatibility.
+- Milestone 14 upgrades committee reasoning into structured claim-evidence-risk chains with confidence scoring, evidence-aware moderator synthesis, and Committee Mode evidence visibility without altering the review workflow.
 
 Primary references:
 
@@ -51,6 +52,7 @@ Primary references:
 - `docs/milestone-12.1/README.md`
 - `docs/milestone-12.2/README.md`
 - `docs/milestone-13/README.md`
+- `docs/milestone-14/README.md`
 
 Platform commands:
 
